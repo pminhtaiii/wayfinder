@@ -140,8 +140,7 @@ export class CancellationService {
       customerRefundAmount: booking.customerRefundAmount?.toString() ?? null,
       duffelCancellationQuoteId: parseDuffelCancellationQuoteId(
         booking.supplierCancellationQuoteId,
-      )
-        .quoteId,
+      ).quoteId,
       refundStatus,
       retryCount: projectedRefund?.retryCount ?? null,
       nextRetryAt: projectedRefund?.nextRetryAt?.toISOString() ?? null,
@@ -581,8 +580,7 @@ export class CancellationService {
       refundAmount: booking.customerRefundAmount?.toString() ?? '0.00',
       duffelCancellationQuoteId: parseDuffelCancellationQuoteId(
         booking.supplierCancellationQuoteId,
-      )
-        .quoteId,
+      ).quoteId,
     };
   }
 }

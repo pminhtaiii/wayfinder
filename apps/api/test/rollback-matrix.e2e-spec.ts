@@ -264,7 +264,7 @@ describe('Rollback Matrix & Database Row Integrity (E2E)', () => {
       const rawTokenObj = await tokenService.generateToken(preIssuedRowId, idempotencyHash, 1);
       preIssuedRawToken = rawTokenObj.token;
 
-      const duffelOfferIdHash = crypto
+      const supplierOfferIdHash = crypto
         .createHash('sha256')
         .update(validFlightOffer.supplierOfferId)
         .digest('hex');
@@ -277,7 +277,7 @@ describe('Rollback Matrix & Database Row Integrity (E2E)', () => {
           userId: validUser.id,
           chatSessionId: validSession.id,
           flightOfferId: validFlightOffer.id,
-          supplierOfferIdHash: duffelOfferIdHash,
+          supplierOfferIdHash,
           snapshotVersion: 1,
           snapshotFingerprint: 'mock-fingerprint-preissued',
           selectionAttestationHash: attestation,
@@ -485,7 +485,7 @@ describe('Rollback Matrix & Database Row Integrity (E2E)', () => {
       const handoffRowId = crypto.randomUUID();
       const idempotencyHash = tokenService.deriveIdempotencyHash(attestation, 1, 1);
       const rawTokenObj = await tokenService.generateToken(handoffRowId, idempotencyHash, 1);
-      const duffelOfferIdHash = crypto
+      const supplierOfferIdHash = crypto
         .createHash('sha256')
         .update(validFlightOffer.supplierOfferId)
         .digest('hex');
@@ -498,7 +498,7 @@ describe('Rollback Matrix & Database Row Integrity (E2E)', () => {
           userId: validUser.id,
           chatSessionId: validSession.id,
           flightOfferId: validFlightOffer.id,
-          supplierOfferIdHash: duffelOfferIdHash,
+          supplierOfferIdHash,
           snapshotVersion: 1,
           snapshotFingerprint: 'mock-fp-integrity-1',
           selectionAttestationHash: attestation,

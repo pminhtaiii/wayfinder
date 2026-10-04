@@ -280,8 +280,8 @@ describe('Booking Readiness Performance Benchmarks (E2E) - Task T075', () => {
   let testUser: { id: string; email: string };
   let testToken: string;
   let profile: { id: string; revision: number };
-  let internationalOffer: { id: string; duffelOfferId: string };
-  let domesticOffer: { id: string; duffelOfferId: string };
+  let internationalOffer: { id: string; supplierOfferId: string };
+  let domesticOffer: { id: string; supplierOfferId: string };
 
   const benchmarkStats: Record<string, BenchmarkStats> = {};
 
@@ -438,7 +438,7 @@ describe('Booking Readiness Performance Benchmarks (E2E) - Task T075', () => {
         currency: 'USD',
       },
     });
-    internationalOffer = { id: createdIntlOffer.id, duffelOfferId: createdIntlOffer.supplierOfferId };
+    internationalOffer = { id: createdIntlOffer.id, supplierOfferId: createdIntlOffer.supplierOfferId };
 
     // 5. Seed domestic flight offer
     const createdDomOffer = await prisma.flightOffer.create({
@@ -473,7 +473,7 @@ describe('Booking Readiness Performance Benchmarks (E2E) - Task T075', () => {
         currency: 'USD',
       },
     });
-    domesticOffer = { id: createdDomOffer.id, duffelOfferId: createdDomOffer.supplierOfferId };
+    domesticOffer = { id: createdDomOffer.id, supplierOfferId: createdDomOffer.supplierOfferId };
 
     // Pre-warm database connection pool
     await prisma.$queryRaw`SELECT 1`;
@@ -793,7 +793,7 @@ describe('Booking Readiness Performance Benchmarks (E2E) - Task T075', () => {
 
       // Mock the supplier adapter to ensure zero external supplier network calls.
       const duffelOfferSpy = jest.spyOn(searchAdapter, 'getOffer').mockResolvedValue({
-        id: internationalOffer.duffelOfferId,
+        id: internationalOffer.supplierOfferId,
         total_amount: '500.00',
         total_currency: 'USD',
         expires_at: '2030-08-25T10:00:00Z',
@@ -867,7 +867,7 @@ describe('Booking Readiness Performance Benchmarks (E2E) - Task T075', () => {
 
       // Mock the supplier adapter for in-memory execution and zero supplier calls.
       const duffelOfferSpy = jest.spyOn(searchAdapter, 'getOffer').mockResolvedValue({
-        id: internationalOffer.duffelOfferId,
+        id: internationalOffer.supplierOfferId,
         total_amount: '500.00',
         total_currency: 'USD',
         expires_at: '2030-08-25T10:00:00Z',

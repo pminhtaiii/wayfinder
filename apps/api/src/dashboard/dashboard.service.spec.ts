@@ -490,7 +490,7 @@ describe('DashboardService (T009)', () => {
         status: BookingStatus.CONFIRMED,
         failureReason: null,
         pnrReference: 'PNR_SECRET_ABC',
-        duffelOrderId: 'ord_secret_duffel_123',
+        supplierOrderId: 'ord_secret_duffel_123',
         flightSnapshot: {
           segments: [
             {
@@ -513,7 +513,7 @@ describe('DashboardService (T009)', () => {
         cancellationRefundable: true,
         airlineRefundAmount: '400.00',
         customerRefundAmount: '400.00',
-        duffelCancellationQuoteId: 'cquo_secret_123',
+        supplierCancellationQuoteId: 'cquo_secret_123',
         createdAt: new Date('2026-08-25T10:00:00.000Z'),
         updatedAt: new Date('2026-08-25T10:00:00.000Z'),
       };

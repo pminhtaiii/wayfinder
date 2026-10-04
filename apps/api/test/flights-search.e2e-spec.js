@@ -412,7 +412,7 @@ describe('Flights Search (E2E)', () => {
                     where: { searchHash: history.searchHash },
                 });
                 expect(offers.length).toBe(1);
-                expect(offers[0].duffelOfferId).toBe('off_mock_123');
+                expect(offers[0].supplierOfferId).toBe('off_mock_123');
                 const recovery = await prisma.offerRecovery.findUnique({
                     where: { id: offers[0].id },
                 });

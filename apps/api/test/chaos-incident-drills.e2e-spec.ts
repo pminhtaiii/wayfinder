@@ -147,7 +147,7 @@ describe('Chaos & Fault-Tolerance Incident Drills (E2E)', () => {
       const offer = await createMockFlightOffer({ adults: 1 });
       const handoffId = crypto.randomUUID();
       const { token, tokenHash } = await tokenService.generateToken(handoffId, 'idem-chaos-1', 1);
-      const duffelOfferIdHash = tokenService.hashToken(offer.supplierOfferId);
+      const supplierOfferIdHash = tokenService.hashToken(offer.supplierOfferId);
 
       const session = await prisma.chatSession.create({
         data: {
@@ -162,7 +162,7 @@ describe('Chaos & Fault-Tolerance Incident Drills (E2E)', () => {
           userId: testUser.id,
           chatSessionId: session.id,
           flightOfferId: offer.id,
-          supplierOfferIdHash: duffelOfferIdHash,
+          supplierOfferIdHash,
           snapshotVersion: 1,
           snapshotFingerprint: 'print-chaos-1',
           selectionAttestationHash: 'attest-chaos-1',
@@ -274,7 +274,7 @@ describe('Chaos & Fault-Tolerance Incident Drills (E2E)', () => {
       const offer = await createMockFlightOffer({ adults: 1 });
       const handoffId = crypto.randomUUID();
       const { token, tokenHash } = await tokenService.generateToken(handoffId, 'idem-chaos-2', 1);
-      const duffelOfferIdHash = tokenService.hashToken(offer.supplierOfferId);
+      const supplierOfferIdHash = tokenService.hashToken(offer.supplierOfferId);
 
       const session = await prisma.chatSession.create({
         data: {
@@ -291,7 +291,7 @@ describe('Chaos & Fault-Tolerance Incident Drills (E2E)', () => {
           userId: testUser.id,
           chatSessionId: session.id,
           flightOfferId: offer.id,
-          supplierOfferIdHash: duffelOfferIdHash,
+          supplierOfferIdHash,
           snapshotVersion: 1,
           snapshotFingerprint: 'print-chaos-2',
           selectionAttestationHash: 'attest-chaos-2',

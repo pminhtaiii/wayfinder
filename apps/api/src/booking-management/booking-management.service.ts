@@ -309,8 +309,7 @@ export class BookingManagementService {
         : null,
       duffelCancellationQuoteId: parseDuffelCancellationQuoteId(
         booking.supplierCancellationQuoteId,
-      )
-        .quoteId,
+      ).quoteId,
       createdAt: booking.createdAt.toISOString(),
       updatedAt: booking.updatedAt.toISOString(),
       ancillarySummary,

@@ -431,7 +431,7 @@ describe('CancellationService', () => {
       await expect(service.getCancellationQuote('b-1', 'u-1')).rejects.toThrow(BadRequestException);
     });
 
-    it('throws BadRequestException if duffelOrderId is missing', async () => {
+    it('throws BadRequestException if supplierOrderId is missing', async () => {
       mockPrisma.booking.findUnique.mockResolvedValue({
         id: 'b-1',
         userId: 'u-1',
@@ -684,7 +684,7 @@ describe('CancellationService', () => {
       );
     });
 
-    it('throws BadRequestException if quoteId is invalid or duffelOrderId missing', async () => {
+    it('throws BadRequestException if quoteId is invalid or supplierOrderId missing', async () => {
       mockPrisma.booking.findUnique.mockResolvedValue({
         ...booking,
         supplierCancellationQuoteId: 'quote-different',

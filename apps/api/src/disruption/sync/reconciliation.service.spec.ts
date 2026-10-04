@@ -308,7 +308,7 @@ describe('ReconciliationService & Booking Completion', () => {
       expect(result.failed).toBe(1);
       expect(mockCacheService.set).toHaveBeenCalledWith('reconciliation:failures:b-1', '1', 172800);
 
-      // Verify that nextDuffelSyncAt is updated (15 mins backoff)
+      // Verify that nextSupplierSyncAt is updated (15 mins backoff)
       expect(mockPrisma.booking.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'b-1' },

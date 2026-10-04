@@ -184,7 +184,6 @@ describe('Booking Events & Projection Updates E2E (US2 - T033)', () => {
       data: {
         id,
         userId,
-        // Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
         supplierOfferId: `off_${randomUUID()}`,
         originalPrice: 450.0,
         confirmedPrice: 450.0,

@@ -558,7 +558,7 @@ describe('BookingManagementService', () => {
                 arrivalAt: new Date('2026-09-15T12:30:00Z'),
                 durationMinutes: 480,
                 aircraftType: '777',
-                duffelSegmentId: 'seg_rev_1',
+                supplierSegmentId: 'seg_rev_1',
                 sliceOrder: 0,
                 segmentOrder: 0,
                 globalOrder: 1,

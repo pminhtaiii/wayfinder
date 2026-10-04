@@ -109,7 +109,6 @@ describe('Payment (E2E)', () => {
     return prisma.flightOffer.create({
       data: {
         searchHash: 'test-search-hash',
-        // Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
         supplierOfferId: 'off_duffel_123',
         rawOffer: {},
         origin: 'SGN',
@@ -138,7 +137,6 @@ describe('Payment (E2E)', () => {
       data: {
         userId,
         flightOfferId: offerId,
-        // Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
         supplierOfferId: 'off_duffel_123',
         status: (overrides.status as any) || 'AWAITING_PAYMENT',
         originalPrice: new Prisma.Decimal(100.0),

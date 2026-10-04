@@ -128,7 +128,6 @@ describe('Cancellation and refund recovery (E2E)', () => {
     const intent = await prisma.bookingIntent.create({
       data: {
         userId,
-        // Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
         supplierOfferId: `off-${crypto.randomUUID()}`,
         status: 'CONFIRMED',
         originalPrice: new Prisma.Decimal('125.50'),
@@ -176,7 +175,6 @@ describe('Cancellation and refund recovery (E2E)', () => {
         currency: 'USD',
         status: overrides.status ?? BookingStatus.CONFIRMED,
         departureAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
-        // Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
         supplierOrderId: `ord-${crypto.randomUUID()}`,
         supplierCancellationQuoteId: quoteId,
         cancellationDeadline: overrides.deadline ?? new Date(Date.now() + 60 * 60 * 1000),

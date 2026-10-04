@@ -106,7 +106,6 @@ async function createSafetyFixture(): Promise<SafetyFixture> {
     id: 'intent-safety-1',
     userId: 'user-safety-1',
     supplierOfferId: 'offer-safety-1',
-    duffelOfferId: 'offer-safety-1',
     paymentAttemptCount: 1,
     confirmedPrice: 15000,
     currency: 'USD',

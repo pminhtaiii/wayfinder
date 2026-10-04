@@ -729,20 +729,17 @@ export class PaymentRefundService {
       orderBy: { updatedAt: 'desc' },
     });
 
-    return refunds.map(({ cancellationRefundObligation, ...refund }) => {
-      const booking = cancellationRefundObligation?.booking;
-      return {
-        ...refund,
-        booking: booking
-          ? {
-              id: booking.id,
-              status: booking.status,
-              pnrReference: booking.pnrReference,
-              duffelOrderId: booking.supplierOrderId,
-            }
-          : null,
-      };
-    });
+    return refunds.map(({ cancellationRefundObligation, ...refund }) => ({
+      ...refund,
+      booking: cancellationRefundObligation?.booking
+        ? {
+            id: cancellationRefundObligation.booking.id,
+            status: cancellationRefundObligation.booking.status,
+            pnrReference: cancellationRefundObligation.booking.pnrReference,
+            duffelOrderId: cancellationRefundObligation.booking.supplierOrderId,
+          }
+        : null,
+    }));
   }
 
   private isIdempotencyKeyUnsafe(createdAt: Date): boolean {

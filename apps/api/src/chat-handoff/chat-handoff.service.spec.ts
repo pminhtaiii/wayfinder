@@ -160,7 +160,7 @@ describe('ChatHandoffService', () => {
         userId: 'u1',
         chatSessionId: 'cs1',
         flightOfferId: 'fo1',
-        duffelOfferIdHash: 'duff1',
+        supplierOfferIdHash: 'duff1',
         selectionAttestationHash: 'attest',
         selectedOfferIndex: 1,
         snapshotVersion: 1,

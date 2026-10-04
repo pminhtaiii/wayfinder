@@ -291,7 +291,7 @@ describe('Feature Flag Governance & Rollout Matrix (E2E)', () => {
       const rowId = crypto.randomUUID();
       const idempotencyHash = tokenService.deriveIdempotencyHash(attestation, 1, 1);
       const rawToken = await tokenService.generateToken(rowId, idempotencyHash, 1);
-      const duffelOfferIdHash = crypto
+      const supplierOfferIdHash = crypto
         .createHash('sha256')
         .update(validFlightOffer.supplierOfferId)
         .digest('hex');
@@ -304,7 +304,7 @@ describe('Feature Flag Governance & Rollout Matrix (E2E)', () => {
           userId: validUser.id,
           chatSessionId: validSession.id,
           flightOfferId: validFlightOffer.id,
-          supplierOfferIdHash: duffelOfferIdHash,
+          supplierOfferIdHash,
           snapshotVersion: 1,
           snapshotFingerprint: 'mock-fingerprint',
           selectionAttestationHash: attestation,
@@ -331,7 +331,7 @@ describe('Feature Flag Governance & Rollout Matrix (E2E)', () => {
 
       // Verify no sensitive tokens or DB internals in resolve response
       expect(res.body.tokenHash).toBeUndefined();
-      expect(res.body.duffelOfferIdHash).toBeUndefined();
+      expect(res.body.supplierOfferIdHash).toBeUndefined();
       expect(res.body.rawOffer).toBeUndefined();
     });
   });
@@ -410,7 +410,7 @@ describe('Feature Flag Governance & Rollout Matrix (E2E)', () => {
 
       // Verify no sensitive tokens or internal hashes in resolve response
       expect(resolveRes.body.tokenHash).toBeUndefined();
-      expect(resolveRes.body.duffelOfferIdHash).toBeUndefined();
+      expect(resolveRes.body.supplierOfferIdHash).toBeUndefined();
       expect(resolveRes.body.rawOffer).toBeUndefined();
     });
   });

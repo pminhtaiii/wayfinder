@@ -90,7 +90,6 @@ describe('Disruption & Flight-Change Management (Webhook & Processor E2E)', () =
     const intent = await prisma.bookingIntent.create({
       data: {
         userId,
-        // Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
         supplierOfferId: `off_fake_${suffix}`,
         originalPrice: new Prisma.Decimal('100.00'),
         confirmedPrice: new Prisma.Decimal('100.00'),
@@ -113,7 +112,6 @@ describe('Disruption & Flight-Change Management (Webhook & Processor E2E)', () =
         totalAmount: new Prisma.Decimal('100.00'),
         currency: 'USD',
         status: 'CONFIRMED',
-        // Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
         supplierOrderId: `ord_fake_${suffix}`,
         flightSnapshot: {
           stops: 0,
@@ -448,7 +446,6 @@ describe('Disruption & Flight-Change Management (Webhook & Processor E2E)', () =
           segments: {
             create: [
               {
-                // Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
                 supplierSegmentId: 'seg_new_1',
                 airlineName: 'Japan Airlines',
                 marketingCarrierIata: 'JL',
