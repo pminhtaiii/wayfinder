@@ -161,7 +161,7 @@ describe('Booking Passenger Final Validation (E2E) - Task T068', () => {
     return prisma.flightOffer.create({
       data: {
         searchHash: `search-${crypto.randomUUID()}`,
-        duffelOfferId,
+        supplierOfferId: duffelOfferId,
         rawOffer: {
           id: duffelOfferId,
           expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),

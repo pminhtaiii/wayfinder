@@ -145,7 +145,7 @@ describe('Ancillary catalog HTTP contract (E2E)', () => {
       id: intentId,
       userId: 'user-1',
       status: 'PENDING',
-      duffelOfferId: 'off_123',
+      supplierOfferId: 'off_123',
       confirmedPrice: '420.00',
       currency: 'USD',
       ancillaryVersion: 0,
@@ -157,7 +157,7 @@ describe('Ancillary catalog HTTP contract (E2E)', () => {
         {
           id: 'intent-pas-1',
           position: 0,
-          duffelPassengerId: 'pas_1',
+          supplierPassengerId: 'pas_1',
           givenName: 'Alex',
           type: 'ADULT',
         },
