@@ -8,6 +8,7 @@ import {
   FlightOfferNormalizer,
   generateDeterministicUUID,
   normalizeOffer,
+  normalizeStoredOfferFacts,
   normalizeStoredOffer,
 } from './flight-offer.normalizer';
 import {
@@ -433,6 +434,74 @@ describe('FlightOfferNormalizer (T014)', () => {
   }
 
   describe('c. Legacy stored offer normalization (normalizeStoredOffer)', () => {
+    it('normalizes route and arrival facts from partial stored evidence', () => {
+      const partialSnapshot = {
+        slices: [{
+          segments: [{
+            origin: { countryCode: 'GB' },
+            destination: { iata_country_code: 'US' },
+            arrivalDate: '2026-09-10T12:00:00',
+          }],
+        }],
+      };
+
+      expect(normalizeStoredOfferFacts(partialSnapshot)).toEqual({
+        travelScope: 'INTERNATIONAL',
+        tripCompletionDate: '2026-09-10',
+        offerExpiresAt: null,
+      });
+    });
+
+    it('preserves partial fact aliases and latest valid arrival date prefix', () => {
+      const partialSnapshot = {
+        expires_at: null,
+        expiresAt: '2026-08-20T00:00:00Z',
+        slices: [{
+          segments: [
+            {
+              origin: { iata_country_code: 'GB' },
+              destination: { countryCode: 'JP' },
+              arriving_at: '2026-08-01T15:00:00Z',
+            },
+            {
+              origin: { countryCode: 'JP' },
+              destination: { iata_country_code: 'GB' },
+              arrivalDate: '2026-08-10T15:00:00Z',
+            },
+            {
+              origin: { countryCode: 'GB' },
+              destination: { countryCode: 'JP' },
+              arrivingAt: '2026-08-15 legacy timestamp',
+            },
+            {
+              origin: { countryCode: 'GB' },
+              destination: { countryCode: 'JP' },
+              arriving_at: '2026-02-30T15:00:00Z',
+            },
+          ],
+        }],
+      };
+
+      expect(normalizeStoredOfferFacts(partialSnapshot)).toEqual({
+        travelScope: 'INTERNATIONAL',
+        tripCompletionDate: '2026-08-15',
+        offerExpiresAt: '2026-08-20T00:00:00Z',
+      });
+    });
+
+    it('keeps array-backed missing route facts domestic but absent slices null', () => {
+      expect(normalizeStoredOfferFacts({ slices: [] })).toEqual({
+        travelScope: 'DOMESTIC',
+        tripCompletionDate: null,
+        offerExpiresAt: null,
+      });
+      expect(normalizeStoredOfferFacts({})).toEqual({
+        travelScope: null,
+        tripCompletionDate: null,
+        offerExpiresAt: null,
+      });
+    });
+
     it('normalizes legacy country and arrival aliases into international return-trip facts', () => {
       const storedSnapshot = {
         id: 'off_legacy_round_trip',

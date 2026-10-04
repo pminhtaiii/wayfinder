@@ -650,6 +650,18 @@ describe('DuffelSearchService Contract Tests (TDD RED)', () => {
   });
 
   describe('normalizeStoredOffer Contract', () => {
+    it('exposes partial stored offer facts through the search port', () => {
+      expect(
+        service.normalizeStoredOfferFacts({
+          expiresAt: '2026-08-18T08:00:00.000Z',
+        }),
+      ).toEqual({
+        travelScope: null,
+        tripCompletionDate: null,
+        offerExpiresAt: '2026-08-18T08:00:00.000Z',
+      });
+    });
+
     it('normalizes valid stored raw offer into neutral FlightOffer', () => {
       const rawOffer = createMockRawOffer('off_stored_valid');
       const expectedUUID = generateDeterministicUUID('off_stored_valid');

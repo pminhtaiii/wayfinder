@@ -39,6 +39,10 @@ export type FlightTravelFacts = {
   tripCompletionDate: string | null;
 };
 
+export type FlightStoredOfferFacts = FlightTravelFacts & {
+  offerExpiresAt: string | null;
+};
+
 export type FlightOfferConditions = {
   refundable: boolean;
   changeable: boolean;
@@ -87,4 +91,5 @@ export interface FlightSearchPort {
   search(criteria: FlightSearchCriteria, caller: 'user' | 'agent'): Promise<FlightSearchResult>;
   getOfferById(supplierOfferId: string, timeoutMs?: number): Promise<FlightOffer>;
   normalizeStoredOffer(rawOffer: unknown): FlightOffer | null;
+  normalizeStoredOfferFacts(rawOffer: unknown): FlightStoredOfferFacts;
 }

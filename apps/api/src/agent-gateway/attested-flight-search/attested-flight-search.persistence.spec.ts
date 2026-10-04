@@ -22,6 +22,8 @@ import { SelectionAttestationService } from '../selection-attestation.service';
 import { AgentToolAuditService } from '../audit/agent-tool-audit.service';
 import { AttestedFlightSearchService } from './attested-flight-search.service';
 
+// User approved 2026-10-04: extend the typed port fixture without changing persistence assertions.
+
 function deferred(): { promise: Promise<void>; resolve: () => void } {
   let resolve!: () => void;
   const promise = new Promise<void>((release) => {
@@ -107,6 +109,7 @@ describe('Attested flight search persistence boundary', () => {
       search: flightSearch,
       getOfferById: jest.fn(),
       normalizeStoredOffer: (raw) => normalizer.normalizeStoredOffer(raw),
+      normalizeStoredOfferFacts: (raw) => normalizer.normalizeStoredOfferFacts(raw),
     };
     transaction = jest
       .fn()

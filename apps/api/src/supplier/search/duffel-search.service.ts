@@ -7,6 +7,7 @@ import { FlightOfferNormalizer, validateAndNormalizeOffer } from './flight-offer
 import { DuffelOffer } from '@/duffel/duffel.types';
 import {
   FlightOffer,
+  FlightStoredOfferFacts,
   FlightSearchCriteria,
   FlightSearchPort,
   FlightSearchResult,
@@ -207,5 +208,9 @@ export class DuffelSearchService implements FlightSearchPort {
 
   normalizeStoredOffer(rawOffer: unknown): FlightOffer | null {
     return this.normalizerInstance.normalizeStoredOffer(rawOffer);
+  }
+
+  normalizeStoredOfferFacts(rawOffer: unknown): FlightStoredOfferFacts {
+    return this.normalizerInstance.normalizeStoredOfferFacts(rawOffer);
   }
 }

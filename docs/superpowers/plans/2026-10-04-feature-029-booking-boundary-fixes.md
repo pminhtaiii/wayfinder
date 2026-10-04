@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task-by-task; steps use checkbox syntax.
 
-**Status:** Root released T059 after the final unchanged-agent gate passed (1,302 passed, 4 skipped, 12 deselected; exit 0; Ruff passed). T059 implementation, focused tests, API typecheck, and package lint have passed. T060 remains held for root's independent review.
+**Status:** T059 was committed and independently reviewed before T060 release. T060 implementation and focused checks are complete locally: five Jest suites passed (224 tests), API no-emit typecheck passed, and package ESLint passed. The scoped T060 commit is ready for root's independent review.
 
 **Prepared against:** `2ccca27fb789e2dec34fc90d242c846fef640421` (plan-only HEAD). The task brief identifies `eda88f0` as the source baseline. Chronology: one user-authorized full-agent retry reported `input.injection` p95 `2.2666 ms > 2 ms`; the later final unchanged-agent gate passed with the counts above, after which root released T059. Jest, TypeScript, ESLint, and network-guard CLI paths were confirmed before implementation; exact T059 executions and results are recorded in `.superpowers/sdd/2026-10-04-feature-029-final-verification/booking-boundary-fix-report.md`.
 
@@ -27,7 +27,7 @@ Use the approved T059/T060 boundary design in `.superpowers/sdd/2026-10-04-featu
 ## GlobalConstraints
 
 - Keep the current checkout and make separate T059/T060 commits; root reviews T059 independently before any T060 edits.
-- T059 source, test, and gate work is released. Keep T060 source/test/gate work on hold until root completes the independent T059 review and releases it.
+- T059 source, test, and gate work is complete and independently reviewed. T060 was held until that review, then released; its implementation and required checks are complete locally. Commit only T060-owned files, then pause for root review.
 - No child agents, `any`, type assertions, dependency/lock/schema/migration edits, security suppressions, endpoints, or weakened/skipped assertions.
 - Keep supplier raw evidence opaque in domain code. Keep existing HTTP/SSE aliases, HMAC/crypto contexts, snapshot history, lifecycle holds/idempotency, and webhook behavior unchanged.
 - Follow one public test → observed RED → minimal GREEN cycle at a time. If the same failure persists after one corrective attempt, stop and report it to root.
@@ -39,10 +39,10 @@ Use the approved T059/T060 boundary design in `.superpowers/sdd/2026-10-04-featu
 - [ ] T059: add and observe RED proving missing normalized passenger identities cannot be recovered from opaque raw payload; use typed normalized passenger facts only.
 - [ ] T059: neutralize passenger identity names through resolver, intent binding, snapshot mapping, and approved adjacent tests; preserve existing stable same-type ordering assertions.
 - [ ] T059: run focused Jest suites, API no-emit typecheck, and API package ESLint; self-review and commit; pause for root's independent review.
-- [ ] T060: after root review/release, add and observe RED for normalized scope/trip-date facts winning over conflicting raw fields; consume port facts after decrypting snapshots.
-- [ ] T060: add and observe RED for normalized offer-expiry fallback; preserve the existing `OFFER_EXPIRED`/409 result.
-- [ ] T060: adapt approved fixtures to complete normalized evidence without changing existing safety assertions; verify malformed/missing-country behavior and decrypt-before-validation ordering.
-- [ ] T060: run focused validator, intent, and payment-fulfillment Jest suites, API no-emit typecheck, and API package ESLint; self-review and commit; pause for root's independent review.
+- [x] T060: after root review/release, observe RED for normalized scope/trip-date facts winning over conflicting raw fields; consume port facts after decrypting snapshots.
+- [x] T060: observe the consumer RED for expired normalized offer facts and preserve the existing expiry-only raw-snapshot compatibility case and persisted `offerExpiresAt` check.
+- [x] T060: keep route/date and expiry-only snapshots partial; preserve alias/default/date-prefix behavior, option precedence, ciphertext ordering, and all existing safety assertions.
+- [x] T060: run the focused five-suite Jest gate, API no-emit typecheck, and package ESLint; self-review the scoped diff and prepare the T060 commit for root's independent review.
 
 ## Approval and scope
 
@@ -160,42 +160,93 @@ Record each actual RED/GREEN command and result, focused test counts, typecheck/
 
 ## T060 — final validator consumes normalized facts
 
+This section supersedes the earlier “no new port method” preference and the complete-fixture approach. Root verified that complete-offer normalization drops historically accepted expiry-only and partial itinerary evidence. Preserve that behavior with one supplier-local facts operation on the existing port; do not weaken `normalizeStoredOffer` or make legacy fixtures artificially complete.
+
 Files in scope:
 
-- `apps/api/src/booking-intent/booking-passenger-final-validator.service.ts`
-- `apps/api/src/booking-intent/booking-passenger-final-validator.service.spec.ts`
-- `apps/api/src/booking-intent/booking-intent.module.ts` only if the existing exported port provider cannot be injected as-is (expected: no change).
+- `apps/api/src/supplier/search/flight-search.port.ts`
+- `apps/api/src/supplier/search/flight-offer.normalizer.ts` and `.spec.ts`
+- `apps/api/src/supplier/search/duffel-search.service.ts` and its focused spec (method forwarding)
+- `apps/api/src/booking-intent/booking-passenger-final-validator.service.ts` and `.spec.ts`
+- `apps/api/src/agent-gateway/attested-flight-search/attested-flight-search.persistence.spec.ts` (typed port fixture only)
+- `apps/api/src/booking-intent/booking-intent.module.ts` only if the already-exported port cannot be injected as-is (expected: no change)
 
-### RED → GREEN 1: normalized international scope and return-date expiry win
+Add this exact typed contract to the existing port; `FlightTravelFacts` already has these fields:
 
-Use the public `validate()` method. Inject a typed `FlightSearchPort` test double whose `normalizeStoredOffer` returns a valid normalized offer with `travelScope: 'INTERNATIONAL'` and `tripCompletionDate: '2026-09-10'`. Give the opaque snapshot deliberately conflicting raw fields that claim same-country/domestic travel and an earlier return date. With a passenger whose passport is valid on `now` and through the raw date but expires before `2026-09-10`, assert `DOCUMENT_EXPIRED`. Add a second assertion in this regression for a domestic passenger with no passport: the normalized international scope must reject it as `SNAPSHOT_INCOMPLETE`. Both assertions fail against the current raw-field parser and pass when the validator uses normalized facts. Verify decryption happens before the port is called by retaining the corrupted-ciphertext/expired-offer test and asserting the port was not consulted. Do not call private methods.
+```typescript
+export type FlightStoredOfferFacts = FlightTravelFacts & {
+  offerExpiresAt: string | null;
+};
 
-Where fixture conversion is practical, use the real `FlightOfferNormalizer.normalizeStoredOffer` in the validator test setup. The deliberately conflicting port result is limited to the consumer regression, where it proves the validator treats `FLIGHT_SEARCH_PORT` as the facts boundary.
+export interface FlightSearchPort {
+  // existing methods
+  normalizeStoredOfferFacts(rawOffer: unknown): FlightStoredOfferFacts;
+}
+```
 
-### RED → GREEN 2: normalized expiry remains enforced
+Implement `normalizeStoredOfferFacts` in `FlightOfferNormalizer` and forward it from `DuffelSearchService` through the same `FlightSearchPort` registration. It returns facts for partial evidence without requiring id, price, currency, passengers, departure timestamps, or a complete offer. Keep `normalizeStoredOffer(rawOffer): FlightOffer | null` strict and unchanged. Refactor/share the existing supplier-local `getTravelFacts` helper so both complete-offer normalization and facts-only normalization use one extraction path, while full-offer validation remains strict before it reaches that helper. Match the old validator's accepted partial facts: `expires_at ?? expiresAt`; country `iata_country_code ?? countryCode`; arrival `arriving_at ?? arrivalDate ?? arrivingAt`; compare non-empty string country facts; and choose the latest calendar-valid `arrivalRaw.slice(0, 10)` without requiring the rest of the timestamp to parse. Preserve the old null/default distinction: non-record input or input without an array-valued `slices` yields null travel facts; any array-valued `slices` initializes `travelScope` to `DOMESTIC` even when empty or malformed, with a null completion date unless a valid arrival prefix is found. Do not require airport codes to recognize old partial route facts. The expiry fact is the selected string alias only when `new Date(value)` is valid, otherwise null, matching the old validator behavior. Do not add supplier parsing back to booking-intent/domain code.
 
-Add a public `validate()` regression with `intent.offerExpiresAt === null`, an opaque raw snapshot with no expiry field, and a port result with `offerExpiresAt` before the supplied `now`. Assert the existing `OFFER_EXPIRED` / 409 result. The current validator ignores a normalized port result and lets this case through, so the assertion is RED before wiring and GREEN after the minimal change.
+In `BookingPassengerFinalValidatorService`, inject `FLIGHT_SEARCH_PORT` using Nest constructor injection. Preserve the order: basic intent checks; decrypt/authenticate every passenger snapshot; call `normalizeStoredOfferFacts(intent.rawOfferSnapshot)` once; check persisted `intent.offerExpiresAt` independently and then the normalized stored expiry with the existing `OFFER_EXPIRED` / HTTP 409 result; resolve scope/date; validate documents. A corrupted ciphertext must fail before the port is consulted. A non-empty explicit scope and trip-completion option keep precedence; otherwise use non-null normalized facts, then domestic/null defaults and the current passport-data scope elevation. No sync remote/DB call, new provider, endpoint, wire change, or error-shape change.
+
+### RED → GREEN 1: partial route/date facts and validator consumer
+
+First add a supplier-normalizer regression whose snapshot contains only route/date facts (no id, price, currency, passengers, or departure timestamp):
+
+```typescript
+const partial = {
+  slices: [{ segments: [{
+    origin: { countryCode: 'GB' },
+    destination: { iata_country_code: 'US' },
+    arrivalDate: '2026-09-10T12:00:00',
+  }] }],
+};
+expect(normalizeStoredOfferFacts(partial)).toEqual({
+  travelScope: 'INTERNATIONAL',
+  tripCompletionDate: '2026-09-10',
+  offerExpiresAt: null,
+});
+```
+
+Add a later valid arrival via `arrivingAt` and assert it wins; include a valid date-only prefix with the old accepted timestamp shape, and a missing-country segment that stays `DOMESTIC`. These checks should fail before the facts operation, then pass without changing strict full-offer normalization.
+
+Next use public `validate()` with a typed port double returning international scope and `tripCompletionDate: '2026-09-10'`, while the raw snapshot claims domestic scope and an earlier date. Assert `DOCUMENT_EXPIRED` for a passport that expires after the raw date but before the normalized date, and `SNAPSHOT_INCOMPLETE` for a passenger without a passport. Both fail before the validator consumes port facts. Keep this as a consumer-boundary test; use the real supplier normalizer for the partial-input regressions. Retain the corrupted-ciphertext test and assert `normalizeStoredOfferFacts` was not called. Do not call private methods.
+
+### RED → GREEN 2: expiry-only history remains enforced
+
+The existing raw expiry validator regression already passes before T060. Keep it unchanged as the expiry-only compatibility proof: the real facts normalizer must still extract expiry from `{ expires_at }` with no route/pricing/passenger fields, and public validation must retain `OFFER_EXPIRED` / 409.
+
+For the consumer RED, add a separate public `validate()` regression with `intent.offerExpiresAt === null`, a snapshot with no expiry (or a future raw expiry), and a typed port double returning `offerExpiresAt: '2026-08-18T08:00:00.000Z'` while `now` is `2026-08-18T10:00:00.000Z`. Assert the existing `OFFER_EXPIRED` / 409. It passes against the old raw parser because that parser cannot see the port fact, then fails as expected after the validator consumes normalized facts. Independently test that the facts operation handles an expiry-only snapshot, with no `slices` or complete-offer fields:
+
+```typescript
+expect(normalizeStoredOfferFacts({ expiresAt: '2026-08-18T08:00:00.000Z' })).toEqual({
+  travelScope: null,
+  tripCompletionDate: null,
+  offerExpiresAt: '2026-08-18T08:00:00.000Z',
+});
+```
+
+After facts-only extraction exists, wire the preserved expiry-only compatibility case to the real supplier facts normalizer and confirm it stays green. Keep the separate persisted `intent.offerExpiresAt` regression unchanged, and continue checking persisted and normalized stored expiry independently.
 
 ### Approved existing-test fixture adaptations
 
-Add the dated approval comment in the validator spec. Replace the incomplete default supplier snapshot fixture with a complete offer accepted by the real normalizer, retaining its original international countries, arrival date, and future expiry. Convert the existing raw-expiry and route fixtures to complete normalized evidence while retaining the exact expiry status/code and passport/trip-date expectations. Wire the port fixture to the real normalizer for these existing behavior tests; use explicit normalized facts only in the two consumer regressions above. Add a normalizer regression confirming that valid slices with missing country codes retain the current `DOMESTIC` scope; confirm that no usable slice shape normalizes to `null` and the validator still defaults to domestic. Preserve every assertion about decrypt-before-expiry ordering, ciphertext binding to intent/position/version/field, passport validity and expiry, explicit option precedence, route scope, and trip completion. No `.skip`, relaxed matcher, or removed assertion.
+Add the dated approval comment only if an existing validator test file's fixtures or wiring are adapted. Keep partial historical route and expiry fixtures partial; do not replace them with complete normalized offers. Adapt the validator test setup to provide a typed `FlightSearchPort` whose facts method delegates to the real `FlightOfferNormalizer.normalizeStoredOfferFacts` except in the explicit consumer-boundary tests. Preserve every assertion about decrypt-before-expiry ordering, ciphertext binding to intent/position/version/field, passport validity and expiry, explicit option precedence, domestic defaults, route scope, and trip completion. No `.skip`, relaxed matcher, removed assertion, timer change, or security suppression.
 
 ### T060 verification and commit
 
-After the T059 root review and release, run from `C:\Booking Systems\apps\api`:
+After the T059 root review and release, run from `C:\Booking Systems\apps\api` using the installed CLIs directly:
 
 ```powershell
 $env:NODE_OPTIONS = '--require="C:/Booking Systems/tests/ci/node-network-guard.cjs"'
-node node_modules/jest/bin/jest.js --config ./jest.config.json --runInBand --runTestsByPath src/booking-intent/booking-passenger-final-validator.service.spec.ts src/booking-intent/booking-intent.service.spec.ts src/payment-fulfillment/payment-fulfillment.saga.spec.ts
+node node_modules/jest/bin/jest.js --config ./jest.config.json --runInBand --runTestsByPath src/supplier/search/flight-offer.normalizer.spec.ts src/supplier/search/duffel-search.service.spec.ts src/booking-intent/booking-passenger-final-validator.service.spec.ts src/booking-intent/booking-intent.service.spec.ts src/payment-fulfillment/payment-fulfillment.saga.spec.ts
 node ../../node_modules/typescript/bin/tsc --project tsconfig.json --noEmit
 node ../../node_modules/eslint/bin/eslint.js "src/**/*.ts" "../../packages/shared/**/*.ts" --max-warnings 0
 ```
 
-The full payment-fulfillment saga spec is included because it is the consumer of final passenger validation. Record actual RED/GREEN logs and gate results, changed-file list, approved adaptations, and final source SHA in the task report. Self-review and commit only T060 files as `fix(029): validate passengers through normalized search facts (T060)`. Stop for root's independent review after the commit.
+Record each actual RED/GREEN command and result, focused test counts, typecheck/lint results, changed-file list, approved adaptations, and final source SHA in the T060 task report. Self-review and commit only T060 files as `fix(029): validate passengers through normalized search facts (T060)`. Stop for root's independent review after the commit.
 
 ## Execution holds and invariants
 
-- T059 implementation and focused verification are released. Do not begin T060 production/test changes or gates until root independently reviews the T059 commit and explicitly releases T060.
+- T059 was committed and independently reviewed before T060 was released. T060 implementation and required focused checks are complete locally; commit only T060 files and pause for root's independent review.
 - Do not create child agents, edit dependencies/lockfiles, schema/migrations, security suppressions, shared verification files, or task ledgers.
 - Preserve the current offer expiry, passport, binding, trip-date, ciphertext/HMAC, and booking lifecycle safeguards. Do not add type assertions or `any`; use the exported port and Nest constructor injection.
 - Follow one test → observed RED → minimal GREEN cycle at a time. If the same failure remains after one corrective attempt, stop and report it to root.

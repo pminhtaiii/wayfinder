@@ -10,6 +10,7 @@ import {
   FlightOffer,
   FlightOfferConditions,
   FlightOfferPassenger,
+  FlightStoredOfferFacts,
   FlightSegment,
   FlightTravelFacts,
 } from './flight-search.port';
@@ -92,23 +93,24 @@ function isUnknownRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isValidDateOnly(value: string): boolean {
-  const match = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.exec(value);
-  if (!match) return false;
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  return day <= getDaysInMonth(year, month);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    !Number.isNaN(date.getTime()) &&
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
 }
 
 function getTravelFacts(offer: unknown): FlightTravelFacts {
-  if (!isUnknownRecord(offer) || !Array.isArray(offer.slices) || offer.slices.length === 0) {
+  if (!isUnknownRecord(offer) || !Array.isArray(offer.slices)) {
     return { travelScope: null, tripCompletionDate: null };
   }
 
   let travelScope: FlightTravelFacts['travelScope'] = 'DOMESTIC';
   let latestArrival: string | null = null;
-  let hasUsableSegment = false;
   const slices: readonly unknown[] = offer.slices;
 
   for (const slice of slices) {
@@ -119,20 +121,22 @@ function getTravelFacts(offer: unknown): FlightTravelFacts {
       if (!isUnknownRecord(segment)) continue;
       const origin = isUnknownRecord(segment.origin) ? segment.origin : null;
       const destination = isUnknownRecord(segment.destination) ? segment.destination : null;
-      if (typeof origin?.iata_code !== 'string' || typeof destination?.iata_code !== 'string') {
-        continue;
-      }
-      hasUsableSegment = true;
       const originCountry = origin?.iata_country_code ?? origin?.countryCode ?? null;
       const destinationCountry =
         destination?.iata_country_code ?? destination?.countryCode ?? null;
 
-      if (originCountry && destinationCountry && originCountry !== destinationCountry) {
+      if (
+        typeof originCountry === 'string' &&
+        originCountry &&
+        typeof destinationCountry === 'string' &&
+        destinationCountry &&
+        originCountry !== destinationCountry
+      ) {
         travelScope = 'INTERNATIONAL';
       }
 
       const arrivalRaw = segment.arriving_at ?? segment.arrivalDate ?? segment.arrivingAt;
-      if (typeof arrivalRaw !== 'string' || !isValidIsoDateTime(arrivalRaw)) continue;
+      if (typeof arrivalRaw !== 'string') continue;
 
       const arrivalDate = arrivalRaw.slice(0, 10);
       if (isValidDateOnly(arrivalDate) && (!latestArrival || arrivalDate > latestArrival)) {
@@ -142,8 +146,8 @@ function getTravelFacts(offer: unknown): FlightTravelFacts {
   }
 
   return {
-    travelScope: hasUsableSegment ? travelScope : null,
-    tripCompletionDate: hasUsableSegment ? latestArrival : null,
+    travelScope,
+    tripCompletionDate: latestArrival,
   };
 }
 
@@ -534,6 +538,24 @@ export class FlightOfferNormalizer {
     return FlightOfferNormalizer.normalizeStoredOffer(rawOffer);
   }
 
+  normalizeStoredOfferFacts(rawOffer: unknown): FlightStoredOfferFacts {
+    return FlightOfferNormalizer.normalizeStoredOfferFacts(rawOffer);
+  }
+
+  static normalizeStoredOfferFacts(rawOffer: unknown): FlightStoredOfferFacts {
+    const candidate = isUnknownRecord(rawOffer) ? rawOffer : null;
+    const expiryValue = candidate?.expires_at ?? candidate?.expiresAt;
+    const offerExpiresAt =
+      typeof expiryValue === 'string' && !Number.isNaN(new Date(expiryValue).getTime())
+        ? expiryValue
+        : null;
+
+    return {
+      ...getTravelFacts(rawOffer),
+      offerExpiresAt,
+    };
+  }
+
   static normalizeStoredOffer(rawOffer: unknown): FlightOffer | null {
     if (
       rawOffer === null ||
@@ -722,4 +744,8 @@ export function normalizeOffer(
 
 export function normalizeStoredOffer(rawOffer: unknown): FlightOffer | null {
   return FlightOfferNormalizer.normalizeStoredOffer(rawOffer);
+}
+
+export function normalizeStoredOfferFacts(rawOffer: unknown): FlightStoredOfferFacts {
+  return FlightOfferNormalizer.normalizeStoredOfferFacts(rawOffer);
 }
