@@ -1,4 +1,5 @@
 import { DuffelOffer, DuffelPassenger, DuffelSlice } from '@/duffel/duffel.types';
+// User approved 2026-10-04: additive supplier-boundary regression; existing normalization assertions remain unchanged.
 import {
   generateDeterministicUUID as legacyGenerateDeterministicUUID,
   normalizeOffer as legacyNormalizeOffer,
@@ -432,6 +433,72 @@ describe('FlightOfferNormalizer (T014)', () => {
   }
 
   describe('c. Legacy stored offer normalization (normalizeStoredOffer)', () => {
+    it('normalizes legacy country and arrival aliases into international return-trip facts', () => {
+      const storedSnapshot = {
+        id: 'off_legacy_round_trip',
+        total_amount: '100.00',
+        total_currency: 'USD',
+        passengers: [{ id: 'pas_adult_1', type: 'adult' }],
+        slices: [
+          {
+            segments: [
+              {
+                origin: { iata_code: 'SGN', countryCode: 'VN' },
+                destination: { iata_code: 'NRT', countryCode: 'JP' },
+                departing_at: '2026-08-01T08:00:00Z',
+                arrivalDate: '2026-08-01T15:00:00Z',
+              },
+            ],
+          },
+          {
+            segments: [
+              {
+                origin: { iata_code: 'NRT', countryCode: 'JP' },
+                destination: { iata_code: 'SGN', countryCode: 'VN' },
+                departing_at: '2026-08-10T08:00:00Z',
+                arrivingAt: '2026-08-10T15:00:00Z',
+              },
+            ],
+          },
+        ],
+      };
+
+      const result = normalizeStoredOffer(storedSnapshot);
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          travelScope: 'INTERNATIONAL',
+          tripCompletionDate: '2026-08-10',
+        }),
+      );
+    });
+
+    it('normalizes the legacy stored expiry alias', () => {
+      const storedSnapshot = {
+        id: 'off_legacy_expiry',
+        total_amount: '100.00',
+        total_currency: 'USD',
+        expiresAt: '2026-08-20T00:00:00Z',
+        passengers: [{ id: 'pas_adult_1', type: 'adult' }],
+        slices: [
+          {
+            segments: [
+              {
+                origin: { iata_code: 'SGN' },
+                destination: { iata_code: 'NRT' },
+                departing_at: '2026-08-01T08:00:00Z',
+                arriving_at: '2026-08-01T15:00:00Z',
+              },
+            ],
+          },
+        ],
+      };
+
+      expect(normalizeStoredOffer(storedSnapshot)?.offerExpiresAt).toBe(
+        '2026-08-20T00:00:00Z',
+      );
+    });
+
     it('normalizes airport codes across outbound and return segments without changing the snapshot', () => {
       const storedSnapshot = createSampleStoredOffer();
       storedSnapshot.slices.push(createSampleRoundTripDuffelOffer().slices[1]);

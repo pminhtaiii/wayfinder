@@ -11,6 +11,7 @@ import {
   FlightOfferConditions,
   FlightOfferPassenger,
   FlightSegment,
+  FlightTravelFacts,
 } from './flight-search.port';
 
 export type DuffelOfferConditions = {
@@ -84,6 +85,66 @@ export function isValidIsoDateTime(isoDateTime: string | null | undefined): bool
   }
 
   return true;
+}
+
+function isUnknownRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isValidDateOnly(value: string): boolean {
+  const match = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.exec(value);
+  if (!match) return false;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  return day <= getDaysInMonth(year, month);
+}
+
+function getTravelFacts(offer: unknown): FlightTravelFacts {
+  if (!isUnknownRecord(offer) || !Array.isArray(offer.slices) || offer.slices.length === 0) {
+    return { travelScope: null, tripCompletionDate: null };
+  }
+
+  let travelScope: FlightTravelFacts['travelScope'] = 'DOMESTIC';
+  let latestArrival: string | null = null;
+  let hasUsableSegment = false;
+  const slices: readonly unknown[] = offer.slices;
+
+  for (const slice of slices) {
+    if (!isUnknownRecord(slice) || !Array.isArray(slice.segments)) continue;
+    const segments: readonly unknown[] = slice.segments;
+
+    for (const segment of segments) {
+      if (!isUnknownRecord(segment)) continue;
+      const origin = isUnknownRecord(segment.origin) ? segment.origin : null;
+      const destination = isUnknownRecord(segment.destination) ? segment.destination : null;
+      if (typeof origin?.iata_code !== 'string' || typeof destination?.iata_code !== 'string') {
+        continue;
+      }
+      hasUsableSegment = true;
+      const originCountry = origin?.iata_country_code ?? origin?.countryCode ?? null;
+      const destinationCountry =
+        destination?.iata_country_code ?? destination?.countryCode ?? null;
+
+      if (originCountry && destinationCountry && originCountry !== destinationCountry) {
+        travelScope = 'INTERNATIONAL';
+      }
+
+      const arrivalRaw = segment.arriving_at ?? segment.arrivalDate ?? segment.arrivingAt;
+      if (typeof arrivalRaw !== 'string' || !isValidIsoDateTime(arrivalRaw)) continue;
+
+      const arrivalDate = arrivalRaw.slice(0, 10);
+      if (isValidDateOnly(arrivalDate) && (!latestArrival || arrivalDate > latestArrival)) {
+        latestArrival = arrivalDate;
+      }
+    }
+  }
+
+  return {
+    travelScope: hasUsableSegment ? travelScope : null,
+    tripCompletionDate: hasUsableSegment ? latestArrival : null,
+  };
 }
 
 export function extractLocalHour(isoDateTime: string | null | undefined): number | null {
@@ -349,6 +410,7 @@ export class FlightOfferNormalizer {
     requestedCabinClass?: string,
     originalIndex: number = 0,
   ): FlightOffer {
+    const travelFacts = getTravelFacts(offer);
     const id = FlightOfferNormalizer.generateDeterministicUUID(offer.id);
     const outboundSlice = offer.slices?.[0];
     const outboundSegments = outboundSlice?.segments ?? [];
@@ -448,6 +510,7 @@ export class FlightOfferNormalizer {
       price,
       currency,
       offerExpiresAt: extendedOffer.expires_at ?? null,
+      ...travelFacts,
       passengers,
       airline,
       flightNumber,
@@ -576,7 +639,9 @@ export class FlightOfferNormalizer {
           return null;
         }
 
-        // Departing_at and arriving_at valid ISO timestamps
+        // Departing_at and arriving_at valid ISO timestamps. Legacy arrival aliases stay local
+        // to this supplier-boundary normalizer.
+        const arrivalRaw = segObj.arriving_at ?? segObj.arrivalDate ?? segObj.arrivingAt;
         if (
           typeof segObj.departing_at !== 'string' ||
           !isValidIsoDateTime(segObj.departing_at)
@@ -584,13 +649,14 @@ export class FlightOfferNormalizer {
           return null;
         }
         if (
-          typeof segObj.arriving_at !== 'string' ||
-          !isValidIsoDateTime(segObj.arriving_at)
+          typeof arrivalRaw !== 'string' ||
+          !isValidIsoDateTime(arrivalRaw)
         ) {
           return null;
         }
         normalizedSegments.push({
           ...segObj,
+          arriving_at: arrivalRaw,
           origin: { ...originObj, iata_code: originCode },
           destination: { ...destObj, iata_code: destinationCode },
         });
@@ -629,9 +695,12 @@ export class FlightOfferNormalizer {
       }
     }
 
+    const expiryValue = candidate.expires_at ?? candidate.expiresAt;
+    const expiresAt =
+      typeof expiryValue === 'string' && isValidIsoDateTime(expiryValue) ? expiryValue : null;
     const normalized = FlightOfferNormalizer.normalizeOffer(
       // Required stored fields are validated above; copy normalized codes without mutating the snapshot.
-      { ...candidate, slices: normalizedSlices } as unknown as DuffelOffer,
+      { ...candidate, expires_at: expiresAt, slices: normalizedSlices } as unknown as DuffelOffer,
       undefined,
       0,
     );

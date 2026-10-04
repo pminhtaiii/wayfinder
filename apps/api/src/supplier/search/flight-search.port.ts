@@ -34,6 +34,11 @@ export type FlightOfferPassenger = {
   type: 'ADULT' | 'CHILD' | 'INFANT';
 };
 
+export type FlightTravelFacts = {
+  travelScope: 'DOMESTIC' | 'INTERNATIONAL' | null;
+  tripCompletionDate: string | null;
+};
+
 export type FlightOfferConditions = {
   refundable: boolean;
   changeable: boolean;
@@ -51,6 +56,8 @@ export type FlightOffer = {
   price: number;
   currency: string;
   offerExpiresAt: string | null;
+  travelScope?: FlightTravelFacts['travelScope'];
+  tripCompletionDate?: FlightTravelFacts['tripCompletionDate'];
   passengers: readonly FlightOfferPassenger[];
   airline: string;
   flightNumber: string;

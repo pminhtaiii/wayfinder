@@ -1,4 +1,5 @@
 // Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
+// User approved 2026-10-04: canonical supplier identity fixture adaptation; persistence and ciphertext assertions remain unchanged.
 import 'reflect-metadata';
 import { PassengerType } from '@prisma/client';
 import { EncryptionService } from '@/common/encryption.service';
@@ -32,7 +33,7 @@ function passenger(
     travelerProfileId: null,
     profileRevision: null,
     sourceType: 'inline',
-    duffelPassengerId: 'duffel_pas_001',
+    supplierPassengerId: 'supplier_pas_001',
     ...overrides,
   };
 }
@@ -81,7 +82,7 @@ describe('PassengerSnapshotService', () => {
         passportNumber: null,
         passportExpiry: null,
         travelerProfileId: null,
-        supplierPassengerId: 'duffel_pas_001',
+        supplierPassengerId: 'supplier_pas_001',
         snapshotVersion: 1,
       }),
     );

@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task-by-task; steps use checkbox syntax.
 
-**Status:** plan reviewed by root; source/test execution remains on hold after the user-authorized third full-agent retry failed its performance gate. No production source or test has been edited or run by this task.
+**Status:** Root released T059 after the final unchanged-agent gate passed (1,302 passed, 4 skipped, 12 deselected; exit 0; Ruff passed). T059 implementation, focused tests, API typecheck, and package lint have passed. T060 remains held for root's independent review.
 
-**Prepared against:** `2ccca27fb789e2dec34fc90d242c846fef640421` (plan-only HEAD). The task brief identifies `eda88f0` as the source baseline. The third user-authorized full-agent retry failed its `input.injection` p95 gate (`2.2666 ms > 2 ms`); root has kept source edits and heavy gates on hold pending user guidance.
+**Prepared against:** `2ccca27fb789e2dec34fc90d242c846fef640421` (plan-only HEAD). The task brief identifies `eda88f0` as the source baseline. Chronology: one user-authorized full-agent retry reported `input.injection` p95 `2.2666 ms > 2 ms`; the later final unchanged-agent gate passed with the counts above, after which root released T059. Jest, TypeScript, ESLint, and network-guard CLI paths were confirmed before implementation; exact T059 executions and results are recorded in `.superpowers/sdd/2026-10-04-feature-029-final-verification/booking-boundary-fix-report.md`.
 
 **Root review:** Root approved the signatures and RED/GREEN sequencing, with the additional requirements below: preserve missing-country/default-scope behavior exactly, keep ciphertext decryption before offer parsing/expiry/document validation, and do not broaden malformed-evidence handling. The Jest, TypeScript, ESLint, and network-guard CLI paths listed below were confirmed to exist with read-only `Test-Path` checks; no CLI was executed.
 
@@ -27,7 +27,7 @@ Use the approved T059/T060 boundary design in `.superpowers/sdd/2026-10-04-featu
 ## GlobalConstraints
 
 - Keep the current checkout and make separate T059/T060 commits; root reviews T059 independently before any T060 edits.
-- No source, test, commit, test/typecheck/lint gate, or other heavy work until root releases the hold after the user-authorized third full-agent retry.
+- T059 source, test, and gate work is released. Keep T060 source/test/gate work on hold until root completes the independent T059 review and releases it.
 - No child agents, `any`, type assertions, dependency/lock/schema/migration edits, security suppressions, endpoints, or weakened/skipped assertions.
 - Keep supplier raw evidence opaque in domain code. Keep existing HTTP/SSE aliases, HMAC/crypto contexts, snapshot history, lifecycle holds/idempotency, and webhook behavior unchanged.
 - Follow one public test → observed RED → minimal GREEN cycle at a time. If the same failure persists after one corrective attempt, stop and report it to root.
@@ -147,7 +147,7 @@ Keep the existing adult/child valid-binding test and its identity/order expectat
 
 ### T059 verification and commit
 
-After root releases the hold, run these commands from `C:\Booking Systems\apps\api` (the network guard is retained for Jest):
+After root's T059 release (now in effect), run these commands from `C:\Booking Systems\apps\api` (the network guard is retained for Jest):
 
 ```powershell
 $env:NODE_OPTIONS = '--require="C:/Booking Systems/tests/ci/node-network-guard.cjs"'
@@ -195,7 +195,7 @@ The full payment-fulfillment saga spec is included because it is the consumer of
 
 ## Execution holds and invariants
 
-- Do not edit production source or tests, run tests/typecheck/lint, or commit until root explicitly releases the full-agent CPU window and source-write hold.
+- T059 implementation and focused verification are released. Do not begin T060 production/test changes or gates until root independently reviews the T059 commit and explicitly releases T060.
 - Do not create child agents, edit dependencies/lockfiles, schema/migrations, security suppressions, shared verification files, or task ledgers.
 - Preserve the current offer expiry, passport, binding, trip-date, ciphertext/HMAC, and booking lifecycle safeguards. Do not add type assertions or `any`; use the exported port and Nest constructor injection.
 - Follow one test → observed RED → minimal GREEN cycle at a time. If the same failure remains after one corrective attempt, stop and report it to root.
