@@ -25,17 +25,22 @@ function isJsonObject(value: unknown): value is Prisma.JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function resolveLegacySegmentId(record: Prisma.JsonObject): string | undefined {
+  if (typeof record.duffelSegmentId === 'string') {
+    return record.duffelSegmentId;
+  }
+  if (typeof record.supplierSegmentId === 'string') {
+    return record.supplierSegmentId;
+  }
+  return undefined;
+}
+
 function projectSnapshotSegment(segment: unknown): Prisma.JsonObject {
   if (!isJsonObject(segment)) {
     return {};
   }
-  const { supplierSegmentId, duffelSegmentId, ...rest } = segment;
-  const legacySegmentId =
-    typeof duffelSegmentId === 'string'
-      ? duffelSegmentId
-      : typeof supplierSegmentId === 'string'
-        ? supplierSegmentId
-        : undefined;
+  const { supplierSegmentId: _supplierSegmentId, duffelSegmentId: _duffelSegmentId, ...rest } = segment;
+  const legacySegmentId = resolveLegacySegmentId(segment);
 
   return {
     ...rest,
@@ -68,13 +73,8 @@ function toFlightSegmentSnapshotDto(raw: unknown): FlightSegmentSnapshotDto {
       duration: '',
     };
   }
-  const { supplierSegmentId, duffelSegmentId, ...rest } = raw;
-  const legacyId =
-    typeof duffelSegmentId === 'string'
-      ? duffelSegmentId
-      : typeof supplierSegmentId === 'string'
-        ? supplierSegmentId
-        : undefined;
+  const { supplierSegmentId: _supplierSegmentId, duffelSegmentId: _duffelSegmentId, ...rest } = raw;
+  const legacyId = resolveLegacySegmentId(raw);
 
   const airlineRaw = isJsonObject(rest.airline) ? rest.airline : {};
   const departureAirportRaw = isJsonObject(rest.departureAirport) ? rest.departureAirport : {};

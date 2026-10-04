@@ -6,14 +6,14 @@ This file tracks the currently active in-flight feature, its checkpoints, and ex
 
 ## Feature 029 — Narrow the Duffel Supplier Boundary
 
-- **Status**: Phases 0–5, Phase 6 compatibility slice (T044–T046), and T049–T050 complete locally; T047/T052 implemented with joint gates pending; T051 in progress; T048/T053–T057 pending
+- **Status**: Phases 0–6 complete locally (T001–T054); Phase 7 final verification and audit (T055–T057) pending
 - **Branch**: `codex/029-duffel-provider-narrowing`
 - **Specification**: [specs/029-duffel-provider-narrowing/spec.md](../specs/029-duffel-provider-narrowing/spec.md)
 - **Implementation Plan**: [specs/029-duffel-provider-narrowing/plan.md](../specs/029-duffel-provider-narrowing/plan.md)
 - **Tasks**: [specs/029-duffel-provider-narrowing/tasks.md](../specs/029-duffel-provider-narrowing/tasks.md)
 
 ### Current Summary
-Slice 6.2 is in progress. T049 committed as `57760555` and T050 as `db4fde82`; both passed independent task review. T050 guarded full validation passed 1,302 tests (4 skips, 12 deselected), with unchanged performance limits at Windows process-only AboveNormal priority. Approved rate-limit test clock stabilization preserves all assertions and production accounting. T047 (`5c83bc30`) and T052 (`c97b0e1c`, review fix `80e5be79`) are implemented and reviewed with focused gates passing; joint API/client/live-database gates remain pending. T051 is in progress; T048/T053–T054 remain pending. See [Slice 6.2 verification](../specs/029-duffel-provider-narrowing/slice-6-2-verification.md) for approvals, process deviations, diagnostic uncertainty, and exact evidence. Starting PR #367 is merged with green CI at `76145bd1`; no new-slice PR/CI success is claimed.
+Slice 6.2 (T047–T054: Neutral Names and Physical Schema) is complete locally and verified. All 11 non-webhook columns and 5 dependent indexes physically renamed in place via forward migration `20260929000000_supplier_identifiers` with zero `@map` annotations. Dedicated disposable databases `feature029_slice62_fresh` and `feature029_slice62_upgrade` verified full migration chain and upgrade path with 16 preserved sentinels, 12 links, and null controls. All consumer modules across booking, payment, cancellation, disruption, and agent gateway migrated with zero type assertions. Public wire compatibility and signed `sel_v1_` HMAC bytes preserved. Local validation: API full unit suite 134 suites / 2,337 tests passed, 66/66 affected E2Es passed, contracts 111/111 passed, web compatibility 122/122 passed, typechecks and ESLint 0 errors. Standards and Spec code reviews completed and findings addressed. Phase 7 (T055–T057) remains pending for the final slice; no branch merge to development or main.
 
 T044–T046 pin signed bytes, legacy snapshots, strict agent state, and web provider-ID boundaries. Independent task reviews and scoped convergence passed at the Slice 6.1 checkpoint. Its local validation included guarded API 130 suites/2,331 tests, shared 111 tests, web 120 focused tests/build, and agent 1,291 non-Redis tests. See the [Slice 6.1 verification record](../specs/029-duffel-provider-narrowing/slice-6-1-verification.md) for approvals, mutations, environment retries, and exact commands. At that checkpoint T047–T057 remained pending; current slice status is recorded above. Feature 029 remains incomplete, and remote CI must match the final pushed HEAD of each new slice PR.
 
@@ -105,13 +105,13 @@ unconfirmed cancellations preserve processing/hold; order operations isolated; S
 
 ### Phase 6 — Neutral Naming & Physical Schema (User Story 4; T044–T054)
 - [x] Pin wire/HMAC, legacy snapshots, and provider-ID boundary tests (T044–T046), within the approved T049/T051 deferrals.
-- [ ] Rename internal types and add explicit current-wire compatibility mappings (T047–T051).
-- [ ] Apply forward physical Prisma column/index renames and regenerate the client (T052–T053).
-- [ ] Validate fresh/existing migrations and cross-service compatibility (T054).
+- [x] Rename internal types and add explicit current-wire compatibility mappings (T047–T051).
+- [x] Apply forward physical Prisma column/index renames and regenerate the client (T052–T053).
+- [x] Validate fresh/existing migrations and cross-service compatibility (T054).
 
 Exit gate:
 ```text
-clean migration from scratch; zero orphan duffel database columns; wire compatibility preserved
+clean migration from scratch; zero orphan duffel database columns; wire compatibility preserved (verified on dedicated fresh/upgrade DBs; 66/66 E2Es pass; 134 suites / 2,337 unit tests pass)
 ```
 
 ### Phase 7 — Final Verification & Audit (T055–T057)

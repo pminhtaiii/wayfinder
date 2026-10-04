@@ -8,6 +8,8 @@ import {
   SelectionAttestationOffer,
 } from './selection-attestation.service';
 import { BookingManagementService } from '@/booking-management/booking-management.service';
+import { BookingLifecycleService } from '@/booking-lifecycle/booking-lifecycle.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '@/prisma/prisma.service';
 import { FlightOffer, FLIGHT_SEARCH_PORT } from '@/supplier/search/flight-search.port';
 import { FlightsService } from '@/flights/flights.service';
@@ -222,7 +224,7 @@ describe('Supplier Wire Compatibility Regression', () => {
       emit: jest.Mock;
     };
 
-    beforeEach(() => {
+    beforeEach(async () => {
       prisma = {
         booking: {
           findMany: jest.fn(),
@@ -236,11 +238,25 @@ describe('Supplier Wire Compatibility Regression', () => {
         emit: jest.fn(),
       };
 
-      service = new BookingManagementService(
-        prisma as never,
-        bookingLifecycleService as never,
-        eventEmitter as never,
-      );
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          BookingManagementService,
+          {
+            provide: PrismaService,
+            useValue: prisma,
+          },
+          {
+            provide: BookingLifecycleService,
+            useValue: bookingLifecycleService,
+          },
+          {
+            provide: EventEmitter2,
+            useValue: eventEmitter,
+          },
+        ],
+      }).compile();
+
+      service = module.get<BookingManagementService>(BookingManagementService);
     });
 
     it('projects neutral supplierSegmentId to legacy duffelSegmentId without leaking neutral ID in getBookingDetail', async () => {
