@@ -1,4 +1,5 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import type { CancelOrderOutcome } from '@/payment-fulfillment/ports';
 import { DuffelOrderAdapter } from './duffel-order.adapter';
 
 export type DuffelCancellationQuote = {
@@ -85,9 +86,10 @@ export class DuffelCancellationService {
     };
   }
 
-  async cancelOrder(orderId: string): Promise<unknown> {
+  async cancelOrder(orderId: string): Promise<CancelOrderOutcome> {
     try {
-      return await this.orderAdapter.cancelOrder(orderId);
+      const cancellation = await this.orderAdapter.cancelOrder(orderId);
+      return this.normalizeCancellationOutcome(orderId, cancellation);
     } catch (error: unknown) {
       if (this.isBudgetDenial(error)) {
         throw error;
@@ -95,13 +97,41 @@ export class DuffelCancellationService {
       try {
         const recoveredOrder = await this.orderAdapter.retrieveOrder(orderId);
         if (recoveredOrder.status === 'CANCELLED') {
-          return recoveredOrder;
+          return this.normalizeCancellationOutcome(orderId, recoveredOrder);
         }
       } catch {
         // Keep the original cancellation failure when retrieval cannot confirm completion.
       }
       throw error;
     }
+  }
+
+  private normalizeCancellationOutcome(orderId: string, value: unknown): CancelOrderOutcome {
+    const response = this.isRecord(value) ? value : undefined;
+    const success = this.isCancellationConfirmed(response);
+
+    return {
+      success,
+      orderId,
+      status: success
+        ? 'CANCELLED'
+        : response && typeof response.status === 'string'
+          ? response.status
+          : undefined,
+    };
+  }
+
+  private isCancellationConfirmed(response: Record<string, unknown> | undefined): boolean {
+    if (!response || response.success === false) return false;
+
+    if (typeof response.confirmed_at === 'string' && response.confirmed_at.trim().length > 0) {
+      return true;
+    }
+
+    return (
+      typeof response.status === 'string' &&
+      ['confirmed', 'cancelled', 'canceled'].includes(response.status.toLowerCase())
+    );
   }
 
   private isCancellationQuote(value: unknown): value is DuffelCancellationQuote {

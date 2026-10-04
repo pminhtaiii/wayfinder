@@ -15,7 +15,7 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { StripeService } from '@/common/stripe.service';
 import { DuffelCancellationService } from '@/supplier/order/duffel-cancellation.service';
 import { DuffelRecoveryService } from '@/supplier/order/duffel-recovery.service';
-import { isDuffelCancellationConfirmed } from '@/duffel/cancellation-confirmation';
+import type { PassengerEnrichmentInput } from '@/payment-fulfillment/ports';
 import { RefundTransactionService } from '@/refund/refund-transaction.service';
 import { RefundSettlementService } from '@/refund-settlement/refund-settlement.service';
 import { CacheService } from '@/cache/cache.service';
@@ -54,66 +54,17 @@ const BOOKING_RECOVERY_INCLUDE = {
   },
 } as const;
 
-type BookingIntentPassengerDetails = {
-  readonly supplierPassengerId: string | null;
-  readonly givenName: string;
-  readonly familyName: string;
-  readonly dateOfBirth: Date;
-};
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function readDuffelOrderId(value: unknown): string | null {
+function readSupplierOrderId(value: unknown): string | null {
   if (!isRecord(value)) return null;
   if (typeof value.id === 'string' && value.id.trim().length > 0) return value.id;
   if (!isRecord(value.data)) return null;
   return typeof value.data.id === 'string' && value.data.id.trim().length > 0
     ? value.data.id
     : null;
-}
-
-function isUnknownArray(value: unknown): value is unknown[] {
-  return Array.isArray(value);
-}
-
-function enrichRedactedDuffelOrder(
-  duffelOrder: unknown,
-  dbPassengers: readonly BookingIntentPassengerDetails[],
-  userEmail: string,
-): unknown {
-  if (!duffelOrder) return duffelOrder;
-  const copy: unknown = JSON.parse(JSON.stringify(duffelOrder));
-  if (!isRecord(copy) || !isUnknownArray(copy.passengers)) {
-    return copy;
-  }
-
-  copy.passengers.forEach((passenger: unknown, index: number) => {
-    if (!isRecord(passenger)) return;
-
-    const dbPass =
-      dbPassengers.find((candidate) => candidate.supplierPassengerId === passenger.id) ??
-      dbPassengers[index];
-    if (dbPass) {
-      if (!passenger.given_name || passenger.given_name === 'REDACTED') {
-        passenger.given_name = dbPass.givenName;
-      }
-      if (!passenger.family_name || passenger.family_name === 'REDACTED') {
-        passenger.family_name = dbPass.familyName;
-      }
-      if (dbPass.dateOfBirth && (!passenger.born_on || passenger.born_on === 'REDACTED')) {
-        const dateOfBirth = new Date(dbPass.dateOfBirth);
-        if (!isNaN(dateOfBirth.getTime())) {
-          passenger.born_on = dateOfBirth.toISOString().split('T')[0];
-        }
-      }
-    }
-    if (!passenger.email || passenger.email === 'REDACTED') {
-      passenger.email = userEmail;
-    }
-  });
-  return copy;
 }
 
 @Injectable()
@@ -358,8 +309,8 @@ export class BookingRecoveryService {
               where: { paymentId: payment.id, eventType: 'duffel_order_created' },
               orderBy: { createdAt: 'desc' },
             });
-            const duffelOrderId = readDuffelOrderId(duffelEvent?.metadata);
-            if (duffelEvent && !duffelOrderId) {
+            const supplierOrderId = readSupplierOrderId(duffelEvent?.metadata);
+            if (duffelEvent && !supplierOrderId) {
               const retryAfterSeconds = 300;
               await deferRecovery(
                 new Date(Date.now() + retryAfterSeconds * 1000).toISOString(),
@@ -367,15 +318,17 @@ export class BookingRecoveryService {
               );
               return booking;
             }
-            if (duffelOrderId) {
+            if (supplierOrderId) {
               let cancellationConfirmed = false;
               try {
-                const cancellation = await this.duffelCancellationService.cancelOrder(duffelOrderId);
-                if (!isDuffelCancellationConfirmed(cancellation)) {
+                const cancellation =
+                  await this.duffelCancellationService.cancelOrder(supplierOrderId);
+                const pendingStatus = cancellation.status?.trim().toLowerCase() === 'pending';
+                if (!cancellation.success || pendingStatus) {
                   throw new Error('Duffel order cancellation is not confirmed');
                 }
                 this.logger.log(
-                  `Successfully cancelled orphaned Duffel order ${duffelOrderId} during stale booking sweep.`,
+                  `Successfully cancelled orphaned Duffel order ${supplierOrderId} during stale booking sweep.`,
                 );
                 cancellationConfirmed = true;
               } catch (cancelError: unknown) {
@@ -425,7 +378,7 @@ export class BookingRecoveryService {
                     newStatus: payment.status ?? PaymentStatus.AUTHORIZED,
                     source: PaymentEventSource.SYSTEM,
                     createdBy: 'system',
-                    metadata: { duffelOrderId },
+                    metadata: { duffelOrderId: supplierOrderId },
                   },
                 });
               }
@@ -506,21 +459,32 @@ export class BookingRecoveryService {
           where: { id: booking.bookingIntentId },
           include: { passengers: true, user: true },
         });
-        const order =
+        const passengerEnrichment: PassengerEnrichmentInput[] | undefined =
           bookingIntent && bookingIntent.user
-            ? enrichRedactedDuffelOrder(
-                rawOrder,
-                bookingIntent.passengers,
-                bookingIntent.user.email,
-              )
-            : rawOrder;
+            ? bookingIntent.passengers.map((passenger) => {
+                const dateOfBirth = passenger.dateOfBirth;
+                return {
+                  id: passenger.supplierPassengerId ?? undefined,
+                  firstName: passenger.givenName,
+                  lastName: passenger.familyName,
+                  dateOfBirth: Number.isNaN(dateOfBirth.getTime())
+                    ? undefined
+                    : dateOfBirth.toISOString().slice(0, 10),
+                };
+              })
+            : undefined;
 
         const { flightSnapshot, passengerSnapshot } =
-          this.duffelRecoveryService.mapOrderToSnapshots(order);
-        const orderRecord = isRecord(order) ? order : rawOrder;
+          this.duffelRecoveryService.mapOrderToSnapshots(
+            rawOrder,
+            passengerEnrichment,
+            bookingIntent?.user?.email,
+          );
+        const orderRecord = rawOrder;
         const bookingReference =
           typeof orderRecord.booking_reference === 'string' ? orderRecord.booking_reference : null;
-        const duffelOrderId = typeof orderRecord.id === 'string' ? orderRecord.id : rawOrder.id;
+        const supplierOrderId =
+          typeof orderRecord.id === 'string' ? orderRecord.id : rawOrder.id;
         // The lifecycle method persists a nullable PNR but retains a legacy string parameter type.
         const lifecycleBookingReference = bookingReference as unknown as string;
         const departureAt = flightSnapshot.segments?.[0]?.departureAt
@@ -534,7 +498,7 @@ export class BookingRecoveryService {
           await this.bookingLifecycleService.confirmBooking(
             booking.id,
             lifecycleBookingReference,
-            duffelOrderId,
+            supplierOrderId,
             flightSnapshot,
             passengerSnapshot,
             tx,
@@ -555,7 +519,7 @@ export class BookingRecoveryService {
         if (didTransition) {
           booking.status = BookingStatus.CONFIRMED;
           booking.pnrReference = bookingReference;
-          booking.supplierOrderId = duffelOrderId;
+          booking.supplierOrderId = supplierOrderId;
           booking.flightSnapshot = flightSnapshot as unknown as Prisma.JsonValue;
           booking.passengerSnapshot = passengerSnapshot as unknown as Prisma.JsonValue;
           booking.departureAt = departureAt;

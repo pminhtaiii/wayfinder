@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DUFFEL_SDK, DUFFEL_SDK_CONFIGURATION } from '@/supplier/core/duffel-core.module';
 import { DuffelRateBudgetService } from '@/supplier/core/duffel-rate-budget.service';
 import type { BudgetReservationResult } from '@/supplier/core/duffel-rate-budget.service';
+import type { PassengerEnrichmentInput } from '@/payment-fulfillment/ports';
 import { OrderSnapshotNormalizer } from './order-snapshot.normalizer';
 import { DuffelOrderAdapter } from './duffel-order.adapter';
 import { DuffelRecoveryService } from './duffel-recovery.service';
@@ -254,6 +255,118 @@ describe('DuffelRecoveryService', () => {
     });
 
     expect(reserveAttempt).toHaveBeenCalledTimes(1);
+  });
+
+  it('enriches redacted recovery passenger evidence on a copy before snapshot normalization', () => {
+    const redactedOrderEvidence = {
+      id: 'ord_enrichment',
+      passengers: [
+        {
+          id: 'pas_1',
+          type: 'adult',
+          title: 'ms',
+          given_name: 'REDACTED',
+          family_name: 'REDACTED',
+          born_on: 'REDACTED',
+          email: 'REDACTED',
+          phone_number: 'REDACTED',
+        },
+        {
+          id: 'pas_2',
+          type: 'adult',
+          title: 'mr',
+          given_name: 'Existing',
+          family_name: 'Value',
+          born_on: '2000-05-06',
+          email: 'REDACTED',
+          phone_number: 'REDACTED',
+        },
+        {
+          type: 'adult',
+          given_name: 'REDACTED',
+          family_name: 'REDACTED',
+          born_on: 'REDACTED',
+          email: 'REDACTED',
+          phone_number: 'REDACTED',
+        },
+      ],
+    };
+    const passengerEnrichment: PassengerEnrichmentInput[] = [
+      { id: 'pas_1', firstName: 'Jane', lastName: 'Doe', dateOfBirth: '1985-05-20' },
+      { firstName: 'Changed', lastName: 'Changed', dateOfBirth: '1980-01-01' },
+      { firstName: 'Third', lastName: 'Passenger', dateOfBirth: '1995-07-08' },
+    ];
+    const originalEvidenceJson = JSON.stringify(redactedOrderEvidence);
+    const normalizerSpy = jest.spyOn(OrderSnapshotNormalizer.prototype, 'mapDuffelOrderToSnapshots');
+
+    const snapshots = recoveryService.mapOrderToSnapshots(
+      redactedOrderEvidence,
+      passengerEnrichment,
+      'traveler@example.com',
+    );
+    const orderSentToNormalizer = normalizerSpy.mock.calls[0]?.[0];
+    normalizerSpy.mockRestore();
+
+    expect(orderSentToNormalizer).toStrictEqual({
+      id: 'ord_enrichment',
+      passengers: [
+        {
+          id: 'pas_1',
+          type: 'adult',
+          title: 'ms',
+          given_name: 'Jane',
+          family_name: 'Doe',
+          born_on: '1985-05-20',
+          email: 'traveler@example.com',
+          phone_number: 'REDACTED',
+        },
+        {
+          id: 'pas_2',
+          type: 'adult',
+          title: 'mr',
+          given_name: 'Existing',
+          family_name: 'Value',
+          born_on: '2000-05-06',
+          email: 'traveler@example.com',
+          phone_number: 'REDACTED',
+        },
+        {
+          type: 'adult',
+          given_name: 'Third',
+          family_name: 'Passenger',
+          born_on: '1995-07-08',
+          email: 'traveler@example.com',
+          phone_number: 'REDACTED',
+        },
+      ],
+    });
+    expect(orderSentToNormalizer).not.toBe(redactedOrderEvidence);
+    expect(JSON.stringify(redactedOrderEvidence)).toBe(originalEvidenceJson);
+    expect(snapshots.passengerSnapshot.passengers).toStrictEqual([
+      {
+        type: 'ADULT',
+        title: 'ms',
+        firstName: 'Jane',
+        lastName: 'Doe',
+        dateOfBirth: '1985-05-20',
+      },
+      {
+        type: 'ADULT',
+        title: 'mr',
+        firstName: 'Existing',
+        lastName: 'Value',
+        dateOfBirth: '2000-05-06',
+      },
+      {
+        type: 'ADULT',
+        title: undefined,
+        firstName: 'Third',
+        lastName: 'Passenger',
+        dateOfBirth: '1995-07-08',
+      },
+    ]);
+    expect(snapshots.passengerSnapshot.contactEmail).toBe('traveler@example.com');
+    expect(snapshots.passengerSnapshot.contactPhone).toBe('REDACTED');
   });
 
   it('preserves the upstream retrieval failure for malformed complete orders', async () => {
