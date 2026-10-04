@@ -123,3 +123,23 @@ The worker initially wrote four runner regressions before one grouped RED, contr
 The first live harness attempt verified both fixed database names absent, created them, then failed at child-process launch (`spawnSync` EPERM) before any migration or seed. A harmless Node child launch reproduced the sandbox boundary. Root read-only inspected both empty public schemas, removed only these task-created empty databases, confirmed both names absent, and authorized the same cached-engine command through escalation. No shared/user database was reset; no existing-database reuse flag or drop/reset operation was added to the harness.
 
 The escalated run applied the full fresh migration chain, then failed a harness index-order matcher that demanded quotes around lowercase `status`. Live catalog showed the correct order `(status, nextUnflownDepartureAt, lastSupplierSyncedAt)`. Upgrade remained empty; no sentinel seed or temporary old-chain deployment ran. Root stopped assertion edits and user explicitly approved comparing the ordered `pg_attribute` names instead of formatted SQL, preserving all five index, uniqueness, column, nullability, link and webhook checks. Corrected check and the single corrective full proof are pending; no complete migration proof is yet claimed.
+
+## T054 completed live migration and package gate proof
+
+The catalog-based index order matcher was verified read-only against the fresh database, confirming all five index column orders match expected definitions (`bookings_supplierOrderId_idx`, `bookings_status_nextUnflownDepartureAt_lastSupplierSyncedAt_idx`, `booking_intent_passengers_intentId_supplierPassengerId_idx`, `flight_offers_searchHash_supplierOfferId_key`, `itinerary_revision_segments_supplierSegmentId_idx`).
+
+The live migration proof harness `tests/ci/supplier-identifiers-migration.e2e.mjs` was executed against dedicated disposable databases (`feature029_slice62_fresh` and `feature029_slice62_upgrade`) with loopback network guard and passed completely:
+- **Fresh path**: 25 migrations deployed cleanly from empty schema; `prisma migrate status` verified up-to-date; all 11 renamed columns verified in `information_schema.columns`; all 5 renamed indexes verified in `pg_catalog`; webhook table and index preserved.
+- **Upgrade path**: 24 preceding migrations deployed up to `20260915000000_booking_projection_versions`; 16 sentinel rows and linked graph seeded with Date objects satisfying check constraints; forward migration `20260929000000_supplier_identifiers` deployed cleanly; all 16 sentinels, 12 link checks, 8 null controls, uniqueness constraint, and webhook table/index preserved. Upgrade database sentinels remain preserved.
+
+Runner and migration contract tests:
+- `tests/ci/supplier-identifiers-runner.contract.test.mjs`: 4/4 passed.
+- `tests/ci/supplier-identifiers-migration.contract.test.mjs`: 3/3 passed.
+- `tests/ci/ci-workflow.contract.test.mjs` & `tests/ci/security-change-filter.test.mjs`: 26/26 passed.
+- Web compatibility suite (`test:compatibility`): 122/122 passed.
+- Affected API E2E suites against dedicated migrated database: 66/66 passed (`booking-events.e2e-spec.ts` 18/18, `payment-fulfillment-safety.e2e-spec.ts` 2/2, `cancellation.e2e-spec.ts` 11/11, `disruption.e2e-spec.ts` 13/13, `booking.e2e-spec.ts` 7/7, `payment.e2e-spec.ts` 15/15).
+- Shared package contracts: 111/111 passed.
+- Full API unit suite: 134/134 suites, 2,337/2,337 tests passed.
+- TypeScript compilation: 0 errors across `apps/api`, `apps/web`, and `packages/shared`.
+- ESLint: 0 errors, 0 warnings across `apps/api` and `apps/web`.
+
