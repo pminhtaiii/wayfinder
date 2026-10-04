@@ -81,16 +81,16 @@ Run the unchanged suite in one Python process. The runner prints the previous, a
     print(f'[AGENT-PRIORITY] prior_class=0x{original:04X}')
     if not kernel32.SetPriorityClass(process, 0x8000):
         raise ctypes.WinError(ctypes.get_last_error())
-    active = kernel32.GetPriorityClass(process)
-    print(f'[AGENT-PRIORITY] active_class=0x{active:04X}')
-    if active != 0x8000:
-        raise RuntimeError('pytest process priority did not become AboveNormal')
-
-    sys.argv = [
-        'pytest', '-p', 'no:cacheprovider', '--capture=tee-sys', '-m',
-        'not redis_integration', 'apps/agent/tests',
-    ]
     try:
+        active = kernel32.GetPriorityClass(process)
+        print(f'[AGENT-PRIORITY] active_class=0x{active:04X}')
+        if active != 0x8000:
+            raise RuntimeError('pytest process priority did not become AboveNormal')
+
+        sys.argv = [
+            'pytest', '-p', 'no:cacheprovider', '--capture=tee-sys', '-m',
+            'not redis_integration', 'apps/agent/tests',
+        ]
         runpy.run_module('pytest', run_name='__main__')
     finally:
         if not kernel32.SetPriorityClass(process, original):
