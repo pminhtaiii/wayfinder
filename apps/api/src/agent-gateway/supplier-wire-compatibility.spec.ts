@@ -24,6 +24,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 describe('Supplier Wire Compatibility Regression', () => {
   describe('SelectionAttestationService wire & HMAC compatibility', () => {
     let service: SelectionAttestationService;
+    let configService: ConfigService;
     const testSecret = 'wire-compat-secret-key-32chars!!';
 
     beforeEach(async () => {
@@ -43,6 +44,7 @@ describe('Supplier Wire Compatibility Regression', () => {
       }).compile();
 
       service = module.get<SelectionAttestationService>(SelectionAttestationService);
+      configService = module.get<ConfigService>(ConfigService);
     });
 
     it('maps neutral domain identity to legacy wire envelope preserving exact keys', () => {
@@ -136,7 +138,12 @@ describe('Supplier Wire Compatibility Regression', () => {
       }
       expect(Object.keys(parsedOffers[0])).toEqual(['flightOfferId', 'duffelOfferId']);
 
-      const expectedSignature = createHmac('sha256', testSecret)
+      const expectedHmacKey: unknown = configService.get<unknown>('ATTESTATION_SECRET');
+      if (typeof expectedHmacKey !== 'string') {
+        throw new Error('Expected ATTESTATION_SECRET test fixture to be configured');
+      }
+
+      const expectedSignature = createHmac('sha256', expectedHmacKey)
         .update(decodedJson, 'utf8')
         .digest('hex');
       expect(signature).toBe(expectedSignature);
