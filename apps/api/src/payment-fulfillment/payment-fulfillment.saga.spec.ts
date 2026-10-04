@@ -116,7 +116,7 @@ describe('PaymentFulfillmentSaga', () => {
   const baseBookingIntent = {
     id: 'intent-123',
     userId,
-    duffelOfferId: 'off-123',
+    supplierOfferId: 'off-123',
     paymentAttemptCount: 1,
     confirmedPrice: 15000,
     currency: 'USD',

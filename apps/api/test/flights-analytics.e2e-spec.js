@@ -274,7 +274,7 @@ describe('Flights Analytics & Search History (E2E)', () => {
                 data: {
                     id: offerId,
                     searchHash,
-                    duffelOfferId: 'off_expired_test',
+                    supplierOfferId: 'off_expired_test',
                     rawOffer: {},
                     origin: 'HAN',
                     destination: 'SGN',

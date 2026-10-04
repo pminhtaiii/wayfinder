@@ -126,7 +126,7 @@ describe('Dashboard (E2E)', () => {
     const intent = await prisma.bookingIntent.create({
       data: {
         userId,
-        duffelOfferId,
+        supplierOfferId: duffelOfferId,
         status: 'AWAITING_PAYMENT',
         originalPrice: overrides.totalAmount ?? new Prisma.Decimal('125.50'),
         confirmedPrice: overrides.totalAmount ?? new Prisma.Decimal('125.50'),
@@ -159,7 +159,7 @@ describe('Dashboard (E2E)', () => {
         overrides.pnrReference !== undefined
           ? overrides.pnrReference
           : `PNR-${crypto.randomUUID().slice(0, 6).toUpperCase()}`,
-      duffelOrderId: overrides.duffelOrderId !== undefined ? overrides.duffelOrderId : null,
+      supplierOrderId: overrides.duffelOrderId !== undefined ? overrides.duffelOrderId : null,
       paymentId: overrides.paymentId !== undefined ? overrides.paymentId : null,
       flightSnapshot:
         overrides.flightSnapshot === null
@@ -392,7 +392,7 @@ describe('Dashboard (E2E)', () => {
       const intentForPayment = await prisma.bookingIntent.create({
         data: {
           userId: userA.id,
-          duffelOfferId: `off-${crypto.randomUUID()}`,
+          supplierOfferId: `off-${crypto.randomUUID()}`,
           status: 'AWAITING_PAYMENT',
           originalPrice: new Prisma.Decimal('125.50'),
           confirmedPrice: new Prisma.Decimal('125.50'),

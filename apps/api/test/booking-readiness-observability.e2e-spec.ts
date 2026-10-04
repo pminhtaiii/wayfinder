@@ -167,7 +167,7 @@ describe('Booking Readiness Observability (E2E) - Tasks T073 & T074', () => {
     const offer = await prisma.flightOffer.create({
       data: {
         searchHash: `obs-search-${uniqueOffer}`,
-        duffelOfferId: `off_obs_${uniqueOffer}`,
+        supplierOfferId: `off_obs_${uniqueOffer}`,
         rawOffer: {
           id: `off_obs_${uniqueOffer}`,
           expires_at: new Date(Date.now() + 86400000).toISOString(),
@@ -387,7 +387,7 @@ describe('Booking Readiness Observability (E2E) - Tasks T073 & T074', () => {
       const intlOffer = await prisma.flightOffer.create({
         data: {
           searchHash: `intl-obs-${crypto.randomUUID()}`,
-          duffelOfferId: `off_intl_${crypto.randomUUID()}`,
+          supplierOfferId: `off_intl_${crypto.randomUUID()}`,
           rawOffer: {
             id: `off_intl_raw`,
             expires_at: new Date(Date.now() + 86400000).toISOString(),
@@ -420,7 +420,7 @@ describe('Booking Readiness Observability (E2E) - Tasks T073 & T074', () => {
 
       const duffelSpy = jest.spyOn(duffel.offers, 'get').mockResolvedValue({
         data: {
-          id: intlOffer.duffelOfferId,
+          id: intlOffer.supplierOfferId,
           total_amount: '500.00',
           total_currency: 'USD',
           expires_at: new Date(Date.now() + 86400000).toISOString(),

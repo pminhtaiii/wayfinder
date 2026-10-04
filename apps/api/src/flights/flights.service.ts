@@ -297,7 +297,7 @@ export class FlightsService {
             return {
               id: offerDto.id,
               searchHash: sha256,
-              duffelOfferId: offerDto.duffelOfferId,
+              supplierOfferId: offerDto.duffelOfferId,
               rawOffer: (rawPayload as unknown as Prisma.InputJsonValue) ?? {},
               origin,
               destination,
@@ -461,7 +461,7 @@ export class FlightsService {
     // 3. Offer found: Retrieve live details from FlightSearchPort
     let liveOffer: FlightOffer;
     try {
-      liveOffer = await this.flightSearchPort.getOfferById(flightOffer.duffelOfferId);
+      liveOffer = await this.flightSearchPort.getOfferById(flightOffer.supplierOfferId);
     } catch (err: unknown) {
       const errorObj = err as {
         status?: number;
@@ -477,7 +477,7 @@ export class FlightsService {
 
       if (errStatus === 404 || errStatus === 410) {
         this.logger.warn(
-          `Flight offer ${flightOffer.duffelOfferId} expired on supplier side. Purging from DB.`,
+          `Flight offer ${flightOffer.supplierOfferId} expired on supplier side. Purging from DB.`,
         );
 
         // Delete the flight offer row
@@ -559,7 +559,7 @@ export class FlightsService {
       resourceId: id,
       metadata: {
         flightId: id,
-        duffelOfferId: flightOffer.duffelOfferId,
+        duffelOfferId: flightOffer.supplierOfferId,
         priceChanged,
         originalPrice,
         confirmedPrice,

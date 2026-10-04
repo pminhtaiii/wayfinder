@@ -80,7 +80,7 @@ function buildHarness(options: HarnessOptions = {}) {
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       findUnique: jest.fn().mockResolvedValue({
         id: 'intent-1',
-        duffelOfferId: 'offer-1',
+        supplierOfferId: 'offer-1',
         currentAncillarySelectionId: 'selection-4',
         ancillaryVersion: 4,
         paymentAttemptCount: 1,
@@ -104,7 +104,7 @@ function buildHarness(options: HarnessOptions = {}) {
     bookingIntent: {
       findUnique: jest.fn().mockResolvedValue({
         id: 'intent-1',
-        duffelOfferId: 'offer-1',
+        supplierOfferId: 'offer-1',
         currentAncillarySelectionId: 'selection-4',
         ancillaryVersion: 4,
         paymentAttemptCount: 1,

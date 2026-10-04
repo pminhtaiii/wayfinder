@@ -108,7 +108,7 @@ describe('Chaos & Fault-Tolerance Incident Drills (E2E)', () => {
     return prisma.flightOffer.create({
       data: {
         searchHash: `search-hash-${crypto.randomUUID()}`,
-        duffelOfferId: `off_duffel_${crypto.randomUUID()}`,
+        supplierOfferId: `off_duffel_${crypto.randomUUID()}`,
         rawOffer: {
           expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
           slices: [
@@ -147,7 +147,7 @@ describe('Chaos & Fault-Tolerance Incident Drills (E2E)', () => {
       const offer = await createMockFlightOffer({ adults: 1 });
       const handoffId = crypto.randomUUID();
       const { token, tokenHash } = await tokenService.generateToken(handoffId, 'idem-chaos-1', 1);
-      const duffelOfferIdHash = tokenService.hashToken(offer.duffelOfferId);
+      const supplierOfferIdHash = tokenService.hashToken(offer.supplierOfferId);
 
       const session = await prisma.chatSession.create({
         data: {
@@ -162,7 +162,7 @@ describe('Chaos & Fault-Tolerance Incident Drills (E2E)', () => {
           userId: testUser.id,
           chatSessionId: session.id,
           flightOfferId: offer.id,
-          duffelOfferIdHash,
+          supplierOfferIdHash,
           snapshotVersion: 1,
           snapshotFingerprint: 'print-chaos-1',
           selectionAttestationHash: 'attest-chaos-1',
@@ -239,7 +239,7 @@ describe('Chaos & Fault-Tolerance Incident Drills (E2E)', () => {
       // 4. Supplier Recovery: Restore supplier service and retry createIntent
       duffelSpy.mockRestore();
       jest.spyOn(searchAdapter, 'getOffer').mockResolvedValue({
-        id: offer.duffelOfferId,
+        id: offer.supplierOfferId,
         // The stored fixture supplies the itinerary returned by the supplier.
         slices: (offer.rawOffer as Prisma.JsonObject).slices,
         total_amount: '150.00',
@@ -274,7 +274,7 @@ describe('Chaos & Fault-Tolerance Incident Drills (E2E)', () => {
       const offer = await createMockFlightOffer({ adults: 1 });
       const handoffId = crypto.randomUUID();
       const { token, tokenHash } = await tokenService.generateToken(handoffId, 'idem-chaos-2', 1);
-      const duffelOfferIdHash = tokenService.hashToken(offer.duffelOfferId);
+      const supplierOfferIdHash = tokenService.hashToken(offer.supplierOfferId);
 
       const session = await prisma.chatSession.create({
         data: {
@@ -291,7 +291,7 @@ describe('Chaos & Fault-Tolerance Incident Drills (E2E)', () => {
           userId: testUser.id,
           chatSessionId: session.id,
           flightOfferId: offer.id,
-          duffelOfferIdHash,
+          supplierOfferIdHash,
           snapshotVersion: 1,
           snapshotFingerprint: 'print-chaos-2',
           selectionAttestationHash: 'attest-chaos-2',
@@ -320,7 +320,7 @@ describe('Chaos & Fault-Tolerance Incident Drills (E2E)', () => {
 
       // 2. Assert createIntent and tryAcquireClaim successfully acquire new claim and consume handoff
       jest.spyOn(searchAdapter, 'getOffer').mockResolvedValue({
-        id: offer.duffelOfferId,
+        id: offer.supplierOfferId,
         // The stored fixture supplies the itinerary returned by the supplier.
         slices: (offer.rawOffer as Prisma.JsonObject).slices,
         total_amount: '150.00',

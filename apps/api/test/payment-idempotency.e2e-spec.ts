@@ -104,7 +104,7 @@ describe('Payment Idempotency (E2E)', () => {
     return prisma.flightOffer.create({
       data: {
         searchHash: 'idem-search-hash',
-        duffelOfferId: `off_idem_${Date.now()}`,
+        supplierOfferId: `off_idem_${Date.now()}`,
         rawOffer: {},
         origin: 'SGN',
         destination: 'HAN',
@@ -124,7 +124,7 @@ describe('Payment Idempotency (E2E)', () => {
       data: {
         userId,
         flightOfferId,
-        duffelOfferId: `off_idem_${Date.now()}`,
+        supplierOfferId: `off_idem_${Date.now()}`,
         status: 'AWAITING_PAYMENT',
         originalPrice: new Prisma.Decimal(100.0),
         confirmedPrice: new Prisma.Decimal(125.5),
@@ -257,7 +257,7 @@ describe('Payment Idempotency (E2E)', () => {
       const offer2 = await prisma.flightOffer.create({
         data: {
           searchHash: 'idem-search-hash-2',
-          duffelOfferId: `off_idem_2_${Date.now()}`,
+          supplierOfferId: `off_idem_2_${Date.now()}`,
           rawOffer: {},
           origin: 'SGN',
           destination: 'DAD',

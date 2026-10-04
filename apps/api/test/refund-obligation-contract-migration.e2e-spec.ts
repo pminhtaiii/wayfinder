@@ -289,7 +289,7 @@ describe('Refund obligation contract migration (E2E)', () => {
     const offer = await prisma.flightOffer.create({
       data: {
         searchHash: `contract-migration-${marker}`,
-        duffelOfferId: `off_contract_${marker}`,
+        supplierOfferId: `off_contract_${marker}`,
         rawOffer: {},
         origin: 'SGN',
         destination: 'HAN',
@@ -305,7 +305,7 @@ describe('Refund obligation contract migration (E2E)', () => {
       data: {
         userId: user.id,
         flightOfferId: offer.id,
-        duffelOfferId: `intent_contract_${marker}`,
+        supplierOfferId: `intent_contract_${marker}`,
         status: 'CONFIRMED',
         originalPrice: new Prisma.Decimal(100),
         confirmedPrice: new Prisma.Decimal(100),

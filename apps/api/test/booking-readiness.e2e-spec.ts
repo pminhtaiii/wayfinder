@@ -184,7 +184,7 @@ async function seedReadinessOffer(
   const offer = await prisma.flightOffer.create({
     data: {
       searchHash: overrides.searchHash ?? `booking-readiness-search-hash-${uniqueId}`,
-      duffelOfferId: overrides.duffelOfferId ?? `off_readiness_${uniqueId}`,
+      supplierOfferId: overrides.supplierOfferId ?? `off_readiness_${uniqueId}`,
       rawOffer: {
         expires_at: '2030-08-25T10:00:00Z',
         passengers: [{ id: 'pas_001', type: 'adult' }],
@@ -913,7 +913,7 @@ describe('Booking Readiness (E2E RED)', () => {
           userId: primaryUser.id,
           chatSessionId: session.id,
           flightOfferId: offer.id,
-          duffelOfferIdHash: 'testhash',
+          supplierOfferIdHash: 'testhash',
           snapshotVersion: 1,
           snapshotFingerprint: 'test',
           selectionAttestationHash: 'test_v1_payload.sig',

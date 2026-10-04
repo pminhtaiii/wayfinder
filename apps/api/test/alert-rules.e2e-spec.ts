@@ -365,7 +365,7 @@ describe('Automated Alert Rules & End-to-End Trace Correlation (e2e)', () => {
       const offer = await prisma.flightOffer.create({
         data: {
           searchHash: runMarker,
-          duffelOfferId: `off_cross_${runMarker}`,
+          supplierOfferId: `off_cross_${runMarker}`,
           origin: 'SGN',
           destination: 'HAN',
           departureDate: new Date(Date.now() + 86_400_000),
@@ -470,7 +470,7 @@ describe('Automated Alert Rules & End-to-End Trace Correlation (e2e)', () => {
       const offer = await prisma.flightOffer.create({
         data: {
           searchHash: runMarker,
-          duffelOfferId: `off_trace_${runMarker}`,
+          supplierOfferId: `off_trace_${runMarker}`,
           origin: 'SGN',
           destination: 'HAN',
           departureDate: new Date(Date.now() + 86_400_000),

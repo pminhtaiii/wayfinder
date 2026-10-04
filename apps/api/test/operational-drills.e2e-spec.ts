@@ -130,7 +130,7 @@ describe('Operational Runbook Drills (E2E)', () => {
     validFlightOffer = await prisma.flightOffer.create({
       data: {
         searchHash: 'testhash-op-drills',
-        duffelOfferId: 'off_drill_123',
+        supplierOfferId: 'off_drill_123',
         rawOffer: {
           expires_at: new Date(Date.now() + 15 * 60000).toISOString(),
           slices: [
@@ -200,7 +200,7 @@ describe('Operational Runbook Drills (E2E)', () => {
       const idempotencyHash = crypto.randomBytes(16).toString('hex');
       const genResultV1 = await tokenService.generateToken(rowId, idempotencyHash, 1);
 
-      const duffelOfferIdHash = tokenService.hashToken(validFlightOffer.duffelOfferId);
+      const supplierOfferIdHash = tokenService.hashToken(validFlightOffer.supplierOfferId);
 
       // Store in DB as a V1 handoff record
       await prisma.chatHandoff.create({
@@ -209,7 +209,7 @@ describe('Operational Runbook Drills (E2E)', () => {
           userId: validUser.id,
           chatSessionId: validSession.id,
           flightOfferId: validFlightOffer.id,
-          duffelOfferIdHash,
+          supplierOfferIdHash,
           snapshotVersion: 1,
           snapshotFingerprint: 'fp-v1',
           selectionAttestationHash: 'attest-hash-v1',
@@ -244,7 +244,7 @@ describe('Operational Runbook Drills (E2E)', () => {
       configOverrides['ATTESTATION_SECRET'] = 'attestation-secret-v1';
 
       const offers = [
-        { flightOfferId: validFlightOffer.id, duffelOfferId: validFlightOffer.duffelOfferId },
+        { flightOfferId: validFlightOffer.id, duffelOfferId: validFlightOffer.supplierOfferId },
       ];
       const expiresAt = new Date(Date.now() + 15 * 60000).toISOString();
 
@@ -292,7 +292,7 @@ describe('Operational Runbook Drills (E2E)', () => {
     it('should reject attestation when secret key has been completely revoked from ring', async () => {
       configOverrides['ATTESTATION_SECRET_V1'] = 'revoked-key';
       const offers = [
-        { flightOfferId: validFlightOffer.id, duffelOfferId: validFlightOffer.duffelOfferId },
+        { flightOfferId: validFlightOffer.id, duffelOfferId: validFlightOffer.supplierOfferId },
       ];
       const expiresAt = new Date(Date.now() + 15 * 60000).toISOString();
 
@@ -329,7 +329,7 @@ describe('Operational Runbook Drills (E2E)', () => {
       const rowId = crypto.randomUUID();
       const idempotencyHash = crypto.randomBytes(16).toString('hex');
       const genResult = await tokenService.generateToken(rowId, idempotencyHash, 1);
-      const duffelOfferIdHash = tokenService.hashToken(validFlightOffer.duffelOfferId);
+      const supplierOfferIdHash = tokenService.hashToken(validFlightOffer.supplierOfferId);
 
       // Create an expired handoff record (expired 5 minutes ago)
       await prisma.chatHandoff.create({
@@ -338,7 +338,7 @@ describe('Operational Runbook Drills (E2E)', () => {
           userId: validUser.id,
           chatSessionId: validSession.id,
           flightOfferId: validFlightOffer.id,
-          duffelOfferIdHash,
+          supplierOfferIdHash,
           snapshotVersion: 1,
           snapshotFingerprint: 'fp-exp',
           selectionAttestationHash: 'attest-hash-exp',
@@ -370,7 +370,7 @@ describe('Operational Runbook Drills (E2E)', () => {
           userId: validUser.id,
           chatSessionId: validSession.id,
           flightOfferId: validFlightOffer.id,
-          duffelOfferIdHash,
+          supplierOfferIdHash,
           snapshotVersion: 1,
           snapshotFingerprint: 'fp-fresh',
           selectionAttestationHash: 'attest-hash-fresh',
@@ -395,7 +395,7 @@ describe('Operational Runbook Drills (E2E)', () => {
       const rowId = crypto.randomUUID();
       const idempotencyHash = crypto.randomBytes(16).toString('hex');
       const genResult = await tokenService.generateToken(rowId, idempotencyHash, 1);
-      const duffelOfferIdHash = tokenService.hashToken(validFlightOffer.duffelOfferId);
+      const supplierOfferIdHash = tokenService.hashToken(validFlightOffer.supplierOfferId);
 
       // Create record with active claim lease (lease expires in 5 minutes)
       const handoff = await prisma.chatHandoff.create({
@@ -404,7 +404,7 @@ describe('Operational Runbook Drills (E2E)', () => {
           userId: validUser.id,
           chatSessionId: validSession.id,
           flightOfferId: validFlightOffer.id,
-          duffelOfferIdHash,
+          supplierOfferIdHash,
           snapshotVersion: 1,
           snapshotFingerprint: 'fp-claim',
           selectionAttestationHash: 'attest-hash-claim',
@@ -451,7 +451,7 @@ describe('Operational Runbook Drills (E2E)', () => {
       const bookingIntent = await prisma.bookingIntent.create({
         data: {
           userId: validUser.id,
-          duffelOfferId: validFlightOffer.duffelOfferId,
+          supplierOfferId: validFlightOffer.supplierOfferId,
           originalPrice: 450.0,
           confirmedPrice: 450.0,
           currency: 'GBP',
@@ -476,7 +476,7 @@ describe('Operational Runbook Drills (E2E)', () => {
           userId: validUser.id,
           bookingIntentId: bookingIntent.id,
           status: 'CONFIRMED',
-          duffelOrderId: 'ord_drill_lock_123',
+          supplierOrderId: 'ord_drill_lock_123',
           totalAmount: 450.0,
           currency: 'GBP',
           syncLockedAt: staleLockedAt,

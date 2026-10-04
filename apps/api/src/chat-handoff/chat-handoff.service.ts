@@ -392,7 +392,7 @@ export class ChatHandoffService {
       });
     }
 
-    const computedDuffelOfferIdHash = this.tokenService.hashToken(flightOffer.duffelOfferId);
+    const computedDuffelOfferIdHash = this.tokenService.hashToken(flightOffer.supplierOfferId);
     if (computedDuffelOfferIdHash !== duffelOfferIdHash) {
       throw new NotFoundException({
         code: 'FLIGHT_OFFER_NOT_FOUND',
@@ -487,7 +487,7 @@ export class ChatHandoffService {
           userId,
           chatSessionId,
           flightOfferId,
-          duffelOfferIdHash,
+          supplierOfferIdHash: duffelOfferIdHash,
           selectionAttestationHash,
           selectedOfferIndex: dto.selectedOfferIndex,
           snapshotVersion,
@@ -746,7 +746,7 @@ export class ChatHandoffService {
     }
 
     const flightOfferId = stringValue(handoff.flightOfferId);
-    const duffelOfferIdHash = stringValue(handoff.duffelOfferIdHash);
+    const duffelOfferIdHash = stringValue(handoff.supplierOfferIdHash);
     const expiresAt = isoDateValue(handoff.expiresAt);
     if (!flightOfferId || !duffelOfferIdHash || !expiresAt) {
       throw new NotFoundException({
@@ -758,7 +758,7 @@ export class ChatHandoffService {
     const flightOffer = await this.prisma.flightOffer.findUnique({
       where: { id: flightOfferId },
       select: {
-        duffelOfferId: true,
+        supplierOfferId: true,
         origin: true,
         destination: true,
         adults: true,
@@ -776,7 +776,7 @@ export class ChatHandoffService {
       });
     }
 
-    const computedDuffelOfferIdHash = this.tokenService.hashToken(flightOffer.duffelOfferId);
+    const computedDuffelOfferIdHash = this.tokenService.hashToken(flightOffer.supplierOfferId);
     if (computedDuffelOfferIdHash !== duffelOfferIdHash) {
       throw new NotFoundException({
         code: 'HANDOFF_NOT_FOUND',

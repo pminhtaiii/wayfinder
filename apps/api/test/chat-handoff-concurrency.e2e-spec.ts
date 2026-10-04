@@ -93,7 +93,7 @@ describe('Chat Handoff Concurrency (E2E)', () => {
     return prisma.flightOffer.create({
       data: {
         searchHash: 'test-search-hash',
-        duffelOfferId: 'off_duffel_123',
+        supplierOfferId: 'off_duffel_123',
         rawOffer: {},
         origin: 'SGN',
         destination: 'HAN',
@@ -141,7 +141,7 @@ describe('Chat Handoff Concurrency (E2E)', () => {
         userId: userA.id,
         chatSessionId: session.id,
         flightOfferId: offer.id,
-        duffelOfferIdHash: 'hash',
+        supplierOfferIdHash: 'hash',
         snapshotVersion: 1,
         snapshotFingerprint: 'print',
         selectionAttestationHash: 'attest',

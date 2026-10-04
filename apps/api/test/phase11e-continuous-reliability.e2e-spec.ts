@@ -60,7 +60,7 @@ describe('Phase 11E: Continuous Reliability, Lifecycle & DR Cryptographic Audit 
     testFlightOffer = await prisma.flightOffer.create({
       data: {
         searchHash: `sh_${suffix}`,
-        duffelOfferId: `off_reliab_${suffix}`,
+        supplierOfferId: `off_reliab_${suffix}`,
         rawOffer: {},
         origin: 'SFO',
         destination: 'NRT',
@@ -93,7 +93,7 @@ describe('Phase 11E: Continuous Reliability, Lifecycle & DR Cryptographic Audit 
           userId: testUser.id,
           chatSessionId: session.id,
           flightOfferId: testFlightOffer.id,
-          duffelOfferIdHash: crypto.randomBytes(16).toString('hex'),
+          supplierOfferIdHash: crypto.randomBytes(16).toString('hex'),
           snapshotVersion: 1,
           snapshotFingerprint: 'fp-unconsumed',
           selectionAttestationHash: 'att-unconsumed',
@@ -116,7 +116,7 @@ describe('Phase 11E: Continuous Reliability, Lifecycle & DR Cryptographic Audit 
         data: {
           userId: testUser.id,
           flightOfferId: testFlightOffer.id,
-          duffelOfferId: `off_intent_${crypto.randomUUID()}`,
+          supplierOfferId: `off_intent_${crypto.randomUUID()}`,
           originalPrice: new Prisma.Decimal(750),
           confirmedPrice: new Prisma.Decimal(750),
           currency: 'USD',
@@ -136,7 +136,7 @@ describe('Phase 11E: Continuous Reliability, Lifecycle & DR Cryptographic Audit 
           userId: testUser.id,
           chatSessionId: session.id,
           flightOfferId: testFlightOffer.id,
-          duffelOfferIdHash: crypto.randomBytes(16).toString('hex'),
+          supplierOfferIdHash: crypto.randomBytes(16).toString('hex'),
           snapshotVersion: 1,
           snapshotFingerprint: 'fp-consumed',
           selectionAttestationHash: 'att-consumed',

@@ -204,7 +204,7 @@ describe('Phase 11D: Comprehensive Cryptographic and Data Privacy Final Audit (e
         SELECT column_name
         FROM information_schema.columns
         WHERE table_name = 'chat_handoffs' AND column_name IN (
-          'tokenHash', 'idempotencyKeyHash', 'duffelOfferIdHash', 'selectionAttestationHash'
+          'tokenHash', 'idempotencyKeyHash', 'supplierOfferIdHash', 'selectionAttestationHash'
         );
       `;
       expect(hashCols.length).toBe(4);
@@ -336,7 +336,7 @@ describe('Phase 11D: Comprehensive Cryptographic and Data Privacy Final Audit (e
       const offer = await prisma.flightOffer.create({
         data: {
           searchHash: runMarker,
-          duffelOfferId: 'off_01H123456789ABCDEF000000',
+          supplierOfferId: 'off_01H123456789ABCDEF000000',
           origin: 'SGN',
           destination: 'DAD',
           departureDate: new Date(Date.now() + 86_400_000),
@@ -391,7 +391,7 @@ describe('Phase 11D: Comprehensive Cryptographic and Data Privacy Final Audit (e
         data: {
           userId: testUserId,
           flightOfferId: offer.id,
-          duffelOfferId: 'off_01H123456789ABCDEF000000',
+          supplierOfferId: 'off_01H123456789ABCDEF000000',
           originalPrice: new Prisma.Decimal(120),
           confirmedPrice: new Prisma.Decimal(120),
           currency: 'USD',
@@ -413,7 +413,7 @@ describe('Phase 11D: Comprehensive Cryptographic and Data Privacy Final Audit (e
           currency: 'USD',
           status: 'CONFIRMED',
           pnrReference: 'PNR-XYZ123',
-          duffelOrderId: 'ord_sensitive_duffel_123',
+          supplierOrderId: 'ord_sensitive_duffel_123',
           flightSnapshot: {
             airline: { name: 'Vietnam Airlines', iataCode: 'VN' },
             stops: 0,

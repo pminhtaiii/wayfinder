@@ -63,7 +63,7 @@ export class AncillaryPaymentValidationService {
 
     try {
       pricing = await this.withTimeout(
-        this.ancillaryService.repriceOffer(leased.intent.duffelOfferId, leased.services),
+        this.ancillaryService.repriceOffer(leased.intent.supplierOfferId, leased.services),
         REPRICING_TIMEOUT_MS,
       );
     } catch (error) {

@@ -30,7 +30,7 @@ describe('AncillaryPaymentValidationService', () => {
       status: 'PENDING',
       intentExpiresAt: new Date('2026-07-29T11:00:00.000Z'),
       offerExpiresAt: new Date('2026-07-29T11:00:00.000Z'),
-      duffelOfferId: 'offer-1',
+      supplierOfferId: 'offer-1',
       confirmedPrice: '420.00',
       currency: 'USD',
       ancillaryVersion: 3,
@@ -147,7 +147,7 @@ describe('AncillaryPaymentValidationService', () => {
       status: 'PENDING',
       intentExpiresAt: new Date('2026-07-29T11:00:00.000Z'),
       offerExpiresAt: new Date('2026-07-29T11:00:00.000Z'),
-      duffelOfferId: 'offer-1',
+      supplierOfferId: 'offer-1',
       confirmedPrice: '420.00',
       currency: 'USD',
       ancillaryVersion: 3,
@@ -251,7 +251,7 @@ describe('AncillaryPaymentValidationService', () => {
       status: 'PENDING',
       intentExpiresAt: future,
       offerExpiresAt: future,
-      duffelOfferId: 'off_123',
+      supplierOfferId: 'off_123',
       confirmedPrice: '420.00',
       currency: 'USD',
       ancillaryVersion: 3,
@@ -403,7 +403,7 @@ describe('AncillaryPaymentValidationService', () => {
       status: string;
       intentExpiresAt: Date;
       offerExpiresAt: Date | null;
-      duffelOfferId: string;
+      supplierOfferId: string;
       confirmedPrice: string;
       currency: string;
       ancillaryVersion: number;
@@ -443,7 +443,7 @@ describe('AncillaryPaymentValidationService', () => {
       status: 'PENDING',
       intentExpiresAt: new Date('2026-07-29T11:00:00.000Z'),
       offerExpiresAt: new Date('2026-07-29T11:00:00.000Z'),
-      duffelOfferId: 'offer-1',
+      supplierOfferId: 'offer-1',
       confirmedPrice: '420.00',
       currency: 'USD',
       ancillaryVersion: 3,

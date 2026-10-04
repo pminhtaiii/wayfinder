@@ -68,7 +68,7 @@ describe('Payment Webhook (E2E)', () => {
         return prisma.flightOffer.create({
             data: {
                 searchHash: 'test-search-hash',
-                duffelOfferId: `off_${Date.now()}`,
+                supplierOfferId: `off_${Date.now()}`,
                 rawOffer: {},
                 origin: 'SGN',
                 destination: 'HAN',
@@ -86,7 +86,7 @@ describe('Payment Webhook (E2E)', () => {
             data: {
                 userId,
                 flightOfferId,
-                duffelOfferId: `off_${Date.now()}`,
+                supplierOfferId: `off_${Date.now()}`,
                 status: 'AWAITING_PAYMENT',
                 originalPrice: new client_1.Prisma.Decimal(100.0),
                 confirmedPrice: new client_1.Prisma.Decimal(100.0),

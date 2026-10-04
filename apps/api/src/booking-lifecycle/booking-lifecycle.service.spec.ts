@@ -535,7 +535,7 @@ describe('BookingLifecycleService', () => {
         id: 'b-1',
         status: BookingStatus.CONFIRMED,
         pnrReference: 'PNR1',
-        duffelOrderId: 'ord-1',
+        supplierOrderId: 'ord-1',
         version: 2,
       });
 
@@ -555,7 +555,7 @@ describe('BookingLifecycleService', () => {
           status: BookingStatus.CONFIRMED,
           failureReason: null,
           pnrReference: 'PNR1',
-          duffelOrderId: 'ord-1',
+          supplierOrderId: 'ord-1',
           flightSnapshot: flightSnapshot as any,
           passengerSnapshot: passengerSnapshot as any,
           departureAt: new Date('2026-09-01T10:00:00.000Z'),
@@ -584,7 +584,7 @@ describe('BookingLifecycleService', () => {
         id: 'b-1',
         status: BookingStatus.CONFIRMED,
         pnrReference: 'PNR1',
-        duffelOrderId: 'ord-1',
+        supplierOrderId: 'ord-1',
         version: 2,
       });
 

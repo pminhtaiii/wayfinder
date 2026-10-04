@@ -34,7 +34,7 @@ function buildDomesticPassenger(
     issuingCountry: null,
     nationality: 'US',
     travelerProfileId: null,
-    duffelPassengerId: 'pas_duffel_001',
+    supplierPassengerId: 'pas_duffel_001',
     snapshotVersion: 1,
     ...overrides,
   };
@@ -90,7 +90,7 @@ function buildInternationalPassenger(
     issuingCountry: 'GB',
     nationality: 'GB',
     travelerProfileId: 'profile-ada-1',
-    duffelPassengerId: 'pas_duffel_002',
+    supplierPassengerId: 'pas_duffel_002',
     snapshotVersion,
     ...(options.overrides ?? {}),
   };

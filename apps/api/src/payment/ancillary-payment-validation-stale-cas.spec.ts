@@ -28,7 +28,7 @@ describe('AncillaryPaymentValidationService stale CAS', () => {
       status: 'PENDING',
       intentExpiresAt: new Date(Date.now() + 60_000),
       offerExpiresAt: new Date(Date.now() + 60_000),
-      duffelOfferId: 'offer-1',
+      supplierOfferId: 'offer-1',
       confirmedPrice: '420.00',
       currency: 'USD',
       ancillaryVersion: 3,

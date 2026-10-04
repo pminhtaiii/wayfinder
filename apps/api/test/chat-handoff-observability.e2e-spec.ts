@@ -104,7 +104,7 @@ describe('chat handoff observability dashboard and alert contract', () => {
       const offer = await prisma!.flightOffer.create({
         data: {
           searchHash: runMarker,
-          duffelOfferId: `${runMarker}-offer`,
+          supplierOfferId: `${runMarker}-offer`,
           origin: 'SGN',
           destination: 'HAN',
           departureDate: new Date(Date.now() + 86_400_000),

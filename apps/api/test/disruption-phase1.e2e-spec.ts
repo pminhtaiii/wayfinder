@@ -51,7 +51,7 @@ describe('Disruption Phase 1 (Schema & Config E2E)', () => {
       const intent = await prisma.bookingIntent.create({
         data: {
           userId,
-          duffelOfferId: `off_fake_${suffix}`,
+          supplierOfferId: `off_fake_${suffix}`,
           originalPrice: new Prisma.Decimal('100.00'),
           confirmedPrice: new Prisma.Decimal('100.00'),
           currency: 'USD',

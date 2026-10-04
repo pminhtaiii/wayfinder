@@ -40,7 +40,7 @@ type MockAuditService = {
 
 type TestableService = {
   decryptProfileField(value: string | null): string | null;
-  fetchLiveOffer(duffelOfferId: string): Promise<{
+  fetchLiveOffer(supplierOfferId: string): Promise<{
     totalAmount: string;
     currency: string;
     offerExpiresAt: Date | null;
@@ -131,7 +131,7 @@ describe('BookingIntentService Refinements', () => {
       prisma.flightOffer = {
         findUnique: jest.fn().mockResolvedValue({
           id: offerId,
-          duffelOfferId: 'duffel-offer-1',
+          supplierOfferId: 'duffel-offer-1',
           price: 150,
           origin: 'SGN',
           destination: 'HAN',
@@ -270,7 +270,7 @@ describe('BookingIntentService Refinements', () => {
       prisma.flightOffer = {
         findUnique: jest.fn().mockResolvedValue({
           id: 'offer-1',
-          duffelOfferId: 'duffel-offer-1',
+          supplierOfferId: 'duffel-offer-1',
           price: 150,
           origin: 'SGN',
           destination: 'HAN',
@@ -486,7 +486,7 @@ describe('BookingIntentService Refinements', () => {
       it('throws 422 BOOKING_NOT_READY and executes 0 database writes when passenger travel documents are invalid or expired for international flight', async () => {
         prisma.flightOffer.findUnique.mockResolvedValue({
           id: 'offer-intl-1',
-          duffelOfferId: 'duffel-intl-1',
+          supplierOfferId: 'duffel-intl-1',
           price: 500,
           origin: 'SGN',
           destination: 'NRT',
@@ -571,7 +571,7 @@ describe('BookingIntentService Refinements', () => {
       it('throws 422 BOOKING_NOT_READY and executes 0 database writes when required domestic contact or identity fields are missing', async () => {
         prisma.flightOffer.findUnique.mockResolvedValue({
           id: 'offer-dom-missing',
-          duffelOfferId: 'duffel-dom-missing',
+          supplierOfferId: 'duffel-dom-missing',
           price: 120,
           origin: 'SGN',
           destination: 'HAN',
@@ -651,7 +651,7 @@ describe('BookingIntentService Refinements', () => {
       it('aborts transaction and throws 409 ConflictException (PROFILE_CHANGED) writing 0 rows when profile revision advances before commit', async () => {
         prisma.flightOffer.findUnique.mockResolvedValue({
           id: 'offer-race-1',
-          duffelOfferId: 'duffel-race-1',
+          supplierOfferId: 'duffel-race-1',
           price: 200,
           origin: 'SGN',
           destination: 'HAN',
@@ -719,7 +719,7 @@ describe('BookingIntentService Refinements', () => {
       it('fails multi-passenger intent pre-validation with 422 and 0 writes if any passenger source is invalid', async () => {
         prisma.flightOffer.findUnique.mockResolvedValue({
           id: 'offer-multi-1',
-          duffelOfferId: 'duffel-multi-1',
+          supplierOfferId: 'duffel-multi-1',
           price: 450,
           origin: 'SGN',
           destination: 'NRT',
@@ -823,7 +823,7 @@ describe('BookingIntentService Refinements', () => {
       it('atomically creates multi-passenger intent, snapshots with bound AAD encryption, and audit record when all passengers are valid', async () => {
         prisma.flightOffer.findUnique.mockResolvedValue({
           id: 'offer-multi-valid',
-          duffelOfferId: 'duffel-multi-valid',
+          supplierOfferId: 'duffel-multi-valid',
           price: 450,
           origin: 'SGN',
           destination: 'NRT',
@@ -967,7 +967,7 @@ describe('BookingIntentService Refinements', () => {
       it('persisted passenger snapshots retain exact captured data independently of subsequent TravelerProfile changes or deletion', async () => {
         prisma.flightOffer.findUnique.mockResolvedValue({
           id: 'offer-snap-1',
-          duffelOfferId: 'duffel-snap-1',
+          supplierOfferId: 'duffel-snap-1',
           price: 150,
           origin: 'SGN',
           destination: 'HAN',
@@ -1092,7 +1092,7 @@ describe('BookingIntentService Refinements', () => {
       it('emits structured audit log inside transaction with traceId/correlationId and zero PII in metadata', async () => {
         prisma.flightOffer.findUnique.mockResolvedValue({
           id: 'offer-audit-1',
-          duffelOfferId: 'duffel-audit-1',
+          supplierOfferId: 'duffel-audit-1',
           price: 150,
           origin: 'SGN',
           destination: 'HAN',
@@ -1187,7 +1187,7 @@ describe('BookingIntentService Refinements', () => {
       it('emits BookingReadinessObservability event for INTENT_CREATE with zero PII', async () => {
         prisma.flightOffer.findUnique.mockResolvedValue({
           id: 'offer-obs-1',
-          duffelOfferId: 'duffel-obs-1',
+          supplierOfferId: 'duffel-obs-1',
           price: 150,
           origin: 'SGN',
           destination: 'HAN',
@@ -1267,7 +1267,7 @@ describe('BookingIntentService Refinements', () => {
       it('does not abort transaction when observability recordOutcome throws', async () => {
         prisma.flightOffer.findUnique.mockResolvedValue({
           id: 'offer-obs-fail',
-          duffelOfferId: 'duffel-obs-fail',
+          supplierOfferId: 'duffel-obs-fail',
           price: 150,
           origin: 'SGN',
           destination: 'HAN',
@@ -1316,7 +1316,7 @@ describe('BookingIntentService Refinements', () => {
       it('does not emit created telemetry or observability event when transaction rolls back', async () => {
         prisma.flightOffer.findUnique.mockResolvedValue({
           id: 'offer-obs-rollback',
-          duffelOfferId: 'duffel-obs-rollback',
+          supplierOfferId: 'duffel-obs-rollback',
           price: 150,
           origin: 'SGN',
           destination: 'HAN',

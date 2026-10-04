@@ -86,7 +86,7 @@ describe('Booking Intent (E2E)', () => {
         return prisma.flightOffer.create({
             data: {
                 searchHash: 'test-search-hash',
-                duffelOfferId: 'off_duffel_123',
+                supplierOfferId: 'off_duffel_123',
                 rawOffer: {},
                 origin: 'SGN',
                 destination: 'HAN',

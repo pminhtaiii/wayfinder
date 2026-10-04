@@ -40,7 +40,7 @@ describe('BookingAgentProjection Privacy Invariants (E2E)', () => {
     const intent = await prisma.bookingIntent.create({
       data: {
         userId: testUserId,
-        duffelOfferId: `off_privacy_${randomUUID()}`,
+        supplierOfferId: `off_privacy_${randomUUID()}`,
         status: BookingIntentStatus.COMPLETED,
         originalPrice: new Prisma.Decimal('199.99'),
         confirmedPrice: new Prisma.Decimal('199.99'),

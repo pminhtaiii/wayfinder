@@ -236,7 +236,7 @@ describe('ChatHandoff (E2E)', () => {
     validFlightOffer = await prisma.flightOffer.create({
       data: {
         searchHash: 'testhash',
-        duffelOfferId: 'off_test123',
+        supplierOfferId: 'off_test123',
         rawOffer: {
           expires_at: new Date(Date.now() + 15 * 60000).toISOString(),
           slices: [
