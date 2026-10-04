@@ -328,8 +328,9 @@ async function ensureDatabase(client, expectedName) {
 }
 
 async function seedLegacyGraph(client) {
-  const timestamp = '2026-09-01T10:00:00.000Z';
-  const laterTimestamp = '2026-09-02T10:00:00.000Z';
+  // Pass Date objects so Prisma serializes parameters as PostgreSQL timestamps
+  const timestamp = new Date('2026-09-01T10:00:00.000Z');
+  const laterTimestamp = new Date('2026-09-02T10:00:00.000Z');
 
   await execute(
     client,
@@ -406,7 +407,7 @@ async function seedLegacyGraph(client) {
   );
   await execute(
     client,
-    `INSERT INTO "baggage_selections" ("id", "ancillarySelectionId", "intentPassengerId", "duffelPassengerId", "serviceId", "type", "quantity", "amount", "currency", "updatedAt") VALUES ($1, $2, $3, $4, 't054-baggage-service-1', 'CHECKED', 1, 20.00, 'USD', $5), ($6, $7, $8, $9, 't054-baggage-service-2', 'CHECKED', 0, 0.00, 'USD', $5)`,
+    `INSERT INTO "baggage_selections" ("id", "ancillarySelectionId", "intentPassengerId", "duffelPassengerId", "serviceId", "type", "quantity", "amount", "currency", "updatedAt") VALUES ($1, $2, $3, $4, 't054-baggage-service-1', 'CHECKED', 1, 20.00, 'USD', $5), ($6, $7, $8, $9, 't054-baggage-service-2', 'CHECKED', 1, 0.00, 'USD', $5)`,
     't054-baggage-sentinel',
     't054-ancillary-sentinel',
     't054-passenger-sentinel',
@@ -438,7 +439,7 @@ async function seedLegacyGraph(client) {
   );
   await execute(
     client,
-    `INSERT INTO "chat_handoffs" ("id", "userId", "chatSessionId", "flightOfferId", "duffelOfferIdHash", "snapshotVersion", "snapshotFingerprint", "selectionAttestationHash", "selectedOfferIndex", "tokenHash", "tokenKeyVersion", "idempotencyKeyHash", "expiresAt", "updatedAt") VALUES ('t054-chat-handoff', 't054-user', 't054-chat-session', 't054-flight-offer', 't054-handoff-offer-hash-sentinel', 1, 't054-snapshot-fingerprint', 't054-attestation-hash', 0, 't054-token-hash', 1, 't054-idempotency-hash', $1, $2)`,
+    `INSERT INTO "chat_handoffs" ("id", "userId", "chatSessionId", "flightOfferId", "duffelOfferIdHash", "snapshotVersion", "snapshotFingerprint", "selectionAttestationHash", "selectedOfferIndex", "tokenHash", "tokenKeyVersion", "idempotencyKeyHash", "expiresAt", "updatedAt") VALUES ('t054-chat-handoff', 't054-user', 't054-chat-session', 't054-flight-offer', 't054-handoff-offer-hash-sentinel', 1, 't054-snapshot-fingerprint', 't054-attestation-hash', 1, 't054-token-hash', 1, 't054-idempotency-hash', $1, $2)`,
     laterTimestamp,
     timestamp,
   );

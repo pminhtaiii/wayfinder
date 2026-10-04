@@ -103,7 +103,8 @@ describe('Bookings (E2E)', () => {
     const intent = await prisma.bookingIntent.create({
       data: {
         userId,
-        duffelOfferId: `off-${crypto.randomUUID()}`,
+        // Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
+        supplierOfferId: `off-${crypto.randomUUID()}`,
         status: 'AWAITING_PAYMENT',
         originalPrice: new Prisma.Decimal('125.50'),
         confirmedPrice: new Prisma.Decimal('125.50'),
