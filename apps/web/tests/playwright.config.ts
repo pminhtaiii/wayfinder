@@ -79,7 +79,9 @@ export default defineConfig({
             cwd: path.resolve(__dirname, '../../api'),
             env: {
               NODE_ENV: 'test',
-              DATABASE_URL: 'postgresql://postgres:postgres@127.0.0.1:5432/test_db',
+              // User-approved 2026-10-04: T093's API server and Prisma assertions must use the same disposable DATABASE_URL for phase-7 isolation.
+              DATABASE_URL:
+                process.env.DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/test_db',
               REDIS_URL: 'redis://127.0.0.1:6379/1',
               FEATURE_FLAG_BOOKING_READINESS: 'true',
               FEATURE_FLAG_CHAT_HANDOFF_ISSUE: 'true',
