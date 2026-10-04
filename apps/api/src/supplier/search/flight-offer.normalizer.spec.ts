@@ -490,6 +490,20 @@ describe('FlightOfferNormalizer (T014)', () => {
     });
 
     it('keeps array-backed missing route facts domestic but absent slices null', () => {
+      expect(normalizeStoredOfferFacts({
+        slices: [{
+          segments: [{
+            origin: { iata_code: 'SGN', countryCode: 'VN' },
+            destination: { iata_code: 'NRT' },
+            arrivalDate: '2026-08-22T15:00:00Z',
+          }],
+        }],
+      })).toEqual({
+        travelScope: 'DOMESTIC',
+        tripCompletionDate: '2026-08-22',
+        offerExpiresAt: null,
+      });
+
       expect(normalizeStoredOfferFacts({ slices: [] })).toEqual({
         travelScope: 'DOMESTIC',
         tripCompletionDate: null,
