@@ -49,11 +49,10 @@ function projectSnapshotSegment(segment: unknown): Prisma.JsonObject {
 }
 
 function projectFlightSnapshot(raw: Prisma.JsonValue | null): Prisma.JsonValue | null {
-  if (!isJsonObject(raw)) {
-    return null;
+  if (!isJsonObject(raw) || !Array.isArray(raw.segments)) {
+    return raw;
   }
-  const rawSegments = Array.isArray(raw.segments) ? raw.segments : [];
-  const segments: Prisma.JsonArray = rawSegments.map((seg) => projectSnapshotSegment(seg));
+  const segments: Prisma.JsonArray = raw.segments.map((seg) => projectSnapshotSegment(seg));
 
   return {
     ...raw,
