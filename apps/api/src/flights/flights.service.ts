@@ -35,6 +35,26 @@ type FlightSearchOptions = {
   caller?: 'user' | 'agent';
 };
 
+function isInputJsonValue(value: unknown): value is Prisma.InputJsonValue {
+  if (
+    value === null ||
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  ) {
+    return true;
+  }
+  if (Array.isArray(value)) {
+    return value.every(isInputJsonValue);
+  }
+  if (typeof value === 'object') {
+    return Object.entries(value).every(
+      ([key, val]) => typeof key === 'string' && (val === undefined || isInputJsonValue(val)),
+    );
+  }
+  return false;
+}
+
 function mapFlightSegment(segment: FlightSegment): FlightSegmentDto {
   const aircraftName = segment.aircraft || '';
   const aircraft = aircraftName.includes('Airbus')
@@ -289,28 +309,32 @@ export class FlightsService {
             },
           });
 
-          const flightOffersData = results.map((offerDto) => {
-            const matchingOffer = (offers || []).find(
-              (o) => o.id === offerDto.id || o.supplierOfferId === offerDto.duffelOfferId,
-            );
-            const rawPayload = matchingOffer ? matchingOffer.rawSupplierPayload : {};
+          const flightOffersData = orchestrated.results.map((res) => {
+            const offer = res.offer;
+            if (!offer) {
+              throw new ServiceUnavailableException('Missing offer in search results');
+            }
+            const rawPayload = offer.rawSupplierPayload;
+            const rawOffer: Prisma.InputJsonValue = isInputJsonValue(rawPayload)
+              ? rawPayload
+              : {};
             return {
-              id: offerDto.id,
+              id: res.scoredOffer.offer.id,
               searchHash: sha256,
-              supplierOfferId: offerDto.duffelOfferId,
-              rawOffer: (rawPayload as unknown as Prisma.InputJsonValue) ?? {},
+              supplierOfferId: offer.supplierOfferId,
+              rawOffer,
               origin,
               destination,
               departureDate: new Date(query.departureDate),
               returnDate: query.returnDate ? new Date(query.returnDate) : null,
               ...passengersInfo,
-              price: new Prisma.Decimal(offerDto.price),
-              currency: offerDto.currency,
+              price: new Prisma.Decimal(offer.price),
+              currency: offer.currency,
             };
           });
 
-          const offerRecoveriesData = results.map((offerDto) => ({
-            id: offerDto.id,
+          const offerRecoveriesData = orchestrated.results.map((res) => ({
+            id: res.scoredOffer.offer.id,
             searchHash: sha256,
           }));
 

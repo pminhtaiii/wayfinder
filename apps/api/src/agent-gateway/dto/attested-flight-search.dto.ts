@@ -66,6 +66,10 @@ export interface AgentFlightMatchResultDto {
   explanations: Explanation[];
 }
 
+/**
+ * Attested flight search result wire DTO.
+ * Retains legacy `duffelOfferId` at the public wire boundary while internal domain models use neutral identifiers.
+ */
 export interface AttestedFlightSearchResultDto {
   flightOfferId: string;
   duffelOfferId: string;
