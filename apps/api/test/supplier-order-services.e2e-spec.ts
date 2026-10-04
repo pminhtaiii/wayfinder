@@ -185,7 +185,7 @@ describe('Supplier order services (E2E)', () => {
             arrivalAt: '2026-10-10T12:00:00-07:00',
             duration: 'PT2H',
             aircraftType: 'Boeing 737',
-            duffelSegmentId: 'seg_snapshot',
+            supplierSegmentId: 'seg_snapshot',
             sliceOrder: 0,
             segmentOrder: 0,
             globalOrder: 0,

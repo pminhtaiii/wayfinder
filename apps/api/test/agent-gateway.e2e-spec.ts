@@ -1246,7 +1246,7 @@ describe('Agent Gateway (E2E)', () => {
       for (const result of results) {
         expect(persistedOffers.find((offer) => offer.id === result.flightOfferId)).toMatchObject({
           id: result.flightOfferId,
-          duffelOfferId: result.duffelOfferId,
+          supplierOfferId: result.duffelOfferId,
           rawOffer: { id: result.duffelOfferId },
         });
       }

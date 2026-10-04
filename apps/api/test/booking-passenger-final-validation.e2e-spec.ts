@@ -232,7 +232,7 @@ describe('Booking Passenger Final Validation (E2E) - Task T068', () => {
         id: intentId,
         userId: testUser.id,
         flightOfferId: flightOffer.id,
-        duffelOfferId: flightOffer.duffelOfferId,
+        supplierOfferId: flightOffer.supplierOfferId,
         status: 'AWAITING_PAYMENT',
         originalPrice: new Prisma.Decimal(150.0),
         confirmedPrice: new Prisma.Decimal(150.0),

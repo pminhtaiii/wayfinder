@@ -213,7 +213,7 @@ describe('Automated Negative Privacy & Security Continuous Audit (e2e)', () => {
       const hashCols: Array<{ column_name: string }> = await prisma.$queryRaw`
         SELECT column_name
         FROM information_schema.columns
-        WHERE table_name = 'chat_handoffs' AND column_name IN ('tokenHash', 'duffelOfferIdHash', 'selectionAttestationHash');
+        WHERE table_name = 'chat_handoffs' AND column_name IN ('tokenHash', 'supplierOfferIdHash', 'selectionAttestationHash');
       `;
       expect(hashCols.length).toBe(3);
     });
