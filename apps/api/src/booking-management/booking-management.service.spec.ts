@@ -1,3 +1,4 @@
+// Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test } from '@nestjs/testing';
@@ -123,7 +124,7 @@ describe('BookingManagementService', () => {
         ],
       },
       payment: { id: 'p-1', status: 'SUCCEEDED', stripePaymentIntentId: 'pi-1' },
-      bookingIntent: { id: 'bi-1', duffelOfferId: 'off-1' },
+      bookingIntent: { id: 'bi-1', supplierOfferId: 'off-1' },
       activeDisruptionRevision: null,
       itineraryRevisions: [],
       ...overrides,
@@ -337,7 +338,7 @@ describe('BookingManagementService', () => {
       status: BookingStatus.CONFIRMED,
       failureReason: null,
       pnrReference: 'PNRXYZ',
-      duffelOrderId: 'ord_123',
+      supplierOrderId: 'ord_123',
       totalAmount: { toString: () => '500.00' },
       currency: 'GBP',
       departureAt: new Date('2026-09-15T08:00:00Z'),
@@ -359,14 +360,14 @@ describe('BookingManagementService', () => {
       },
       bookingIntent: {
         id: 'intent-1',
-        duffelOfferId: 'off_test_123',
+        supplierOfferId: 'off_test_123',
         passengers: [{ id: 'pass-1', givenName: 'Jane', familyName: 'Doe' }],
       },
       cancellationDeadline: new Date('2026-09-10T00:00:00Z'),
       cancellationRefundable: true,
       airlineRefundAmount: { toString: () => '400.00' },
       customerRefundAmount: { toString: () => '400.00' },
-      duffelCancellationQuoteId: 'can_quo_789|balance|25.00|GBP',
+      supplierCancellationQuoteId: 'can_quo_789|balance|25.00|GBP',
       createdAt: new Date('2026-08-01T10:00:00Z'),
       updatedAt: new Date('2026-08-02T10:00:00Z'),
       disruptionStatus: null,
@@ -608,7 +609,7 @@ describe('BookingManagementService', () => {
 
     it('parses Duffel cancellation quote ID correctly in booking detail', async () => {
       const booking = mockDetailBooking({
-        duffelCancellationQuoteId: 'can_quo_999|card|0.00|USD',
+        supplierCancellationQuoteId: 'can_quo_999|card|0.00|USD',
       });
       prisma.booking.findUnique.mockResolvedValue(booking);
 

@@ -62,6 +62,8 @@ interface MockPrisma {
   };
 }
 
+// Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
+
 describe('PaymentFulfillmentSaga', () => {
   let saga: PaymentFulfillmentSaga;
   let mockPaymentGateway: {
@@ -116,7 +118,7 @@ describe('PaymentFulfillmentSaga', () => {
   const baseBookingIntent = {
     id: 'intent-123',
     userId,
-    duffelOfferId: 'off-123',
+    supplierOfferId: 'off-123',
     paymentAttemptCount: 1,
     confirmedPrice: 15000,
     currency: 'USD',

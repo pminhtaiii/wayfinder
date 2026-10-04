@@ -1,3 +1,4 @@
+// Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
 import 'reflect-metadata';
 import { PassengerType } from '@prisma/client';
 import { EncryptionService } from '@/common/encryption.service';
@@ -80,7 +81,7 @@ describe('PassengerSnapshotService', () => {
         passportNumber: null,
         passportExpiry: null,
         travelerProfileId: null,
-        duffelPassengerId: 'duffel_pas_001',
+        supplierPassengerId: 'duffel_pas_001',
         snapshotVersion: 1,
       }),
     );
