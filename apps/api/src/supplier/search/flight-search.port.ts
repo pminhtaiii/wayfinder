@@ -1,4 +1,5 @@
 import { FlightMatchInput } from '@/flight-match/flight-match.types';
+import type { FlightSnapshot } from '@shared/booking-types';
 
 export const FLIGHT_SEARCH_PORT = Symbol('FLIGHT_SEARCH_PORT');
 
@@ -92,4 +93,5 @@ export interface FlightSearchPort {
   getOfferById(supplierOfferId: string, timeoutMs?: number): Promise<FlightOffer>;
   normalizeStoredOffer(rawOffer: unknown): FlightOffer | null;
   normalizeStoredOfferFacts(rawOffer: unknown): FlightStoredOfferFacts;
+  normalizeStoredFlightSnapshot(rawOffer: unknown): FlightSnapshot | null;
 }

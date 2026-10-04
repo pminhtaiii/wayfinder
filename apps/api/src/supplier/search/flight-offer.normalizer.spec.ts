@@ -434,6 +434,274 @@ describe('FlightOfferNormalizer (T014)', () => {
   }
 
   describe('c. Legacy stored offer normalization (normalizeStoredOffer)', () => {
+    it('maps the partial lifecycle offer into the historical flight snapshot JSON', () => {
+      const rawOffer = {
+        total_duration: 'PT8H',
+        slices: [
+          {
+            duration: 'PT8H',
+            segments: [
+              {
+                id: 'seg_1',
+                departing_at: '2026-09-18T10:00:00Z',
+                arriving_at: '2026-09-18T18:00:00Z',
+                duration: 'PT8H',
+                marketing_carrier_flight_number: 'DL100',
+                operating_carrier: { name: 'Delta Air Lines', iata_code: 'DL' },
+                origin: { iata_code: 'JFK', name: 'John F Kennedy Intl', city_name: 'New York' },
+                destination: { iata_code: 'LHR', name: 'London Heathrow', city_name: 'London' },
+                passengers: [{ cabin_class: 'economy' }],
+              },
+            ],
+          },
+        ],
+      };
+
+      expect(normalizer.normalizeStoredFlightSnapshot(rawOffer)).toEqual({
+        segments: [
+          {
+            airline: { name: 'Delta Air Lines', iataCode: 'DL' },
+            flightNumber: 'DL100',
+            departureAirport: {
+              iataCode: 'JFK',
+              name: 'John F Kennedy Intl',
+              city: 'New York',
+              terminal: undefined,
+            },
+            arrivalAirport: {
+              iataCode: 'LHR',
+              name: 'London Heathrow',
+              city: 'London',
+              terminal: undefined,
+            },
+            departureAt: '2026-09-18T10:00:00Z',
+            arrivalAt: '2026-09-18T18:00:00Z',
+            duration: 'PT8H',
+            aircraftType: undefined,
+            supplierSegmentId: 'seg_1',
+            sliceOrder: 0,
+            segmentOrder: 0,
+            globalOrder: 0,
+          },
+        ],
+        totalDuration: 'PT8H',
+        stops: 0,
+        cabinClass: 'economy',
+      });
+    });
+
+    it('retains legacy aliases, cabin precedence, skipped entries, and source ordering', () => {
+      const rawOffer = {
+        total_duration: 'PT7H',
+        totalDuration: 'PT6H',
+        cabinClass: 'top camel',
+        cabin_class: 'top snake',
+        slices: [
+          {
+            duration: 'PT2H30M',
+            segments: [
+              null,
+              {
+                id: 'seg_snake',
+                departing_at: '2026-09-18T10:00:00Z',
+                arriving_at: '2026-09-18T11:00:00Z',
+                duration: 'PT1H',
+                marketing_carrier_flight_number: 'DL101',
+                operating_carrier: { name: 'Operating snake', iata_code: 'OS' },
+                origin_terminal: 'A',
+                destination_terminal: 'B',
+                origin: { iata_code: 'JFK', name: 'Kennedy', city_name: 'New York' },
+                destination: { iata_code: 'LHR', name: 'Heathrow', city_name: 'London' },
+                aircraft: { name: 'A320' },
+                passengers: [{ cabin_class: 'passenger snake' }],
+              },
+              {
+                supplierSegmentId: 'seg_camel',
+                departureAt: '2026-09-18T12:00:00Z',
+                arrivalAt: '2026-09-18T13:00:00Z',
+                duration: 'PT1H',
+                marketingCarrierFlightNumber: 'MC202',
+                marketingCarrier: { name: 'Marketing camel', iataCode: 'MC' },
+                originTerminal: 'C',
+                destinationTerminal: 'D',
+                origin: { iataCode: 'LHR', name: 'Heathrow', cityName: 'London' },
+                destination: { iataCode: 'CDG', name: 'Charles de Gaulle', cityName: 'Paris' },
+                aircraftType: 'A321',
+                cabinClass: 'segment camel',
+              },
+              {
+                duffelSegmentId: 'seg_city_object',
+                departing_at: '2026-09-18T14:00:00Z',
+                arriving_at: '2026-09-18T15:00:00Z',
+                duration: 'PT1H',
+                flight_number: 'AF303',
+                marketing_carrier: { name: 'Marketing snake', iata_code: 'MS' },
+                origin: { iata_code: 'CDG', name: 'Charles de Gaulle', city: { name: 'Paris' } },
+                destination: { iataCode: 'FRA', name: 'Frankfurt', city: { name: 'Frankfurt' } },
+                passengers: [{ cabinClass: 'passenger camel' }],
+              },
+              {
+                departing_at: '2026-09-18T16:00:00Z',
+                arriving_at: '2026-09-18T17:00:00Z',
+                duration: 'PT1H',
+                flightNumber: 'LH404',
+                operatingCarrier: { name: 'Operating camel', iataCode: 'OC' },
+                origin: { iataCode: 'FRA', name: 'Frankfurt', city: 'Frankfurt' },
+                destination: { iataCode: 'MUC', name: 'Munich', city: 'Munich' },
+              },
+              {
+                departing_at: '2026-09-18T18:00:00Z',
+                arriving_at: '2026-09-18T19:00:00Z',
+                duration: 'PT1H',
+                flightNumber: 'IB505',
+                airline: { name: 'Airline fallback', iata_code: 'AF' },
+                origin: { iataCode: 'MUC', name: 'Munich', city: 'Munich' },
+                destination: { iataCode: 'MAD', name: 'Madrid', city: 'Madrid' },
+              },
+            ],
+          },
+          {
+            duration: 'PT4H',
+            segments: [
+              {
+                id: 'seg_camel_fallback',
+                departing_at: '2026-09-19T10:00:00Z',
+                arriving_at: '2026-09-19T11:00:00Z',
+                duration: 'PT1H',
+                marketingCarrierFlightNumber: 'ZZ505',
+                airline: { name: 'Airline camel', iataCode: 'ZZ' },
+                origin: { iata_code: 'MUC', name: 'Munich', city_name: 'Munich' },
+                destination: { iata_code: 'ZRH', name: 'Zurich', city_name: 'Zurich' },
+              },
+            ],
+          },
+        ],
+      };
+      const rawBefore = JSON.stringify(rawOffer);
+
+      const snapshot = normalizer.normalizeStoredFlightSnapshot(rawOffer);
+
+      expect(snapshot).not.toBeNull();
+      expect(snapshot).toMatchObject({
+        totalDuration: 'PT7H',
+        stops: 5,
+        cabinClass: 'passenger camel',
+        segments: [
+          {
+            airline: { name: 'Operating snake', iataCode: 'OS' },
+            flightNumber: 'DL101',
+            departureAirport: { iataCode: 'JFK', name: 'Kennedy', city: 'New York', terminal: 'A' },
+            arrivalAirport: { iataCode: 'LHR', name: 'Heathrow', city: 'London', terminal: 'B' },
+            departureAt: '2026-09-18T10:00:00Z',
+            arrivalAt: '2026-09-18T11:00:00Z',
+            aircraftType: 'A320',
+            supplierSegmentId: 'seg_snake',
+            sliceOrder: 0,
+            segmentOrder: 1,
+            globalOrder: 0,
+          },
+          {
+            airline: { name: 'Marketing camel', iataCode: 'MC' },
+            flightNumber: 'MC202',
+            departureAirport: { iataCode: 'LHR', city: 'London', terminal: 'C' },
+            arrivalAirport: { iataCode: 'CDG', city: 'Paris', terminal: 'D' },
+            aircraftType: 'A321',
+            supplierSegmentId: 'seg_camel',
+            sliceOrder: 0,
+            segmentOrder: 2,
+            globalOrder: 1,
+          },
+          {
+            airline: { name: 'Marketing snake', iataCode: 'MS' },
+            flightNumber: 'AF303',
+            departureAirport: { iataCode: 'CDG', city: 'Paris' },
+            arrivalAirport: { iataCode: 'FRA', city: 'Frankfurt' },
+            supplierSegmentId: 'seg_city_object',
+            sliceOrder: 0,
+            segmentOrder: 3,
+            globalOrder: 2,
+          },
+          {
+            airline: { name: 'Operating camel', iataCode: 'OC' },
+            flightNumber: 'LH404',
+            departureAirport: { iataCode: 'FRA', city: 'Frankfurt' },
+            arrivalAirport: { iataCode: 'MUC', city: 'Munich' },
+            sliceOrder: 0,
+            segmentOrder: 4,
+            globalOrder: 3,
+          },
+          {
+            airline: { name: 'Airline fallback', iataCode: 'AF' },
+            flightNumber: 'IB505',
+            departureAirport: { iataCode: 'MUC', city: 'Munich' },
+            arrivalAirport: { iataCode: 'MAD', city: 'Madrid' },
+            sliceOrder: 0,
+            segmentOrder: 5,
+            globalOrder: 4,
+          },
+          {
+            airline: { name: 'Airline camel', iataCode: 'ZZ' },
+            flightNumber: 'ZZ505',
+            departureAirport: { iataCode: 'MUC' },
+            arrivalAirport: { iataCode: 'ZRH' },
+            sliceOrder: 1,
+            segmentOrder: 0,
+            globalOrder: 5,
+          },
+        ],
+      });
+      expect(JSON.stringify(rawOffer)).toBe(rawBefore);
+    });
+
+    it('sums slice durations only for PT0H and preserves sparse, empty, and null distinctions', () => {
+      const sparseOffer = { slices: [{ segments: [{ id: 'seg_sparse' }] }] };
+      const emptySegmentsOffer = { slices: [{ segments: [null] }] };
+
+      expect(
+        normalizer.normalizeStoredFlightSnapshot({
+          totalDuration: 'PT0H',
+          slices: [
+            { duration: 'PT1H30M', segments: [{ duration: '' }] },
+            { duration: 'PT2H', segments: [{ duration: '' }] },
+          ],
+        }),
+      ).toMatchObject({
+        totalDuration: 'PT3H30M',
+        segments: [
+          { duration: '', sliceOrder: 0, segmentOrder: 0, globalOrder: 0 },
+          { duration: '', sliceOrder: 1, segmentOrder: 0, globalOrder: 1 },
+        ],
+      });
+      expect(
+        normalizer.normalizeStoredFlightSnapshot({
+          totalDuration: 'PT5H',
+          cabinClass: 'business',
+          cabin_class: 'economy',
+          slices: [{ segments: [{ duration: 'PT1H' }] }],
+        }),
+      ).toMatchObject({ totalDuration: 'PT5H', cabinClass: 'business' });
+      expect(normalizer.normalizeStoredFlightSnapshot(sparseOffer)).toMatchObject({
+        segments: [
+          {
+            departureAirport: { iataCode: '', name: '', city: '', terminal: undefined },
+            arrivalAirport: { iataCode: '', name: '', city: '', terminal: undefined },
+            departureAt: '',
+            arrivalAt: '',
+            duration: '',
+          },
+        ],
+        totalDuration: 'PT0H',
+      });
+      expect(normalizer.normalizeStoredFlightSnapshot(emptySegmentsOffer)).toEqual({
+        segments: [],
+        totalDuration: 'PT0H',
+        stops: 0,
+        cabinClass: 'economy',
+      });
+      expect(normalizer.normalizeStoredFlightSnapshot({})).toBeNull();
+      expect(normalizer.normalizeStoredFlightSnapshot({ slices: [] })).toBeNull();
+    });
+
     it('normalizes route and arrival facts from partial stored evidence', () => {
       const partialSnapshot = {
         slices: [{

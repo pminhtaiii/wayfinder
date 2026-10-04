@@ -23,6 +23,8 @@ import { AuditService } from '@/audit/audit.service';
 import { BookingPassengerFinalValidatorService } from '@/booking-intent/booking-passenger-final-validator.service';
 import { BookingEventPublisherService } from '@/domain-events';
 import { ConfirmPaymentDto } from '@/payment/dto/confirm-payment.dto';
+import type { FlightSnapshot } from '@shared/booking-types';
+import type { FlightSearchPort } from '@/supplier/search/flight-search.port';
 
 interface ConfirmPaymentResult {
   success?: boolean;
@@ -104,6 +106,8 @@ describe('PaymentFulfillmentSaga', () => {
   let mockValidator: {
     validateAndMapPassengers: jest.Mock;
   };
+  let mockFlightSearch: FlightSearchPort;
+  let normalizeStoredFlightSnapshot: jest.Mock;
   let currentPaymentState: Record<string, unknown>;
 
   const userId = 'user-123';
@@ -345,6 +349,18 @@ describe('PaymentFulfillmentSaga', () => {
         },
       ]),
     };
+    normalizeStoredFlightSnapshot = jest.fn().mockReturnValue(null);
+    mockFlightSearch = {
+      search: jest.fn().mockResolvedValue({ offers: [], searchHash: '', cached: false }),
+      getOfferById: jest.fn(),
+      normalizeStoredOffer: jest.fn().mockReturnValue(null),
+      normalizeStoredOfferFacts: jest.fn().mockReturnValue({
+        travelScope: null,
+        tripCompletionDate: null,
+        offerExpiresAt: null,
+      }),
+      normalizeStoredFlightSnapshot,
+    };
 
     saga = new PaymentFulfillmentSaga(
       mockPaymentGateway as unknown as PaymentGatewayPort,
@@ -354,6 +370,7 @@ describe('PaymentFulfillmentSaga', () => {
       mockBookingLifecycle as unknown as BookingLifecycleService,
       mockPrisma as unknown as PrismaService,
       mockAudit as unknown as AuditService,
+      mockFlightSearch,
       mockValidator as unknown as BookingPassengerFinalValidatorService,
       mockPublisher as unknown as BookingEventPublisherService,
     );
@@ -361,6 +378,57 @@ describe('PaymentFulfillmentSaga', () => {
   });
 
   describe('4-Stage Happy Path Pipeline', () => {
+    it('normalizes the loaded raw snapshot and passes it in createBooking slot six', async () => {
+      const rawOfferSnapshot = {
+        slices: [{ segments: [{ id: 'seg_1' }] }],
+      };
+      const expectedSnapshot: FlightSnapshot = {
+        segments: [
+          {
+            airline: { name: 'Delta Air Lines', iataCode: 'DL' },
+            flightNumber: 'DL100',
+            departureAirport: {
+              iataCode: 'JFK',
+              name: 'John F Kennedy Intl',
+              city: 'New York',
+            },
+            arrivalAirport: {
+              iataCode: 'LHR',
+              name: 'London Heathrow',
+              city: 'London',
+            },
+            departureAt: '2026-09-18T10:00:00Z',
+            arrivalAt: '2026-09-18T18:00:00Z',
+            duration: 'PT8H',
+            supplierSegmentId: 'seg_1',
+            sliceOrder: 0,
+            segmentOrder: 0,
+            globalOrder: 0,
+          },
+        ],
+        totalDuration: 'PT8H',
+        stops: 0,
+        cabinClass: 'economy',
+      };
+      normalizeStoredFlightSnapshot.mockReturnValue(expectedSnapshot);
+      currentPaymentState.bookingIntent = { ...baseBookingIntent, rawOfferSnapshot };
+
+      await saga.confirmPayment(dto, idempotencyKey, userId);
+
+      expect(normalizeStoredFlightSnapshot).toHaveBeenCalledTimes(1);
+      expect(normalizeStoredFlightSnapshot).toHaveBeenCalledWith(rawOfferSnapshot);
+      expect(mockBookingLifecycle.createBooking).toHaveBeenCalledWith(
+        userId,
+        bookingId,
+        'intent-123',
+        paymentId,
+        undefined,
+        expectedSnapshot,
+      );
+      expect(mockFlightSearch.search).not.toHaveBeenCalled();
+      expect(mockFlightSearch.getOfferById).not.toHaveBeenCalled();
+    });
+
     it('executes all 4 stages sequentially, persisting checkpoints and completing key atomically', async () => {
       const result = (await saga.confirmPayment(dto, idempotencyKey, userId)) as ConfirmPaymentResult;
 
@@ -376,6 +444,8 @@ describe('PaymentFulfillmentSaga', () => {
         bookingId,
         'intent-123',
         paymentId,
+        undefined,
+        undefined,
       );
 
       expect(mockPaymentGateway.authorizeHold).toHaveBeenCalledWith(
@@ -1105,6 +1175,7 @@ describe('PaymentFulfillmentSaga', () => {
         mockBookingLifecycle as unknown as BookingLifecycleService,
         mockPrisma as unknown as PrismaService,
         mockAudit as unknown as AuditService,
+        mockFlightSearch,
       );
       fallbackSaga.timeoutMs = 1000;
 

@@ -1,6 +1,7 @@
 import * as crypto from 'crypto';
 import { Injectable, Optional, HttpException, HttpStatus } from '@nestjs/common';
 import { CacheService } from '@/cache/cache.service';
+import type { FlightSnapshot } from '@shared/booking-types';
 import { DuffelRateBudgetService } from '../core/duffel-rate-budget.service';
 import { DuffelSearchAdapter } from './duffel-search.adapter';
 import { FlightOfferNormalizer, validateAndNormalizeOffer } from './flight-offer.normalizer';
@@ -212,5 +213,9 @@ export class DuffelSearchService implements FlightSearchPort {
 
   normalizeStoredOfferFacts(rawOffer: unknown): FlightStoredOfferFacts {
     return this.normalizerInstance.normalizeStoredOfferFacts(rawOffer);
+  }
+
+  normalizeStoredFlightSnapshot(rawOffer: unknown): FlightSnapshot | null {
+    return this.normalizerInstance.normalizeStoredFlightSnapshot(rawOffer);
   }
 }

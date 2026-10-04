@@ -149,6 +149,8 @@ describe('BookingPassengerFinalValidatorService', () => {
       normalizeStoredOfferFacts: jest.fn((rawOffer: unknown) =>
         normalizeSupplierStoredOfferFacts(rawOffer),
       ),
+      // Approved 2026-10-04 per T061: passenger-only tests provide the required snapshot port method.
+      normalizeStoredFlightSnapshot: () => null,
     };
     service = new BookingPassengerFinalValidatorService(
       encryptionService,

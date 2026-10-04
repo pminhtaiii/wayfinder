@@ -8,6 +8,7 @@ import { BookingIntentModule } from '@/booking-intent/booking-intent.module';
 import { PrismaModule } from '@/prisma/prisma.module';
 import { AuditModule } from '@/audit/audit.module';
 import { DomainEventsModule } from '@/domain-events/domain-events.module';
+import { SupplierSearchModule } from '@/supplier/search/supplier-search.module';
 import { PaymentFulfillmentSaga } from './payment-fulfillment.saga';
 
 @Module({
@@ -21,6 +22,7 @@ import { PaymentFulfillmentSaga } from './payment-fulfillment.saga';
     PrismaModule,
     AuditModule,
     DomainEventsModule,
+    SupplierSearchModule,
   ],
   providers: [PaymentFulfillmentSaga],
   exports: [PaymentFulfillmentSaga],

@@ -26,6 +26,8 @@ import { BookingEventPublisherService, TransactionEventContext } from '@/domain-
 import { ConfirmPaymentDto } from '@/payment/dto/confirm-payment.dto';
 import { enforceTransition } from '@/payment/payment-state-machine';
 import { FlightSnapshot, PassengerSnapshot } from '@shared/booking-types';
+import { FLIGHT_SEARCH_PORT } from '@/supplier/search/flight-search.port';
+import type { FlightSearchPort } from '@/supplier/search/flight-search.port';
 import {
   PAYMENT_GATEWAY_PORT,
   FULFILLMENT_GATEWAY_PORT,
@@ -75,6 +77,8 @@ export class PaymentFulfillmentSaga {
     private readonly bookingLifecycleService: BookingLifecycleService,
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    @Inject(FLIGHT_SEARCH_PORT)
+    private readonly flightSearchPort: FlightSearchPort,
     @Optional()
     private readonly bookingPassengerFinalValidator?: BookingPassengerFinalValidatorService,
     @Optional()
@@ -264,11 +268,16 @@ export class PaymentFulfillmentSaga {
         }
       }
 
+      const flightSnapshot = this.flightSearchPort.normalizeStoredFlightSnapshot(
+        payment.bookingIntent.rawOfferSnapshot,
+      );
       const canonicalBooking = await this.bookingLifecycleService.createBooking(
         userId,
         dto.bookingId,
         payment.bookingIntentId,
         payment.id,
+        undefined,
+        flightSnapshot ?? undefined,
       );
 
       if (canonicalBooking.userId !== userId) {

@@ -6,6 +6,7 @@ import {
   DuffelSlice,
 } from '@/duffel/duffel.types';
 import { FlightMatchInput } from '@/flight-match/flight-match.types';
+import type { FlightSegmentSnapshot, FlightSnapshot } from '@shared/booking-types';
 import {
   FlightOffer,
   FlightOfferConditions,
@@ -90,6 +91,146 @@ export function isValidIsoDateTime(isoDateTime: string | null | undefined): bool
 
 function isUnknownRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function stringField(
+  record: Record<string, unknown> | null,
+  key: string,
+): string | undefined {
+  const value = record?.[key];
+  return typeof value === 'string' ? value : undefined;
+}
+
+function nonEmptyStringField(
+  record: Record<string, unknown> | null,
+  key: string,
+): string | undefined {
+  const value = stringField(record, key);
+  return value ? value : undefined;
+}
+
+function durationToMinutes(duration: string): number {
+  const matches = duration.match(/P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?/);
+  if (!matches) return 0;
+  const days = parseInt(matches[1] || '0', 10);
+  const hours = parseInt(matches[2] || '0', 10);
+  const minutes = parseInt(matches[3] || '0', 10);
+  return days * 24 * 60 + hours * 60 + minutes;
+}
+
+function minutesToDuration(totalMinutes: number): string {
+  if (totalMinutes <= 0) return 'PT0H';
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  let result = 'PT';
+  if (hours > 0) result += `${hours}H`;
+  if (minutes > 0) result += `${minutes}M`;
+  return result;
+}
+
+function storedSnapshotSegment(
+  segment: Record<string, unknown>,
+  sliceOrder: number,
+  segmentOrder: number,
+  globalOrder: number,
+): FlightSegmentSnapshot {
+  const operatingCarrier = isUnknownRecord(segment.operating_carrier)
+    ? segment.operating_carrier
+    : isUnknownRecord(segment.operatingCarrier)
+      ? segment.operatingCarrier
+      : null;
+  const marketingCarrier = isUnknownRecord(segment.marketing_carrier)
+    ? segment.marketing_carrier
+    : isUnknownRecord(segment.marketingCarrier)
+      ? segment.marketingCarrier
+      : null;
+  const airline = isUnknownRecord(segment.airline) ? segment.airline : null;
+  const origin = isUnknownRecord(segment.origin) ? segment.origin : null;
+  const destination = isUnknownRecord(segment.destination)
+    ? segment.destination
+    : null;
+  const originCity = isUnknownRecord(origin?.city) ? origin.city : null;
+  const destinationCity = isUnknownRecord(destination?.city)
+    ? destination.city
+    : null;
+  const aircraft = isUnknownRecord(segment.aircraft) ? segment.aircraft : null;
+
+  return {
+    airline: {
+      name:
+        nonEmptyStringField(operatingCarrier, 'name') ??
+        nonEmptyStringField(marketingCarrier, 'name') ??
+        nonEmptyStringField(airline, 'name') ??
+        'Unknown',
+      iataCode:
+        nonEmptyStringField(operatingCarrier, 'iata_code') ??
+        nonEmptyStringField(operatingCarrier, 'iataCode') ??
+        nonEmptyStringField(marketingCarrier, 'iata_code') ??
+        nonEmptyStringField(marketingCarrier, 'iataCode') ??
+        nonEmptyStringField(airline, 'iata_code') ??
+        nonEmptyStringField(airline, 'iataCode') ??
+        'XX',
+    },
+    flightNumber:
+      nonEmptyStringField(segment, 'marketing_carrier_flight_number') ??
+      nonEmptyStringField(segment, 'marketingCarrierFlightNumber') ??
+      nonEmptyStringField(segment, 'flight_number') ??
+      nonEmptyStringField(segment, 'flightNumber') ??
+      '0000',
+    departureAirport: {
+      iataCode:
+        nonEmptyStringField(origin, 'iata_code') ??
+        nonEmptyStringField(origin, 'iataCode') ??
+        '',
+      name: nonEmptyStringField(origin, 'name') ?? '',
+      city:
+        nonEmptyStringField(origin, 'city_name') ??
+        nonEmptyStringField(origin, 'cityName') ??
+        nonEmptyStringField(originCity, 'name') ??
+        nonEmptyStringField(origin, 'city') ??
+        nonEmptyStringField(origin, 'name') ??
+        '',
+      terminal:
+        stringField(segment, 'origin_terminal') ??
+        stringField(segment, 'originTerminal'),
+    },
+    arrivalAirport: {
+      iataCode:
+        nonEmptyStringField(destination, 'iata_code') ??
+        nonEmptyStringField(destination, 'iataCode') ??
+        '',
+      name: nonEmptyStringField(destination, 'name') ?? '',
+      city:
+        nonEmptyStringField(destination, 'city_name') ??
+        nonEmptyStringField(destination, 'cityName') ??
+        nonEmptyStringField(destinationCity, 'name') ??
+        nonEmptyStringField(destination, 'city') ??
+        nonEmptyStringField(destination, 'name') ??
+        '',
+      terminal:
+        stringField(segment, 'destination_terminal') ??
+        stringField(segment, 'destinationTerminal'),
+    },
+    departureAt:
+      stringField(segment, 'departing_at') ??
+      stringField(segment, 'departureAt') ??
+      '',
+    arrivalAt:
+      stringField(segment, 'arriving_at') ??
+      stringField(segment, 'arrivalAt') ??
+      '',
+    duration: stringField(segment, 'duration') ?? '',
+    aircraftType:
+      nonEmptyStringField(aircraft, 'name') ??
+      nonEmptyStringField(segment, 'aircraftType'),
+    supplierSegmentId:
+      nonEmptyStringField(segment, 'id') ??
+      nonEmptyStringField(segment, 'supplierSegmentId') ??
+      nonEmptyStringField(segment, 'duffelSegmentId'),
+    sliceOrder,
+    segmentOrder,
+    globalOrder,
+  };
 }
 
 function isValidDateOnly(value: string): boolean {
@@ -538,8 +679,85 @@ export class FlightOfferNormalizer {
     return FlightOfferNormalizer.normalizeStoredOffer(rawOffer);
   }
 
+  normalizeStoredFlightSnapshot(rawOffer: unknown): FlightSnapshot | null {
+    return FlightOfferNormalizer.normalizeStoredFlightSnapshot(rawOffer);
+  }
+
   normalizeStoredOfferFacts(rawOffer: unknown): FlightStoredOfferFacts {
     return FlightOfferNormalizer.normalizeStoredOfferFacts(rawOffer);
+  }
+
+  static normalizeStoredFlightSnapshot(rawOffer: unknown): FlightSnapshot | null {
+    if (!isUnknownRecord(rawOffer) || !Array.isArray(rawOffer.slices) || rawOffer.slices.length === 0) {
+      return null;
+    }
+
+    let totalDuration =
+      typeof rawOffer.total_duration === 'string'
+        ? rawOffer.total_duration
+        : typeof rawOffer.totalDuration === 'string'
+          ? rawOffer.totalDuration
+          : 'PT0H';
+    let totalMinutes = 0;
+    let stops = 0;
+    let cabinClass =
+      typeof rawOffer.cabinClass === 'string'
+        ? rawOffer.cabinClass
+        : typeof rawOffer.cabin_class === 'string'
+          ? rawOffer.cabin_class
+          : 'economy';
+    const segments: FlightSegmentSnapshot[] = [];
+    let globalOrder = 0;
+
+    for (let sliceOrder = 0; sliceOrder < rawOffer.slices.length; sliceOrder++) {
+      const sliceValue: unknown = rawOffer.slices[sliceOrder];
+      if (!isUnknownRecord(sliceValue)) continue;
+      const slice = sliceValue;
+
+      if (typeof slice.duration === 'string') {
+        totalMinutes += durationToMinutes(slice.duration);
+      }
+      if (!Array.isArray(slice.segments)) continue;
+
+      stops += Math.max(0, slice.segments.length - 1);
+      for (let segmentOrder = 0; segmentOrder < slice.segments.length; segmentOrder++) {
+        const segmentValue: unknown = slice.segments[segmentOrder];
+        if (!isUnknownRecord(segmentValue)) continue;
+        const segment = segmentValue;
+        const passengers = Array.isArray(segment.passengers) ? segment.passengers : null;
+        const firstPassenger =
+          passengers && passengers.length > 0 && isUnknownRecord(passengers[0])
+            ? passengers[0]
+            : null;
+
+        const passengerCabin =
+          nonEmptyStringField(firstPassenger, 'cabin_class') ??
+          nonEmptyStringField(firstPassenger, 'cabinClass');
+        const segmentCabin =
+          nonEmptyStringField(segment, 'cabin_class') ??
+          nonEmptyStringField(segment, 'cabinClass');
+        if (passengerCabin) {
+          cabinClass = passengerCabin;
+        } else if (segmentCabin) {
+          cabinClass = segmentCabin;
+        }
+
+        segments.push(
+          storedSnapshotSegment(segment, sliceOrder, segmentOrder, globalOrder++),
+        );
+      }
+    }
+
+    if (totalMinutes > 0 && totalDuration === 'PT0H') {
+      totalDuration = minutesToDuration(totalMinutes);
+    }
+
+    return {
+      segments,
+      totalDuration,
+      stops,
+      cabinClass,
+    };
   }
 
   static normalizeStoredOfferFacts(rawOffer: unknown): FlightStoredOfferFacts {

@@ -110,6 +110,8 @@ describe('Attested flight search persistence boundary', () => {
       getOfferById: jest.fn(),
       normalizeStoredOffer: (raw) => normalizer.normalizeStoredOffer(raw),
       normalizeStoredOfferFacts: (raw) => normalizer.normalizeStoredOfferFacts(raw),
+      // Approved 2026-10-04 per T061: retain the existing supplier normalizer for raw snapshots.
+      normalizeStoredFlightSnapshot: (raw) => normalizer.normalizeStoredFlightSnapshot(raw),
     };
     transaction = jest
       .fn()
