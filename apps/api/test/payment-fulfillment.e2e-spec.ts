@@ -179,7 +179,7 @@ describe('Payment Fulfillment (E2E Characterization)', () => {
     return prisma.flightOffer.create({
       data: {
         searchHash: `search-${Date.now()}-${crypto.randomUUID()}`,
-        duffelOfferId: `off_test_${Date.now()}_${crypto.randomUUID()}`,
+        supplierOfferId: `off_test_${Date.now()}_${crypto.randomUUID()}`,
         rawOffer: {},
         origin: 'SGN',
         destination: 'HAN',
@@ -202,7 +202,7 @@ describe('Payment Fulfillment (E2E Characterization)', () => {
       data: {
         userId,
         flightOfferId,
-        duffelOfferId: `off_intent_${Date.now()}_${crypto.randomUUID()}`,
+        supplierOfferId: `off_intent_${Date.now()}_${crypto.randomUUID()}`,
         status: 'AWAITING_PAYMENT',
         originalPrice: new Prisma.Decimal(100.0),
         confirmedPrice: new Prisma.Decimal(125.5),
@@ -1169,7 +1169,7 @@ describe('Payment Fulfillment (E2E Characterization)', () => {
       const dbBooking = await prisma.booking.findUnique({ where: { id: bookingId } });
       expect(dbBooking?.status).toBe(BookingStatus.CONFIRMED);
       expect(dbBooking?.pnrReference).toBe('REFATOMIC');
-      expect(dbBooking?.duffelOrderId).toBe('ord_atomic_succ');
+      expect(dbBooking?.supplierOrderId).toBe('ord_atomic_succ');
 
       const dbIntent = await prisma.bookingIntent.findUnique({ where: { id: intent.id } });
       expect(dbIntent?.status).toBe('CONFIRMED');
