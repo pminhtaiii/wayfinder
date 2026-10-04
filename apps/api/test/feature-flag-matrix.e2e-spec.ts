@@ -133,7 +133,7 @@ describe('Feature Flag Governance & Rollout Matrix (E2E)', () => {
     validFlightOffer = await prisma.flightOffer.create({
       data: {
         searchHash: `search-${crypto.randomUUID()}`,
-        duffelOfferId: `off_${crypto.randomUUID()}`,
+        supplierOfferId: `off_${crypto.randomUUID()}`,
         origin: 'SGN',
         destination: 'HAN',
         departureDate: new Date(Date.now() + 86_400_000),
@@ -187,7 +187,7 @@ describe('Feature Flag Governance & Rollout Matrix (E2E)', () => {
     const offers = [
       {
         flightOfferId: validFlightOffer.id,
-        duffelOfferId: validFlightOffer.duffelOfferId,
+        duffelOfferId: validFlightOffer.supplierOfferId,
       },
     ];
     return await attestationService.signSelectionAttestation(
@@ -293,7 +293,7 @@ describe('Feature Flag Governance & Rollout Matrix (E2E)', () => {
       const rawToken = await tokenService.generateToken(rowId, idempotencyHash, 1);
       const duffelOfferIdHash = crypto
         .createHash('sha256')
-        .update(validFlightOffer.duffelOfferId)
+        .update(validFlightOffer.supplierOfferId)
         .digest('hex');
 
       await prisma.chatHandoff.create({
@@ -304,7 +304,7 @@ describe('Feature Flag Governance & Rollout Matrix (E2E)', () => {
           userId: validUser.id,
           chatSessionId: validSession.id,
           flightOfferId: validFlightOffer.id,
-          duffelOfferIdHash,
+          supplierOfferIdHash: duffelOfferIdHash,
           snapshotVersion: 1,
           snapshotFingerprint: 'mock-fingerprint',
           selectionAttestationHash: attestation,

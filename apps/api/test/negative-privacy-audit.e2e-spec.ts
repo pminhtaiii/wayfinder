@@ -281,7 +281,7 @@ describe('Automated Negative Privacy & Security Continuous Audit (e2e)', () => {
       const offer = await prisma.flightOffer.create({
         data: {
           searchHash: runMarker,
-          duffelOfferId: `off_01H123456789ABCDEF000000`,
+          supplierOfferId: `off_01H123456789ABCDEF000000`,
           origin: 'SGN',
           destination: 'HAN',
           departureDate: new Date(Date.now() + 86_400_000),
