@@ -156,6 +156,10 @@ export class FlightSegmentDto {
   cabinClass!: 'economy' | 'premium_economy' | 'business' | 'first';
 }
 
+/**
+ * Flight search offer wire DTO.
+ * Retains legacy `duffelOfferId` at the public wire boundary while internal domain models use neutral identifiers.
+ */
 export class FlightOfferDto {
   id!: string;
   duffelOfferId!: string;

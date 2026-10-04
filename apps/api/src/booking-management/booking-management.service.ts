@@ -1,10 +1,10 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { BookingStatus } from '@prisma/client';
+import { BookingStatus, Prisma } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '@/prisma/prisma.service';
 import { BookingLifecycleService } from '@/booking-lifecycle/booking-lifecycle.service';
 import { BookingWithRelations } from '@/booking-lifecycle/booking-lifecycle.types';
-import { FlightSnapshot } from '@shared/booking-types';
+import { FlightSegmentSnapshotDto } from '@shared/booking-types';
 import {
   BookingDisruptionDto,
   CurrentItineraryDto,
@@ -20,6 +20,93 @@ import {
 } from './dto';
 import { parseDuffelCancellationQuoteId } from '@/cancellation/cancellation.types';
 export { parseDuffelCancellationQuoteId };
+
+function isJsonObject(value: unknown): value is Prisma.JsonObject {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function resolveLegacySegmentId(record: Prisma.JsonObject): string | undefined {
+  if (typeof record.duffelSegmentId === 'string') {
+    return record.duffelSegmentId;
+  }
+  if (typeof record.supplierSegmentId === 'string') {
+    return record.supplierSegmentId;
+  }
+  return undefined;
+}
+
+function projectSnapshotSegment(segment: unknown): Prisma.JsonObject {
+  if (!isJsonObject(segment)) {
+    return {};
+  }
+  const { supplierSegmentId: _supplierSegmentId, duffelSegmentId: _duffelSegmentId, ...rest } = segment;
+  const legacySegmentId = resolveLegacySegmentId(segment);
+
+  return {
+    ...rest,
+    ...(legacySegmentId !== undefined ? { duffelSegmentId: legacySegmentId } : {}),
+  };
+}
+
+function projectFlightSnapshot(raw: Prisma.JsonValue | null): Prisma.JsonValue | null {
+  if (!isJsonObject(raw) || !Array.isArray(raw.segments)) {
+    return raw;
+  }
+  const segments: Prisma.JsonArray = raw.segments.map((seg) => projectSnapshotSegment(seg));
+
+  return {
+    ...raw,
+    segments,
+  };
+}
+
+function toFlightSegmentSnapshotDto(raw: unknown): FlightSegmentSnapshotDto {
+  if (!isJsonObject(raw)) {
+    return {
+      airline: { name: '', iataCode: '' },
+      flightNumber: '',
+      departureAirport: { iataCode: '', name: '', city: '' },
+      arrivalAirport: { iataCode: '', name: '', city: '' },
+      departureAt: '',
+      arrivalAt: '',
+      duration: '',
+    };
+  }
+  const { supplierSegmentId: _supplierSegmentId, duffelSegmentId: _duffelSegmentId, ...rest } = raw;
+  const legacyId = resolveLegacySegmentId(raw);
+
+  const airlineRaw = isJsonObject(rest.airline) ? rest.airline : {};
+  const departureAirportRaw = isJsonObject(rest.departureAirport) ? rest.departureAirport : {};
+  const arrivalAirportRaw = isJsonObject(rest.arrivalAirport) ? rest.arrivalAirport : {};
+
+  return {
+    ...rest,
+    airline: {
+      name: typeof airlineRaw.name === 'string' ? airlineRaw.name : '',
+      iataCode: typeof airlineRaw.iataCode === 'string' ? airlineRaw.iataCode : '',
+      ...(typeof airlineRaw.logoUrl === 'string' ? { logoUrl: airlineRaw.logoUrl } : {}),
+    },
+    flightNumber: typeof rest.flightNumber === 'string' ? rest.flightNumber : '',
+    departureAirport: {
+      iataCode: typeof departureAirportRaw.iataCode === 'string' ? departureAirportRaw.iataCode : '',
+      name: typeof departureAirportRaw.name === 'string' ? departureAirportRaw.name : '',
+      city: typeof departureAirportRaw.city === 'string' ? departureAirportRaw.city : '',
+      ...(typeof departureAirportRaw.terminal === 'string' ? { terminal: departureAirportRaw.terminal } : {}),
+      ...(typeof departureAirportRaw.gate === 'string' ? { gate: departureAirportRaw.gate } : {}),
+    },
+    arrivalAirport: {
+      iataCode: typeof arrivalAirportRaw.iataCode === 'string' ? arrivalAirportRaw.iataCode : '',
+      name: typeof arrivalAirportRaw.name === 'string' ? arrivalAirportRaw.name : '',
+      city: typeof arrivalAirportRaw.city === 'string' ? arrivalAirportRaw.city : '',
+      ...(typeof arrivalAirportRaw.terminal === 'string' ? { terminal: arrivalAirportRaw.terminal } : {}),
+      ...(typeof arrivalAirportRaw.gate === 'string' ? { gate: arrivalAirportRaw.gate } : {}),
+    },
+    departureAt: typeof rest.departureAt === 'string' ? rest.departureAt : '',
+    arrivalAt: typeof rest.arrivalAt === 'string' ? rest.arrivalAt : '',
+    duration: typeof rest.duration === 'string' ? rest.duration : '',
+    ...(legacyId !== undefined ? { duffelSegmentId: legacyId } : {}),
+  };
+}
 
 @Injectable()
 export class BookingManagementService {
@@ -198,7 +285,7 @@ export class BookingManagementService {
       totalAmount: booking.totalAmount.toString(),
       currency: booking.currency,
       departureAt: booking.departureAt?.toISOString() ?? null,
-      flightSnapshot: booking.flightSnapshot,
+      flightSnapshot: projectFlightSnapshot(booking.flightSnapshot),
       passengerSnapshot: booking.passengerSnapshot,
       payment: booking.payment
         ? {
@@ -219,8 +306,9 @@ export class BookingManagementService {
       customerRefundAmount: booking.customerRefundAmount
         ? booking.customerRefundAmount.toString()
         : null,
-      duffelCancellationQuoteId: parseDuffelCancellationQuoteId(booking.supplierCancellationQuoteId)
-        .quoteId,
+      duffelCancellationQuoteId: parseDuffelCancellationQuoteId(
+        booking.supplierCancellationQuoteId,
+      ).quoteId,
       createdAt: booking.createdAt.toISOString(),
       updatedAt: booking.updatedAt.toISOString(),
       ancillarySummary,
@@ -235,8 +323,12 @@ export class BookingManagementService {
     const isSurfacing = process.env.FEATURE_FLAG_DISRUPTION_SURFACING === 'true';
 
     // 1. Build original itinerary data from flightSnapshot as fallback
-    const flightSnapshot = booking.flightSnapshot as unknown as FlightSnapshot;
-    const originalSegments = flightSnapshot?.segments || [];
+    const rawSnapshot = isJsonObject(booking.flightSnapshot) ? booking.flightSnapshot : null;
+    const rawSegments =
+      rawSnapshot && Array.isArray(rawSnapshot.segments) ? rawSnapshot.segments : [];
+    const originalSegments: FlightSegmentSnapshotDto[] = rawSegments.map((seg) =>
+      toFlightSegmentSnapshotDto(seg),
+    );
 
     // Default/fallback currentItinerary (which represents the original or when surfacing is disabled)
     let currentItinerary: CurrentItineraryDto = {
@@ -409,7 +501,7 @@ export class BookingManagementService {
       totalAmount: booking.totalAmount.toString(),
       currency: booking.currency,
       departureAt: booking.departureAt?.toISOString() ?? null,
-      flightSnapshot: booking.flightSnapshot,
+      flightSnapshot: projectFlightSnapshot(booking.flightSnapshot),
       ...this.mapDisruptionAndItinerary(booking),
       createdAt: booking.createdAt.toISOString(),
     };

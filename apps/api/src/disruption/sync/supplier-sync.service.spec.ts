@@ -16,6 +16,8 @@ import { BookingDisruptionSyncedEvent } from '@/domain-events/booking.events';
 import { DisruptionStatus, Prisma } from '@prisma/client';
 import * as crypto from 'crypto';
 
+// Approved 2026-10-03: update only Prisma fixture/access columns; stored legacy flightSnapshot JSON remains unchanged.
+
 describe('SupplierSyncService unit/integration tests', () => {
   let prisma: PrismaService;
   let syncClaimService: SyncClaimService;

@@ -114,19 +114,22 @@ describe('Dashboard (E2E)', () => {
       totalAmount: Prisma.Decimal;
       pnrReference: string | null;
       duffelOrderId: string | null;
+      supplierOrderId: string | null;
       duffelOfferId: string;
+      supplierOfferId: string;
       flightSnapshot: Prisma.InputJsonValue | null;
       passengerSnapshot: Prisma.InputJsonValue | null;
       paymentId: string | null;
     }> = {},
   ): Promise<{ id: string; intentId: string }> {
     const now = new Date();
-    const duffelOfferId = overrides.duffelOfferId ?? `off-${crypto.randomUUID()}`;
+    const offerId =
+      overrides.supplierOfferId ?? overrides.duffelOfferId ?? `off-${crypto.randomUUID()}`;
 
     const intent = await prisma.bookingIntent.create({
       data: {
         userId,
-        supplierOfferId: duffelOfferId,
+        supplierOfferId: offerId,
         status: 'AWAITING_PAYMENT',
         originalPrice: overrides.totalAmount ?? new Prisma.Decimal('125.50'),
         confirmedPrice: overrides.totalAmount ?? new Prisma.Decimal('125.50'),
@@ -139,7 +142,7 @@ describe('Dashboard (E2E)', () => {
         adults: 1,
         children: 0,
         infants: 0,
-        rawOfferSnapshot: { offerId: duffelOfferId },
+        rawOfferSnapshot: { offerId },
         intentExpiresAt: new Date(now.getTime() + 60 * 60 * 1000),
       },
     });
@@ -147,6 +150,13 @@ describe('Dashboard (E2E)', () => {
     const defaultDeparture = new Date(now.getTime() + 86400000 * 7);
     const departureAt =
       overrides.departureAt !== undefined ? overrides.departureAt : defaultDeparture;
+
+    const resolvedOrderId =
+      overrides.supplierOrderId !== undefined
+        ? overrides.supplierOrderId
+        : overrides.duffelOrderId !== undefined
+          ? overrides.duffelOrderId
+          : null;
 
     const bookingData: Prisma.BookingUncheckedCreateInput = {
       userId,
@@ -159,7 +169,7 @@ describe('Dashboard (E2E)', () => {
         overrides.pnrReference !== undefined
           ? overrides.pnrReference
           : `PNR-${crypto.randomUUID().slice(0, 6).toUpperCase()}`,
-      supplierOrderId: overrides.duffelOrderId !== undefined ? overrides.duffelOrderId : null,
+      supplierOrderId: resolvedOrderId,
       paymentId: overrides.paymentId !== undefined ? overrides.paymentId : null,
       flightSnapshot:
         overrides.flightSnapshot === null
@@ -425,8 +435,8 @@ describe('Dashboard (E2E)', () => {
       await createBooking(userA.id, {
         status: BookingStatus.CONFIRMED,
         pnrReference: 'SECRET-PNR-999',
-        duffelOrderId: 'ord_sensitive_duffel_999',
-        duffelOfferId: 'off_sensitive_duffel_999',
+        supplierOrderId: 'ord_sensitive_duffel_999',
+        supplierOfferId: 'off_sensitive_duffel_999',
         paymentId: payment.id,
         flightSnapshot: {
           segments: [

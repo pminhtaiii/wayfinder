@@ -1,3 +1,4 @@
+// Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
 import { Duffel } from '@duffel/api';
 import { CacheService } from '@/cache/cache.service';
 import { AuditService } from '@/audit/audit.service';

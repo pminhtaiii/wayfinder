@@ -23,6 +23,8 @@ import {
 } from '@/domain-events';
 import { BookingLifecycleService } from '@/booking-lifecycle/booking-lifecycle.service';
 
+// Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
+
 describe('CancellationService', () => {
   let service: CancellationService;
   let mockPrisma: any;

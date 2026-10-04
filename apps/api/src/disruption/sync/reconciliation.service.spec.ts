@@ -1,3 +1,4 @@
+// Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
 import { ReconciliationService } from './reconciliation.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { BookingLifecycleService } from '@/booking-lifecycle/booking-lifecycle.service';

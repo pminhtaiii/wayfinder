@@ -280,7 +280,7 @@ export class BookingLifecycleService {
   async updateToConfirmed(
     bookingId: string,
     pnrReference: string,
-    duffelOrderId: string,
+    supplierOrderId: string,
     flightSnapshot: FlightSnapshot,
     passengerSnapshot: PassengerSnapshot,
     tx?: Prisma.TransactionClient,
@@ -301,7 +301,7 @@ export class BookingLifecycleService {
           status: BookingStatus.CONFIRMED,
           failureReason: null,
           pnrReference,
-          supplierOrderId: duffelOrderId,
+          supplierOrderId,
           flightSnapshot: flightSnapshot as unknown as Prisma.InputJsonValue,
           passengerSnapshot: passengerSnapshot as unknown as Prisma.InputJsonValue,
           departureAt: new Date(flightSnapshot.segments[0].departureAt),
@@ -333,7 +333,7 @@ export class BookingLifecycleService {
   async confirmBooking(
     bookingId: string,
     pnrReference: string,
-    duffelOrderId: string,
+    supplierOrderId: string,
     flightSnapshot: FlightSnapshot,
     passengerSnapshot: PassengerSnapshot,
     tx?: Prisma.TransactionClient,
@@ -342,7 +342,7 @@ export class BookingLifecycleService {
     return this.updateToConfirmed(
       bookingId,
       pnrReference,
-      duffelOrderId,
+      supplierOrderId,
       flightSnapshot,
       passengerSnapshot,
       tx,
@@ -430,7 +430,7 @@ export class BookingLifecycleService {
         ? this.updateToConfirmed(
             outcome.bookingId,
             outcome.pnrReference,
-            outcome.duffelOrderId,
+            outcome.supplierOrderId,
             outcome.flightSnapshot,
             outcome.passengerSnapshot,
             tx,
@@ -439,7 +439,7 @@ export class BookingLifecycleService {
         : this.updateToConfirmed(
             outcome.bookingId,
             outcome.pnrReference,
-            outcome.duffelOrderId,
+            outcome.supplierOrderId,
             outcome.flightSnapshot,
             outcome.passengerSnapshot,
             tx,
@@ -902,7 +902,7 @@ export class BookingLifecycleService {
     outcome: 'CONFIRMED' | 'FAILED',
     details?: {
       pnrReference?: string;
-      duffelOrderId?: string;
+      supplierOrderId?: string;
       failureReason?: BookingFailureReason;
       flightSnapshot?: FlightSnapshot;
       passengerSnapshot?: PassengerSnapshot;
@@ -927,7 +927,9 @@ export class BookingLifecycleService {
             status: BookingStatus.CONFIRMED,
             failureReason: null,
             ...(details?.pnrReference ? { pnrReference: details.pnrReference } : {}),
-            ...(details?.duffelOrderId ? { supplierOrderId: details.duffelOrderId } : {}),
+            ...(details?.supplierOrderId
+              ? { supplierOrderId: details.supplierOrderId }
+              : {}),
             ...(details?.flightSnapshot
               ? { flightSnapshot: details.flightSnapshot as unknown as Prisma.InputJsonValue }
               : {}),

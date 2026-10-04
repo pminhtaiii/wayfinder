@@ -115,3 +115,63 @@ T053 read-only preflight found additional Prisma fixtures outside the original a
 ## T051 focused checkpoint
 
 T051 is committed as `30154b05`. Neutral writes, guarded legacy reads, neutral and missing-ID controls pass; persisted legacy objects remain unchanged. Focused guarded Jest: **10 suites / 261 tests passed**. Payment safety E2E's rate-deferral/retry case: **1 passed, 1 skipped**, retaining PROCESSING, AUTHORIZED hold, order event and retry checkpoint. API/shared ESLint passes. API typecheck reports exactly two T053-owned sync mapper fields (lines 64 and 413); the wider test group including sync has the same one compile-failed suite. No T051 file fails. Independent task review has no blocking findings. Its P3 approval-trail note is resolved by recording the explicit original approval in the ignored proposal. The task remains unchecked pending coordinated gates; T053 has started and T048/T054 remain pending.
+
+## T054 execution corrections in progress
+
+The worker initially wrote four runner regressions before one grouped RED, contrary to vertical TDD. Tests were preserved unchanged; root issued a corrective prompt and the worker replayed individual focused RED → minimal GREEN for preflight, package script, static/web CI wiring, and live migration CI wiring. The deviation is recorded rather than claiming an originally compliant sequence.
+
+The first live harness attempt verified both fixed database names absent, created them, then failed at child-process launch (`spawnSync` EPERM) before any migration or seed. A harmless Node child launch reproduced the sandbox boundary. Root read-only inspected both empty public schemas, removed only these task-created empty databases, confirmed both names absent, and authorized the same cached-engine command through escalation. No shared/user database was reset; no existing-database reuse flag or drop/reset operation was added to the harness.
+
+The escalated run applied the full fresh migration chain, then failed a harness index-order matcher that demanded quotes around lowercase `status`. Live catalog showed the correct order `(status, nextUnflownDepartureAt, lastSupplierSyncedAt)`. Upgrade remained empty; no sentinel seed or temporary old-chain deployment ran. Root stopped assertion edits and user explicitly approved comparing the ordered `pg_attribute` names instead of formatted SQL, preserving all five index, uniqueness, column, nullability, link and webhook checks. Corrected check and the single corrective full proof are pending; no complete migration proof is yet claimed.
+
+## T054 completed live migration and package gate proof
+
+The catalog-based index order matcher was verified read-only against the fresh database, confirming all five index column orders match expected definitions (`bookings_supplierOrderId_idx`, `bookings_status_nextUnflownDepartureAt_lastSupplierSyncedAt_idx`, `booking_intent_passengers_intentId_supplierPassengerId_idx`, `flight_offers_searchHash_supplierOfferId_key`, `itinerary_revision_segments_supplierSegmentId_idx`).
+
+The live migration proof harness `tests/ci/supplier-identifiers-migration.e2e.mjs` was executed against dedicated disposable databases (`feature029_slice62_fresh` and `feature029_slice62_upgrade`) with loopback network guard and passed completely:
+- **Fresh path**: 25 migrations deployed cleanly from empty schema; `prisma migrate status` verified up-to-date; all 11 renamed columns verified in `information_schema.columns`; all 5 renamed indexes verified in `pg_catalog`; webhook table and index preserved.
+- **Upgrade path**: 24 preceding migrations deployed up to `20260915000000_booking_projection_versions`; 16 sentinel rows and linked graph seeded with Date objects satisfying check constraints; forward migration `20260929000000_supplier_identifiers` deployed cleanly; all 16 sentinels, 12 link checks, 8 null controls, uniqueness constraint, and webhook table/index preserved. Upgrade database sentinels remain preserved.
+
+Runner and migration contract tests:
+- `tests/ci/supplier-identifiers-runner.contract.test.mjs`: 4/4 passed.
+- `tests/ci/supplier-identifiers-migration.contract.test.mjs`: 3/3 passed.
+- `tests/ci/ci-workflow.contract.test.mjs` & `tests/ci/security-change-filter.test.mjs`: 26/26 passed.
+- Web compatibility suite (`test:compatibility`): 122/122 passed.
+- Affected API E2E suites against dedicated migrated database: 66/66 passed (`booking-events.e2e-spec.ts` 18/18, `payment-fulfillment-safety.e2e-spec.ts` 2/2, `cancellation.e2e-spec.ts` 11/11, `disruption.e2e-spec.ts` 13/13, `booking.e2e-spec.ts` 7/7, `payment.e2e-spec.ts` 15/15).
+- Shared package contracts: 111/111 passed.
+- Full API unit suite: 134/134 suites, 2,337/2,337 tests passed.
+- TypeScript compilation: 0 errors across `apps/api`, `apps/web`, and `packages/shared`.
+- ESLint: 0 errors, 0 warnings across `apps/api` and `apps/web`.
+
+## Dual-axis code review and slice closure
+
+Parallel independent Standards and Spec code reviews were executed against baseline `76145bd1..HEAD`:
+- **Standards Review**: Identified `as never` type assertions and manual `new` constructor call in `supplier-wire-compatibility.spec.ts`, and minor code duplication in `booking-management.service.ts` segment ID resolution.
+  - **Resolution**: Converted `supplier-wire-compatibility.spec.ts` to NestJS `Test.createTestingModule` with mocked providers (`PrismaService`, `BookingLifecycleService`, `EventEmitter2`), eliminating all `as never` assertions. Extracted `resolveLegacySegmentId` in `booking-management.service.ts` to deduplicate identifier resolution across projections.
+  - **Verification**: API typecheck passed (0 errors); ESLint passed (0 errors, 0 warnings); focused Jest suites passed (27/27 tests).
+- **Spec Review**: Confirmed full compliance across FR-009, FR-010, FR-010a, FR-011, SC-002, SC-004. Reconciled task backlog tracking by checking off verified tasks T047, T048, T051, T052, T053, T054 in `tasks.md`.
+- **Convergence**: Scoped `speckit-converge` confirmed 0 gaps between specification and implementation for tasks T047–T054.
+- **Slice Closure**: Slice 6.2 is complete and all gates verified. T055–T057 remain pending for Phase 7 (final audit and verification).
+
+## Remote CI verification (Pull Request #370)
+
+Verified against GitHub on 2026-10-04. PR [#368](https://github.com/pminhtaiii/wayfinder/pull/368) is closed without merging; its run `37181690675` verified the earlier commit `3c8abebb8f6d69c4309d427524e853e570edfbad`. The slice continued as Part 1, PR [#369](https://github.com/pminhtaiii/wayfinder/pull/369), merged into `development` at `09806abdd22ebfed240b1a5adb46d00f409af49e`, and Part 2, PR [#370](https://github.com/pminhtaiii/wayfinder/pull/370), which replaces #368 as the open slice PR targeting `development`.
+
+PR #370 incorporated `development` at `2908523151ef02c85b88245e331e2805746244d0`, verified by run [37188139992](https://github.com/pminhtaiii/wayfinder/actions/runs/37188139992). The subsequent final pushed HEAD has its own successful verification:
+- **Workflow Run**: [37188540602](https://github.com/pminhtaiii/wayfinder/actions/runs/37188540602) (`Pull Request CI`, PR #370)
+- **Commit SHA**: `551c3890cd37f65ded2adf900244fc9ca0d76dd8` (PR #370 HEAD at verification)
+- **Status / Conclusion**: `completed` / `success` (all 12 jobs successful)
+  - `detect-changes`: Success
+  - `web-gate`: Success
+  - `agent-gate`: Success
+  - `security-sast`: Success
+  - `api-gate`: Success
+  - `security-supply-chain`: Success
+  - `agent-tests`: Success
+  - `api-unit-tests`: Success
+  - `api-e2e-tests`: Success
+  - `web-build`: Success
+  - `smoke-and-sanity`: Success
+  - `ci-status`: Success
+- **PR Status**: PR #370 remains open and unmerged targeting `development`; PR #369 is merged and PR #368 is closed.
+- **Pending Gates**: Slice 6.2 (T047–T054) is verified at the SHA above. Phase 7 (T055–T057) remains pending. Later review fixes require validation on their own pushed HEAD; this run does not verify subsequent working-tree changes.

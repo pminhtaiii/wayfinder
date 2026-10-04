@@ -3,6 +3,8 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { BookingRecoveryService } from './booking-recovery.service';
 import { BookingWithRelations } from './booking-lifecycle.types';
 
+// Approved 2026-10-03: align these Prisma booking/passenger fixtures with neutral columns; keep event metadata keys unchanged.
+
 type InternalLockRecoveryService = {
   reconcileBookingWithLock: (bookingId: string) => Promise<void>;
 };

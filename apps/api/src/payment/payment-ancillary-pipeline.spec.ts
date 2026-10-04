@@ -1,3 +1,4 @@
+// Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
 import 'reflect-metadata';
 import { PaymentService } from './payment.service';
 import { PaymentFulfillmentSaga } from '@/payment-fulfillment/payment-fulfillment.saga';
@@ -898,7 +899,7 @@ describe('PaymentService - Ancillary Pipeline', () => {
         ancillarySelectionVersion: null,
         bookingIntent: {
           userId: 'user-123',
-          supplierOfferId: 'off_123',
+          supplierOfferId: 'off_base_123',
           passengers: [{ id: 'pas_1', type: 'adult' }],
         },
         ancillarySelection: null,

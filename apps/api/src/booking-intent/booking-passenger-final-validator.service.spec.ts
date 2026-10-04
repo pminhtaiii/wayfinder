@@ -9,6 +9,8 @@ import {
   BookingIntentForValidation,
 } from './booking-passenger-final-validator.service';
 
+// Approved 2026-10-03: fixtures model the neutral Prisma passenger identity while preserving the Duffel DTO id assertion.
+
 const INTENT_ID = 'intent-val-123';
 const ENCRYPTION_KEY = 'a'.repeat(64);
 

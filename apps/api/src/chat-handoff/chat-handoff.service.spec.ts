@@ -32,6 +32,7 @@ function createMockFlightSearchPort() {
 }
 
 // User approved updating existing tests for Feature 017 T093 security and lifecycle coverage on 2026-08-10.
+// Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
 
 describe('ChatHandoffService', () => {
   let service: ChatHandoffService;

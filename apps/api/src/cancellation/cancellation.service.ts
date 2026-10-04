@@ -138,8 +138,9 @@ export class CancellationService {
       cancellationDeadline: booking.cancellationDeadline?.toISOString() ?? null,
       airlineRefundAmount: booking.airlineRefundAmount?.toString() ?? null,
       customerRefundAmount: booking.customerRefundAmount?.toString() ?? null,
-      duffelCancellationQuoteId: parseDuffelCancellationQuoteId(booking.supplierCancellationQuoteId)
-        .quoteId,
+      duffelCancellationQuoteId: parseDuffelCancellationQuoteId(
+        booking.supplierCancellationQuoteId,
+      ).quoteId,
       refundStatus,
       retryCount: projectedRefund?.retryCount ?? null,
       nextRetryAt: projectedRefund?.nextRetryAt?.toISOString() ?? null,
@@ -233,7 +234,9 @@ export class CancellationService {
           updatedBooking.cancellationDeadline &&
           updatedBooking.cancellationDeadline > new Date()
         ) {
-          const parsed = parseDuffelCancellationQuoteId(updatedBooking.supplierCancellationQuoteId);
+          const parsed = parseDuffelCancellationQuoteId(
+            updatedBooking.supplierCancellationQuoteId,
+          );
           return {
             quoteId: parsed.quoteId || '',
             bookingId: updatedBooking.id,
@@ -575,8 +578,9 @@ export class CancellationService {
       cancellationStatus: booking.status,
       refundStatus,
       refundAmount: booking.customerRefundAmount?.toString() ?? '0.00',
-      duffelCancellationQuoteId: parseDuffelCancellationQuoteId(booking.supplierCancellationQuoteId)
-        .quoteId,
+      duffelCancellationQuoteId: parseDuffelCancellationQuoteId(
+        booking.supplierCancellationQuoteId,
+      ).quoteId,
     };
   }
 }

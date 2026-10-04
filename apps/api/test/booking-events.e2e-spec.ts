@@ -422,7 +422,8 @@ describe('Booking Events & Projection Updates E2E (US2 - T033)', () => {
 
       const recovered = await lifecycleService.recordRecoveryOutcome(bookingId, 'CONFIRMED', {
         pnrReference: 'PNR_REC_1',
-        duffelOrderId: 'ORD_REC_1',
+        // Approved 2026-10-03: this internal recovery detail uses the neutral Prisma identity; historical metadata stays unchanged.
+        supplierOrderId: 'ORD_REC_1',
         recoveryOutcome: 'CONFIRMED_AFTER_PROCESSING',
         flightSnapshot: sampleFlightSnapshot,
         passengerSnapshot: samplePassengerSnapshot,

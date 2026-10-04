@@ -11,16 +11,16 @@ Do not mark a capability complete because it appears in architecture or planning
 Overall status:
 
 ```text
-FEATURES 001–028 100% COMPLETE / FEATURE 029 PHASES 0–5 COMPLETE LOCALLY (T032–T043; T058 CONVERGENCE CLOSED) / PHASE 6 T044–T046 COMPLETE LOCALLY / T047–T057 PENDING
+FEATURES 001–028 100% COMPLETE / FEATURE 029 PHASES 0–6 COMPLETE & CI VERIFIED (T001–T054) / PHASE 7 T055–T057 PENDING
 ```
 
-The system operates on branch `codex/029-duffel-provider-narrowing`. Features 001–028 and Feature 029 Phases 0–5 are complete locally. T042 removed the legacy Duffel monolith; T058 removed global SDK/configuration/budget visibility and added a negative Nest module-composition regression. T043 passed the guarded API suite (130 suites/2,326 tests), all affected database E2Es (16 suites/145 tests), shared/static contracts, typecheck, and lint. The [Slice 5 verification record](../specs/029-duffel-provider-narrowing/slice-5-verification.md) has exact commands, exits, counts, and the scoped convergence recheck. Phases 6–7 remain pending; no remote CI success is claimed. Slice 4 and earlier history is preserved in the linked [Slice 4](../specs/029-duffel-provider-narrowing/slice-4-verification.md) and [Slice 3](../specs/029-duffel-provider-narrowing/slice-3-verification.md) records.
+The system operates on branch `codex/029-duffel-provider-narrowing`. Features 001–028 and Feature 029 Phases 0–6 are complete, with Slice 6.2 verified on remote CI. T042 removed the legacy Duffel monolith; T058 removed global SDK/configuration/budget visibility and added a negative Nest module-composition regression. T043 passed the guarded API suite (130 suites/2,326 tests), all affected database E2Es (16 suites/145 tests), shared/static contracts, typecheck, and lint. The [Slice 5 verification record](../specs/029-duffel-provider-narrowing/slice-5-verification.md) has exact commands, exits, counts, and the scoped convergence recheck. Slice 6.2 is verified on PR [#370](https://github.com/pminhtaiii/wayfinder/pull/370), run [37188540602](https://github.com/pminhtaiii/wayfinder/actions/runs/37188540602), commit `551c3890cd37f65ded2adf900244fc9ca0d76dd8`, with all 12 jobs successful. Phase 7 (T055–T057) remains pending; later review fixes require CI on their own pushed HEAD. Slice 4 and earlier history is preserved in the linked [Slice 4](../specs/029-duffel-provider-narrowing/slice-4-verification.md) and [Slice 3](../specs/029-duffel-provider-narrowing/slice-3-verification.md) records.
 
 ---
 
 ## Feature 029 — Narrow the Duffel Supplier Boundary (Active)
 
-Phase 6 compatibility slice T044–T046 is complete locally within the approved T049/T051 deferrals. Independent task reviews and scoped convergence passed; the [Slice 6.1 verification record](../specs/029-duffel-provider-narrowing/slice-6-1-verification.md) records API 2,331, shared 111, focused web 120, and agent 1,291 passing tests. Remaining T047–T057 are pending; Feature 029 is incomplete.
+Phase 6 compatibility slice T044–T046 is complete locally within the approved T049/T051 deferrals. Independent task reviews and scoped convergence passed; the [Slice 6.1 verification record](../specs/029-duffel-provider-narrowing/slice-6-1-verification.md) records API 2,331, shared 111, focused web 120, and agent 1,291 passing tests. Slice 6.2 (T047–T054) is also complete and verified; the [Slice 6.2 verification record](../specs/029-duffel-provider-narrowing/slice-6-2-verification.md#remote-ci-verification-pull-request-370) records the final pushed HEAD and job results. PR #368 is closed, Part 1 PR #369 is merged, and Part 2 PR #370 remains open targeting `development`. Only Phase 7 (T055–T057) remains pending; Feature 029 is incomplete.
 
 Detailed phase-by-phase execution, live task checklists, and exit gates are tracked in [active-feature.md](./active-feature.md).
 
@@ -30,7 +30,7 @@ Detailed phase-by-phase execution, live task checklists, and exit gates are trac
 - [x] Phase 3: Search Capability Isolation (US1 Complete 🎯) (T013–T024)
 - [x] Phase 4: Ancillary Capability Isolation (US2) (T025–T031 complete locally)
 - [x] Phase 5: Order Capability Isolation (US3) (T032–T043; locally complete, including T058 convergence)
-- [ ] Phase 6: Neutral Naming & Physical Schema (US4) (T044–T054)
+- [x] Phase 6: Neutral Naming & Physical Schema (US4) (T044–T054 complete & CI verified on PR #370, run `37188540602`)
 - [ ] Phase 7: Final Verification & Audit (T055–T057)
 
 Exit gate:

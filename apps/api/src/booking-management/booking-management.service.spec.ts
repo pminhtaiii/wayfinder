@@ -1,3 +1,4 @@
+// Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test } from '@nestjs/testing';
@@ -389,6 +390,30 @@ describe('BookingManagementService', () => {
       await expect(service.getBookingDetail('booking-1', 'user-1')).rejects.toBeInstanceOf(
         ForbiddenException,
       );
+    });
+
+    it.each([
+      { label: 'null', snapshot: null },
+      { label: 'string', snapshot: 'legacy snapshot' },
+      { label: 'number', snapshot: 42 },
+      { label: 'boolean', snapshot: false },
+      { label: 'array', snapshot: [{ supplierSegmentId: 'seg_1' }] },
+      { label: 'missing segments', snapshot: { description: 'legacy snapshot' } },
+      { label: 'null segments', snapshot: { segments: null } },
+      { label: 'string segments', snapshot: { segments: 'legacy segments' } },
+      { label: 'number segments', snapshot: { segments: 42 } },
+      { label: 'boolean segments', snapshot: { segments: false } },
+      { label: 'object segments', snapshot: { segments: { supplierSegmentId: 'seg_1' } } },
+    ])('preserves $label snapshots in booking detail and list responses', async ({ snapshot }): Promise<void> => {
+      const booking = mockDetailBooking({ flightSnapshot: snapshot });
+      prisma.booking.findUnique.mockResolvedValue(booking);
+      prisma.booking.findMany.mockResolvedValue([booking]);
+
+      const detail = await service.getBookingDetail('booking-1', 'user-1');
+      const list = await service.listBookings('user-1', 'upcoming', 1, 20);
+
+      expect(detail.flightSnapshot).toBe(snapshot);
+      expect(list.bookings[0].flightSnapshot).toBe(snapshot);
     });
 
     it('preserves legacy snapshot identity in the original itinerary', async (): Promise<void> => {

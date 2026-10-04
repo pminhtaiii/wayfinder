@@ -62,6 +62,8 @@ interface MockPrisma {
   };
 }
 
+// Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
+
 describe('PaymentFulfillmentSaga', () => {
   let saga: PaymentFulfillmentSaga;
   let mockPaymentGateway: {

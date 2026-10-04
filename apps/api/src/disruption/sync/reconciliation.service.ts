@@ -189,7 +189,7 @@ export class ReconciliationService {
             message: 'Reconciliation sync failed for booking.',
             bookingId: booking.id,
             error: err.message,
-            nextDuffelSyncAt: nextSyncAt.toISOString(),
+            nextSupplierSyncAt: nextSyncAt.toISOString(),
             metric: 'reconciliation_failure',
           }),
           err.stack,

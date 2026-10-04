@@ -17,6 +17,8 @@ import { FlightSearchRequestDto } from './dto/search-flight.dto';
 import { generateDeterministicUUID } from './flight-offer-normalizer';
 import { Prisma } from '@prisma/client';
 
+// Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
+
 describe('FlightsService (T036)', () => {
   let service: FlightsService;
   let prisma: {

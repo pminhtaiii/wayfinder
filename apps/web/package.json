@@ -10,7 +10,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "playwright test --config=tests/playwright.config.ts",
-    "test:characterization": "playwright test tests/characterization/ --config=tests/playwright.config.ts"
+    "test:characterization": "playwright test tests/characterization/ --config=tests/playwright.config.ts",
+    "test:compatibility": "tsx --test lib/server/flight-search.spec.ts lib/server/booking-management.spec.ts tests/handoff-checkout-proxy.unit.ts tests/supplier-identity-injection.unit.ts"
   },
   "dependencies": {
     "@shared/types": "workspace:*",

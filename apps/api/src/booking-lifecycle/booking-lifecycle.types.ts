@@ -9,7 +9,7 @@ export type BookingPipelineOutcome =
       bookingId: string;
       paymentId: string;
       pnrReference: string;
-      duffelOrderId: string;
+      supplierOrderId: string;
       flightSnapshot: FlightSnapshot;
       passengerSnapshot: PassengerSnapshot;
       occurredAt: string;

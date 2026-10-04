@@ -7,6 +7,8 @@ import { DuffelAncillaryService } from '@/supplier/ancillary/duffel-ancillary.se
 import { DuffelRateBudgetService } from '@/supplier/core/duffel-rate-budget.service';
 import { AncillaryPaymentValidationService } from './ancillary-payment-validation.service';
 
+// Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
+
 describe('AncillaryPaymentValidationService', () => {
   jest.setTimeout(30000);
   it('reprices once outside transactions and validates the leased current snapshot', async () => {

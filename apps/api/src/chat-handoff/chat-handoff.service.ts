@@ -362,7 +362,7 @@ export class ChatHandoffService {
 
     const selectedOffer = offers[dto.selectedOfferIndex - 1];
     const flightOfferId = selectedOffer.flightOfferId;
-    const duffelOfferIdHash = this.tokenService.hashToken(selectedOffer.duffelOfferId);
+    const supplierOfferIdHash = this.tokenService.hashToken(selectedOffer.duffelOfferId);
     const snapshotFingerprint = this.tokenService.hashToken(JSON.stringify(offers));
 
     const idempotencyHash = this.tokenService.deriveIdempotencyHash(
@@ -392,8 +392,8 @@ export class ChatHandoffService {
       });
     }
 
-    const computedDuffelOfferIdHash = this.tokenService.hashToken(flightOffer.supplierOfferId);
-    if (computedDuffelOfferIdHash !== duffelOfferIdHash) {
+    const computedSupplierOfferIdHash = this.tokenService.hashToken(flightOffer.supplierOfferId);
+    if (computedSupplierOfferIdHash !== supplierOfferIdHash) {
       throw new NotFoundException({
         code: 'FLIGHT_OFFER_NOT_FOUND',
         message: 'Flight offer not found or unavailable',
@@ -487,7 +487,7 @@ export class ChatHandoffService {
           userId,
           chatSessionId,
           flightOfferId,
-          supplierOfferIdHash: duffelOfferIdHash,
+          supplierOfferIdHash,
           selectionAttestationHash,
           selectedOfferIndex: dto.selectedOfferIndex,
           snapshotVersion,
@@ -746,9 +746,9 @@ export class ChatHandoffService {
     }
 
     const flightOfferId = stringValue(handoff.flightOfferId);
-    const duffelOfferIdHash = stringValue(handoff.supplierOfferIdHash);
+    const supplierOfferIdHash = stringValue(handoff.supplierOfferIdHash);
     const expiresAt = isoDateValue(handoff.expiresAt);
-    if (!flightOfferId || !duffelOfferIdHash || !expiresAt) {
+    if (!flightOfferId || !supplierOfferIdHash || !expiresAt) {
       throw new NotFoundException({
         code: 'HANDOFF_NOT_FOUND',
         message: 'Handoff offer unavailable',
@@ -776,8 +776,8 @@ export class ChatHandoffService {
       });
     }
 
-    const computedDuffelOfferIdHash = this.tokenService.hashToken(flightOffer.supplierOfferId);
-    if (computedDuffelOfferIdHash !== duffelOfferIdHash) {
+    const computedSupplierOfferIdHash = this.tokenService.hashToken(flightOffer.supplierOfferId);
+    if (computedSupplierOfferIdHash !== supplierOfferIdHash) {
       throw new NotFoundException({
         code: 'HANDOFF_NOT_FOUND',
         message: 'Handoff offer unavailable',

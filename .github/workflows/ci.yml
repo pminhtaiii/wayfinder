@@ -38,6 +38,8 @@ jobs:
           node-version: 20
       - name: Verify workflow contract
         run: node --test tests/ci/ci-workflow.contract.test.mjs tests/ci/security-change-filter.test.mjs
+      - name: Verify supplier identifier contracts
+        run: node --test tests/ci/supplier-identifiers-migration.contract.test.mjs tests/ci/supplier-identifiers-runner.contract.test.mjs
       - name: Install checksum-verified actionlint
         run: |
           curl --fail --location --silent --show-error --output actionlint.tar.gz https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
@@ -296,6 +298,11 @@ jobs:
           pnpm build:shared
           pnpm --filter @api/backend exec prisma generate
           pnpm --filter @api/backend exec prisma migrate deploy
+      - name: Prove supplier identifier fresh and upgrade migrations
+        env:
+          NODE_OPTIONS: --require=${{ github.workspace }}/tests/ci/node-network-guard.cjs
+          T054_ADMIN_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres?schema=public
+        run: node tests/ci/supplier-identifiers-migration.e2e.mjs
       - name: Run API E2E tests with loopback-only network
         env:
           NODE_OPTIONS: --require=${{ github.workspace }}/tests/ci/node-network-guard.cjs
@@ -336,6 +343,10 @@ jobs:
         run: |
           pnpm build:shared
           pnpm --filter @web/frontend typecheck
+      - name: Run supplier identity compatibility tests
+        env:
+          NODE_OPTIONS: --require=${{ github.workspace }}/tests/ci/node-network-guard.cjs
+        run: pnpm --filter @web/frontend run test:compatibility
       - name: Run web characterization safety checks
         env:
           PLAYWRIGHT_FRONTEND_ONLY: 'true'
