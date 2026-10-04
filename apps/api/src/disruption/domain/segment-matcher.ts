@@ -21,12 +21,12 @@ export function matchSegments(
   const matchedCurr = new Set<NormalizedSegment>();
   const matches: MatchResult[] = [];
 
-  // Pass 1: Tier 1 - Exact stable Duffel segment ID
+  // Pass 1: Tier 1 - Exact stable supplier segment ID
   for (const prev of prevSegments) {
-    if (!prev.duffelSegmentId) continue;
+    if (!prev.supplierSegmentId) continue;
     for (const curr of currSegments) {
       if (matchedCurr.has(curr)) continue;
-      if (prev.duffelSegmentId === curr.duffelSegmentId) {
+      if (prev.supplierSegmentId === curr.supplierSegmentId) {
         matches.push({
           prevSegment: prev,
           currSegment: curr,

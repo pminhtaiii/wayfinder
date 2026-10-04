@@ -1,3 +1,5 @@
+# User approved on 2026-10-03: trusted result fixtures use the canonical supplierOfferId field;
+# the mixed-alias control verifies legacy Duffel keys remain forbidden internally.
 import json
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
@@ -223,7 +225,7 @@ def _make_valid_result_payload(offer_index: int = 1) -> Dict[str, Any]:
     return {
         "offerIndex": offer_index,
         "flightOfferId": f"flight_offer_{offer_index}",
-        "duffelOfferId": f"off_duffel_{offer_index}_secret",
+        "supplierOfferId": f"off_duffel_{offer_index}_secret",
         "airline": "Vietnam Airlines",
         "origin": "SGN",
         "destination": "HAN",
@@ -267,6 +269,11 @@ def test_trusted_search_result_validates_fields_and_forbids_extra():
     extra_payload["unauthorizedField"] = "attack"
     with pytest.raises(ValidationError):
         TrustedSearchResult.model_validate(extra_payload)
+
+    mixed_alias_payload = _make_valid_result_payload(1)
+    mixed_alias_payload["duffelOfferId"] = "legacy-duffel-alias"
+    with pytest.raises(ValidationError):
+        TrustedSearchResult.model_validate(mixed_alias_payload)
 
     # Forbids V2 score and match fields
     forbidden_score_fields = [
@@ -597,7 +604,7 @@ def test_project_snapshot_results_excludes_all_pii_and_internal_ids():
                 {
                     "offerIndex": 1,
                     "flightOfferId": "raw_flight_offer_id_111",
-                    "duffelOfferId": "secret_duffel_offer_id_222",
+                    "supplierOfferId": "secret_duffel_offer_id_222",
                     "airline": "Vietnam Airlines",
                     "origin": "SGN",
                     "destination": "HAN",

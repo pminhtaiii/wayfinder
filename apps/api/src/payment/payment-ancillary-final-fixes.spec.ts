@@ -274,11 +274,11 @@ describe('PaymentService - Final Fixes Spec', () => {
 
       prisma.bookingIntent.findUnique.mockResolvedValue({
         id: 'intent-1',
-        duffelOfferId: 'offer-1',
+        supplierOfferId: 'offer-1',
         passengers: [
           {
             id: 'passenger-1',
-            duffelPassengerId: 'p-1',
+            supplierPassengerId: 'p-1',
             type: 'adult',
             givenName: 'John',
             familyName: 'Doe',

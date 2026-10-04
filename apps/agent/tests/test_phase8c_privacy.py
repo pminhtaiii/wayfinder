@@ -68,6 +68,8 @@ def test_safe_llm_fields_excludes_identifiers():
 
 def test_project_snapshot_results_excludes_identifiers():
     """Verify project_for_browser and project_for_llm never return offer IDs or provider IDs to the browser."""
+    # User approved on 2026-10-03: rename only this internal snapshot fixture to the canonical
+    # identity field so strict snapshot validation can exercise the unchanged privacy projection.
     snapshot = TrustedSearchSnapshot.model_validate(
         {
             "schemaVersion": 1,
@@ -82,7 +84,7 @@ def test_project_snapshot_results_excludes_identifiers():
                 {
                     "offerIndex": 1,
                     "flightOfferId": "local-uuid-1234",
-                    "duffelOfferId": "duffel-offer-5678",
+                    "supplierOfferId": "duffel-offer-5678",
                     "airline": "VN",
                     "origin": "SGN",
                     "destination": "HAN",

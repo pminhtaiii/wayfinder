@@ -235,7 +235,7 @@ describe('Flights Detail & Re-price (E2E)', () => {
           data: {
             id: validOfferUuid,
             searchHash: mockSearchHash,
-            duffelOfferId: 'off_mock_123',
+            supplierOfferId: 'off_mock_123',
             rawOffer: mockDuffelOffer as unknown as Prisma.InputJsonValue,
             origin: 'HAN',
             destination: 'SGN',

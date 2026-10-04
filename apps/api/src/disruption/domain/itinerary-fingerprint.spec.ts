@@ -1,3 +1,5 @@
+// User approved on 2026-10-03: internal fixture names match the domain rename.
+// Values and scenarios are unchanged.
 import { generateItineraryFingerprint } from './itinerary-fingerprint';
 import { NormalizedSegment } from './itinerary-normalizer';
 
@@ -6,7 +8,7 @@ describe('ItineraryFingerprint', () => {
     sliceOrder: 0,
     segmentOrder: 0,
     globalOrder: 0,
-    duffelSegmentId: 'seg_1',
+    supplierSegmentId: 'seg_1',
     marketingCarrierIata: 'BA',
     operatingCarrierIata: 'BA',
     airlineName: 'British Airways',
@@ -38,7 +40,7 @@ describe('ItineraryFingerprint', () => {
     const fp1 = generateItineraryFingerprint([baseSegment]);
     const alteredSegment: NormalizedSegment = {
       ...baseSegment,
-      duffelSegmentId: 'seg_different_id_999',
+      supplierSegmentId: 'seg_different_id_999',
       airlineName: 'BA flights',
       departureAirportName: 'Heathrow Airport Terminal 5',
       arrivalAirportName: 'JFK Intl',
@@ -96,7 +98,7 @@ describe('ItineraryFingerprint', () => {
       sliceOrder: 0,
       segmentOrder: 0,
       globalOrder: 0,
-      duffelSegmentId: 'seg_1',
+      supplierSegmentId: 'seg_1',
       marketingCarrierIata: 'BA',
       operatingCarrierIata: 'BA',
       airlineName: 'British Airways',

@@ -1,4 +1,4 @@
-import { FlightSegmentSnapshot } from './booking-types';
+import type { FlightSegmentSnapshotDto } from './booking-types';
 
 export enum DisruptionStatus {
   NONE = 'NONE',
@@ -89,7 +89,7 @@ export interface CurrentItineraryDto {
   source: 'ORIGINAL' | 'REVISION';
   revisionId: string | null;
   version: number;
-  segments: FlightSegmentSnapshot[];
+  segments: FlightSegmentSnapshotDto[];
   nextUnflownDepartureAt: string | null;
   finalArrivalAt: string | null;
 }
@@ -115,7 +115,7 @@ export interface DisruptionHistoryItemDto {
   materialBaselines: MaterialBaseline[];
   incrementalSummary: Record<string, unknown>;
   cumulativeSummary: Record<string, unknown>;
-  segments: FlightSegmentSnapshot[];
+  segments: FlightSegmentSnapshotDto[];
 }
 
 export interface DisruptionHistoryResponseDto {

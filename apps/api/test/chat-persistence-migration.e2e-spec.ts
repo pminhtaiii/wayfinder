@@ -76,7 +76,7 @@ describe('Chat Persistence Migration (e2e)', () => {
     const testIntent = await prisma.bookingIntent.create({
       data: {
         userId: testUser.id,
-        duffelOfferId: 'test_offer_id',
+        supplierOfferId: 'test_offer_id',
         status: BookingIntentStatus.COMPLETED,
         originalPrice: 100,
         confirmedPrice: 100,

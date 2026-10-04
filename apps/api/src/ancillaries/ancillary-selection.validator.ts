@@ -110,7 +110,7 @@ export const validateAncillarySelection = (input: ValidationInput): ValidatedAnc
           'PASSENGER_INELIGIBLE',
         ),
       );
-    } else if (!seat || seat.service.passengerId !== passenger.duffelPassengerId) {
+    } else if (!seat || seat.service.passengerId !== passenger.supplierPassengerId) {
       invalidSelections.push(
         invalid(
           'SEAT',
@@ -170,7 +170,7 @@ export const validateAncillarySelection = (input: ValidationInput): ValidatedAnc
           'PASSENGER_INELIGIBLE',
         ),
       );
-    } else if (!service || service.passengerId !== passenger.duffelPassengerId) {
+    } else if (!service || service.passengerId !== passenger.supplierPassengerId) {
       invalidSelections.push(
         invalid(
           'BAGGAGE',

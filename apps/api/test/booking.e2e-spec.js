@@ -60,7 +60,7 @@ describe('Bookings (E2E)', () => {
         const intent = await prisma.bookingIntent.create({
             data: {
                 userId,
-                duffelOfferId: `off-${crypto.randomUUID()}`,
+                supplierOfferId: `off-${crypto.randomUUID()}`,
                 status: 'AWAITING_PAYMENT',
                 originalPrice: new client_1.Prisma.Decimal('125.50'),
                 confirmedPrice: new client_1.Prisma.Decimal('125.50'),

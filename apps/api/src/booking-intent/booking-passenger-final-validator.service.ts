@@ -51,7 +51,7 @@ export type BookingIntentPassengerRecord = {
   passportNumber?: string | null;
   passportExpiry?: string | null;
   travelerProfileId?: string | null;
-  duffelPassengerId?: string | null;
+  supplierPassengerId?: string | null;
   title?: string | null;
   email?: string | null;
   phoneCountryCode?: string | null;
@@ -505,8 +505,8 @@ export class BookingPassengerFinalValidatorService {
         identity_documents: identityDocuments,
       };
 
-      if (record.duffelPassengerId) {
-        duffelDto.id = record.duffelPassengerId;
+      if (record.supplierPassengerId) {
+        duffelDto.id = record.supplierPassengerId;
       }
 
       duffelPassengers.push(duffelDto);

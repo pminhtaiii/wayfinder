@@ -3,6 +3,7 @@ const FORBIDDEN_KEYS = new Set([
   'flightOfferId',
   'chatSessionId',
   'duffelOfferId',
+  'supplierOfferId',
   'offerId',
 ]);
 

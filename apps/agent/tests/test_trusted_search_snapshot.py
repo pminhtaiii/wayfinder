@@ -50,6 +50,8 @@ class FreshSearchGateway:
             "results": [
                 {
                     "flightOfferId": "fresh-fo-029",
+                    # User approved on 2026-10-03: preserve distinct application and supplier IDs.
+                    "duffelOfferId": "duffel-fresh-029",
                     "airline": "VN",
                     "origin": origin,
                     "destination": destination,
@@ -68,11 +70,13 @@ def _owner() -> SnapshotOwner:
     return SnapshotOwner(user_id="user-029", chat_session_id="session-029")
 
 
+# User approved on 2026-10-03: canonical snapshot fixtures use supplierOfferId; gateway wire
+# results continue to exercise the legacy duffelOfferId contract.
 def _valid_result(now: datetime) -> dict[str, str | int]:
     return {
         "offerIndex": 1,
         "flightOfferId": "fo-029",
-        "duffelOfferId": "duffel-029",
+        "supplierOfferId": "supplier-029",
         "airline": "Northwind Air",
         "origin": "SGN",
         "destination": "HAN",
@@ -100,15 +104,15 @@ def _snapshot_payload(
 
 
 @pytest.mark.asyncio
-async def test_alias_only_snapshot_fails_closed() -> None:
+async def test_legacy_supplier_snapshot_fails_closed() -> None:
     owner = _owner()
     redis = MemoryRedis()
     lifecycle = TrustedSearchSnapshotLifecycle(TrustedSnapshotRepository(redis))
     now = datetime.now(timezone.utc)
     payload = _snapshot_payload(owner, now, now + timedelta(minutes=15))
     result = _valid_result(now)
-    result.pop("duffelOfferId")
-    result["supplierOfferId"] = "supplier-029"
+    result.pop("supplierOfferId")
+    result["duffelOfferId"] = "duffel-029"
     payload["results"] = [result]
 
     await redis.set(f"chat:snapshot:{owner.user_id}:{owner.chat_session_id}", json.dumps(payload))
@@ -130,7 +134,7 @@ async def test_expired_legacy_snapshot_fails_closed() -> None:
 
 
 @pytest.mark.asyncio
-async def test_valid_legacy_snapshot_remains_available() -> None:
+async def test_valid_neutral_snapshot_remains_available() -> None:
     owner = _owner()
     redis = MemoryRedis()
     lifecycle = TrustedSearchSnapshotLifecycle(TrustedSnapshotRepository(redis))
@@ -143,7 +147,7 @@ async def test_valid_legacy_snapshot_remains_available() -> None:
 
     assert snapshot is not None
     assert snapshot.results[0].flightOfferId == "fo-029"
-    assert snapshot.results[0].duffelOfferId == "duffel-029"
+    assert snapshot.results[0].supplierOfferId == "supplier-029"
 
 
 @pytest.mark.asyncio
@@ -156,8 +160,8 @@ async def test_search_tool_executes_gateway_search_after_invalid_snapshot_is_una
     now = datetime.now(timezone.utc)
     payload = _snapshot_payload(owner, now, now + timedelta(minutes=15))
     result = _valid_result(now)
-    result.pop("duffelOfferId")
-    result["supplierOfferId"] = "supplier-029"
+    result.pop("supplierOfferId")
+    result["duffelOfferId"] = "duffel-029"
     payload["results"] = [result]
     await redis.set(f"chat:snapshot:{owner.user_id}:{owner.chat_session_id}", json.dumps(payload))
     assert await lifecycle.load_active(owner) is None

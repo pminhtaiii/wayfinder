@@ -57,6 +57,8 @@ def _make_gateway() -> GuardrailGateway:
     )
 
 
+# User approved on 2026-10-03: internal trusted snapshots use supplierOfferId; legacy wire fields
+# remain covered by gateway-specific tests.
 TRAVEL_TOOL_NAMES: tuple[str, ...] = (
     "search_flights",
     "get_user_preferences",
@@ -69,6 +71,26 @@ GENERAL_TOOL_NAMES: tuple[str, ...] = ()
 ALL_REGISTERED_TOOL_NAMES: tuple[str, ...] = tuple(t.name for t in get_tools())
 
 
+def test_trusted_result_rejects_duffel_alias_with_neutral_identity() -> None:
+    now = datetime.now(timezone.utc)
+    with pytest.raises(ValidationError):
+        TrustedSearchResult.model_validate(
+            {
+                "offerIndex": 1,
+                "flightOfferId": "flight-neutral-1",
+                "supplierOfferId": "supplier-neutral-1",
+                "duffelOfferId": "duffel-legacy-1",
+                "airline": "Sky Airline",
+                "origin": "SFO",
+                "destination": "JFK",
+                "departureAt": now,
+                "arrivalAt": now + timedelta(hours=6),
+                "price": "420.00",
+                "currency": "USD",
+            }
+        )
+
+
 def _create_active_snapshot(num_offers: int = 2) -> TrustedSearchSnapshot:
     """Helper to create an active, unexpired search snapshot for checkout tests."""
     now = datetime.now(timezone.utc)
@@ -76,7 +98,7 @@ def _create_active_snapshot(num_offers: int = 2) -> TrustedSearchSnapshot:
         TrustedSearchResult(
             offerIndex=i,
             flightOfferId=f"fl_offer_{i}",
-            duffelOfferId=f"duffel_offer_{i}",
+            supplierOfferId=f"supplier_offer_{i}",
             airline="Sky Airline",
             origin="SFO",
             destination="JFK",
@@ -107,7 +129,7 @@ def _create_expired_snapshot() -> TrustedSearchSnapshot:
         TrustedSearchResult(
             offerIndex=1,
             flightOfferId="fl_offer_expired",
-            duffelOfferId="duffel_offer_expired",
+            supplierOfferId="supplier_offer_expired",
             airline="Sky Airline",
             origin="SFO",
             destination="JFK",

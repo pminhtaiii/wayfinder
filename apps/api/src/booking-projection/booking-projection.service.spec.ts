@@ -436,7 +436,7 @@ describe('BookingProjectionService', () => {
         id: 'booking_uuid_123',
         userId: 'user_secret_456',
         pnrReference: 'SECRET_PNR',
-        duffelOrderId: 'ord_secret_789',
+        supplierOrderId: 'ord_secret_789',
         totalAmount: '450.00',
         currency: 'USD',
         passengerCount: 2,
@@ -468,7 +468,7 @@ describe('BookingProjectionService', () => {
                 marketingCarrierIata: 'BA',
                 flightNumber: '117',
                 // Internal segment fields that should not leak
-                duffelSegmentId: 'seg_internal_1',
+                supplierSegmentId: 'seg_internal_1',
                 passengerIds: ['pas_1'],
               },
             ],
@@ -493,6 +493,7 @@ describe('BookingProjectionService', () => {
       expect(result.passengers).toBeUndefined();
       expect(result.payment).toBeUndefined();
       expect(result.duffelSegmentId).toBeUndefined();
+      expect(result.supplierSegmentId).toBeUndefined();
       expect(result.passengerIds).toBeUndefined();
 
       // Check allowed keys match exact allowlist

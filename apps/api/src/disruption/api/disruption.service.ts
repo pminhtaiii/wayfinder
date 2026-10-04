@@ -116,7 +116,7 @@ export class DisruptionService {
           arrivalAt: seg.arrivalAt.toISOString(),
           duration: `PT${seg.durationMinutes}M`,
           aircraftType: seg.aircraftType ?? undefined,
-          duffelSegmentId: seg.duffelSegmentId ?? undefined,
+          duffelSegmentId: seg.supplierSegmentId ?? undefined,
           sliceOrder: seg.sliceOrder,
           segmentOrder: seg.segmentOrder,
           globalOrder: seg.globalOrder,

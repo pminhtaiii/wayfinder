@@ -81,7 +81,7 @@ describe('Booking Projection Reconciliation (E2E - T038)', () => {
     const intent = await prisma.bookingIntent.create({
       data: {
         userId,
-        duffelOfferId: `off_recon_${randomUUID()}`,
+        supplierOfferId: `off_recon_${randomUUID()}`,
         status: BookingIntentStatus.COMPLETED,
         originalPrice: new Prisma.Decimal('199.99'),
         confirmedPrice: new Prisma.Decimal('199.99'),
@@ -196,7 +196,7 @@ describe('Booking Projection Reconciliation (E2E - T038)', () => {
               segments: {
                 create: [
                   {
-                    duffelSegmentId: `seg_${randomUUID()}`,
+                    supplierSegmentId: `seg_${randomUUID()}`,
                     sliceOrder: 0,
                     segmentOrder: 0,
                     globalOrder: 0,
@@ -278,7 +278,7 @@ describe('Booking Projection Reconciliation (E2E - T038)', () => {
       const intentData = Array.from({ length: count }, (_, i) => ({
         id: randomUUID(),
         userId,
-        duffelOfferId: `off_page_${i}_${randomUUID()}`,
+        supplierOfferId: `off_page_${i}_${randomUUID()}`,
         status: BookingIntentStatus.COMPLETED,
         originalPrice: new Prisma.Decimal('100.00'),
         confirmedPrice: new Prisma.Decimal('100.00'),
@@ -516,7 +516,7 @@ describe('Booking Projection Reconciliation (E2E - T038)', () => {
       const intentData = Array.from({ length: count }, (_, i) => ({
         id: randomUUID(),
         userId,
-        duffelOfferId: `off_conc_${i}_${randomUUID()}`,
+        supplierOfferId: `off_conc_${i}_${randomUUID()}`,
         status: BookingIntentStatus.COMPLETED,
         originalPrice: new Prisma.Decimal('100.00'),
         confirmedPrice: new Prisma.Decimal('100.00'),

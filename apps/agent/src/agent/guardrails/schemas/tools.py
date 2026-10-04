@@ -100,6 +100,13 @@ class SearchFlightUpstreamProjection(_UpstreamProjection):
     baggage: str | None = None
     matchResult: MatchResultProjection | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def reject_unsigned_supplier_identity(cls, value: object) -> object:
+        if isinstance(value, dict) and "supplierOfferId" in value:
+            raise ValueError("supplierOfferId is not accepted in gateway search results")
+        return value
+
     @model_validator(mode="after")
     def require_snapshot_times(self) -> "SearchFlightUpstreamProjection":
         if not (self.departureTime or self.departureAt) or not (self.arrivalTime or self.arrivalAt):

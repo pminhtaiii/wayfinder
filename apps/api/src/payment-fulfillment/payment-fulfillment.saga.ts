@@ -579,7 +579,7 @@ export class PaymentFulfillmentSaga {
               passportNumber: p.passportNumber ?? undefined,
               passportExpiry: p.passportExpiry ?? undefined,
               travelerProfileId: p.travelerProfileId ?? undefined,
-              duffelPassengerId: p.duffelPassengerId ?? undefined,
+              duffelPassengerId: p.supplierPassengerId ?? undefined,
               documentType: p.documentType ?? undefined,
               issuingCountry: p.issuingCountry ?? undefined,
             };
@@ -627,7 +627,7 @@ export class PaymentFulfillmentSaga {
         try {
           orderOutcome = await this.fulfillmentGateway.createOrder(
             {
-              offerId: bookingIntent.duffelOfferId,
+              offerId: bookingIntent.supplierOfferId,
               passengers: passengersToOrder,
               services: services.length > 0 ? services : undefined,
               metadata: {

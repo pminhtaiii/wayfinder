@@ -1,3 +1,5 @@
+// User approved on 2026-10-03: internal fixture names match the domain rename.
+// Values and scenarios are unchanged.
 import { computeItineraryDiff } from './itinerary-diff';
 import { NormalizedSegment } from './itinerary-normalizer';
 
@@ -6,7 +8,7 @@ describe('ItineraryDiff', () => {
     sliceOrder: 0,
     segmentOrder: 0,
     globalOrder: 0,
-    duffelSegmentId: 'seg_1',
+    supplierSegmentId: 'seg_1',
     marketingCarrierIata: 'BA',
     operatingCarrierIata: 'BA',
     airlineName: 'British Airways',
@@ -44,7 +46,7 @@ describe('ItineraryDiff', () => {
     expect(result.segmentDiffs).toHaveLength(1);
     expect(result.segmentDiffs[0]).toEqual({
       globalOrder: 0,
-      duffelSegmentId: 'seg_1',
+      supplierSegmentId: 'seg_1',
       departureAirportChanged: false,
       arrivalAirportChanged: false,
       departureLocalDateChanged: false,
@@ -63,14 +65,14 @@ describe('ItineraryDiff', () => {
     // In current, final arrival at MIA is 19:30 (shift +90m).
     const prev1 = {
       ...baseSegment,
-      duffelSegmentId: 'seg_1',
+      supplierSegmentId: 'seg_1',
       sliceOrder: 0,
       segmentOrder: 0,
       globalOrder: 0,
     };
     const prev2 = {
       ...baseSegment,
-      duffelSegmentId: 'seg_2',
+      supplierSegmentId: 'seg_2',
       sliceOrder: 0,
       segmentOrder: 1,
       globalOrder: 1,
@@ -98,14 +100,14 @@ describe('ItineraryDiff', () => {
     // Segment 2: departs JFK on 14:00 (connection time: 30m, which is below MCT [60m]).
     const prev1 = {
       ...baseSegment,
-      duffelSegmentId: 'seg_1',
+      supplierSegmentId: 'seg_1',
       sliceOrder: 0,
       segmentOrder: 0,
       globalOrder: 0,
     };
     const prev2 = {
       ...baseSegment,
-      duffelSegmentId: 'seg_2',
+      supplierSegmentId: 'seg_2',
       sliceOrder: 0,
       segmentOrder: 1,
       globalOrder: 1,
@@ -137,14 +139,14 @@ describe('ItineraryDiff', () => {
   it('should detect negative overlapping connection time', () => {
     const prev1 = {
       ...baseSegment,
-      duffelSegmentId: 'seg_1',
+      supplierSegmentId: 'seg_1',
       sliceOrder: 0,
       segmentOrder: 0,
       globalOrder: 0,
     };
     const prev2 = {
       ...baseSegment,
-      duffelSegmentId: 'seg_2',
+      supplierSegmentId: 'seg_2',
       sliceOrder: 0,
       segmentOrder: 1,
       globalOrder: 1,
@@ -171,14 +173,14 @@ describe('ItineraryDiff', () => {
     // Seg 2: JFK->MIA (dep 10-01 15:00) -> same day connection
     const prev1 = {
       ...baseSegment,
-      duffelSegmentId: 'seg_1',
+      supplierSegmentId: 'seg_1',
       sliceOrder: 0,
       segmentOrder: 0,
       globalOrder: 0,
     };
     const prev2 = {
       ...baseSegment,
-      duffelSegmentId: 'seg_2',
+      supplierSegmentId: 'seg_2',
       sliceOrder: 0,
       segmentOrder: 1,
       globalOrder: 1,

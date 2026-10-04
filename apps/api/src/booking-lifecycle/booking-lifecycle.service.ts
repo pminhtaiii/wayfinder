@@ -301,7 +301,7 @@ export class BookingLifecycleService {
           status: BookingStatus.CONFIRMED,
           failureReason: null,
           pnrReference,
-          duffelOrderId,
+          supplierOrderId: duffelOrderId,
           flightSnapshot: flightSnapshot as unknown as Prisma.InputJsonValue,
           passengerSnapshot: passengerSnapshot as unknown as Prisma.InputJsonValue,
           departureAt: new Date(flightSnapshot.segments[0].departureAt),
@@ -927,7 +927,7 @@ export class BookingLifecycleService {
             status: BookingStatus.CONFIRMED,
             failureReason: null,
             ...(details?.pnrReference ? { pnrReference: details.pnrReference } : {}),
-            ...(details?.duffelOrderId ? { duffelOrderId: details.duffelOrderId } : {}),
+            ...(details?.duffelOrderId ? { supplierOrderId: details.duffelOrderId } : {}),
             ...(details?.flightSnapshot
               ? { flightSnapshot: details.flightSnapshot as unknown as Prisma.InputJsonValue }
               : {}),
@@ -1154,8 +1154,9 @@ export class BookingLifecycleService {
             (typeof seg.aircraftType === 'string' && seg.aircraftType) ||
             undefined;
 
-          const duffelSegmentId =
+          const supplierSegmentId =
             (typeof seg.id === 'string' && seg.id) ||
+            (typeof seg.supplierSegmentId === 'string' && seg.supplierSegmentId) ||
             (typeof seg.duffelSegmentId === 'string' && seg.duffelSegmentId) ||
             undefined;
 
@@ -1181,7 +1182,7 @@ export class BookingLifecycleService {
             arrivalAt,
             duration,
             aircraftType,
-            duffelSegmentId,
+            supplierSegmentId,
             sliceOrder,
             segmentOrder,
             globalOrder: globalOrder++,
@@ -1222,4 +1223,3 @@ export class BookingLifecycleService {
     return result;
   }
 }
-

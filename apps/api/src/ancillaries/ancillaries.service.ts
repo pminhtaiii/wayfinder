@@ -13,6 +13,7 @@ import { PaymentIdempotencyService } from '@/idempotency/payment-idempotency.ser
 import { AncillaryCatalogService } from './ancillary-catalog.service';
 import { CommitAncillarySelectionDto } from './dto/commit-ancillary-selection.dto';
 import { calculateAncillaryTotals } from './ancillary-pricing';
+import type { AncillaryPassenger } from '@shared/types/ancillary.types';
 import {
   AncillarySelectionValidationError,
   validateAncillarySelection,
@@ -38,8 +39,11 @@ export class AncillariesService {
 
   async read(userId: string, intentId: string, refresh = false) {
     const intent = await this.loadOwned(userId, intentId);
-    const catalog = await this.catalogService.getCatalog(intent.duffelOfferId, refresh);
-    const passengers = this.passengers(intent);
+    const catalog = await this.catalogService.getCatalog(intent.supplierOfferId, refresh);
+    const passengers = this.passengers(intent).map(({ supplierPassengerId, ...passenger }) => ({
+      ...passenger,
+      duffelPassengerId: supplierPassengerId,
+    }));
     const selection = this.snapshot(
       intent.currentAncillarySelection,
       intent.confirmedPrice,
@@ -66,7 +70,7 @@ export class AncillariesService {
     try {
       const intent = await this.loadOwned(userId, intentId);
 
-      const catalog = await this.catalogService.getCatalog(intent.duffelOfferId);
+      const catalog = await this.catalogService.getCatalog(intent.supplierOfferId);
       if (dto.catalogFingerprint !== this.catalogService.fingerprint(catalog)) {
         throw new ConflictException({
           code: 'ANCILLARY_SELECTION_STALE',
@@ -145,7 +149,7 @@ export class AncillariesService {
             seatSelections: {
               create: valid.seats.map((seat) => ({
                 intentPassengerId: seat.intentPassengerId,
-                duffelPassengerId: this.duffelPassenger(intent, seat.intentPassengerId),
+                supplierPassengerId: this.supplierPassengerId(intent, seat.intentPassengerId),
                 segmentId: seat.segmentId,
                 serviceId: seat.serviceId,
                 seatDesignator: seat.seatDesignator,
@@ -156,7 +160,7 @@ export class AncillariesService {
             baggageSelections: {
               create: valid.baggage.map((bag) => ({
                 intentPassengerId: bag.intentPassengerId,
-                duffelPassengerId: this.duffelPassenger(intent, bag.intentPassengerId),
+                supplierPassengerId: this.supplierPassengerId(intent, bag.intentPassengerId),
                 serviceId: bag.serviceId,
                 type: bag.type === 'carry_on' ? 'CARRY_ON' : 'CHECKED',
                 weightValue: bag.weightValue,
@@ -276,15 +280,15 @@ export class AncillariesService {
     return intent;
   }
 
-  private passengers(intent: OwnedIntent) {
+  private passengers(intent: OwnedIntent): AncillaryPassenger[] {
     const ids = new Set<string>();
     return intent.passengers.map((passenger) => {
-      if (!passenger.duffelPassengerId || ids.has(passenger.duffelPassengerId))
+      if (!passenger.supplierPassengerId || ids.has(passenger.supplierPassengerId))
         throw new BadRequestException({ code: 'ANCILLARY_SCOPE_INVALID', intentId: intent.id });
-      ids.add(passenger.duffelPassengerId);
+      ids.add(passenger.supplierPassengerId);
       return {
         intentPassengerId: passenger.id,
-        duffelPassengerId: passenger.duffelPassengerId,
+        supplierPassengerId: passenger.supplierPassengerId,
         displayName: passenger.givenName,
         type: passenger.type,
         seatEligible: passenger.type !== 'INFANT',
@@ -292,10 +296,10 @@ export class AncillariesService {
     });
   }
 
-  private duffelPassenger(intent: OwnedIntent, localId: string) {
+  private supplierPassengerId(intent: OwnedIntent, localId: string) {
     const value = intent.passengers.find(
       (passenger) => passenger.id === localId,
-    )?.duffelPassengerId;
+    )?.supplierPassengerId;
     if (!value)
       throw new BadRequestException({ code: 'ANCILLARY_SCOPE_INVALID', intentId: intent.id });
     return value;

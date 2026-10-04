@@ -201,7 +201,7 @@ model Booking {
   status                    BookingStatus         @default(PROCESSING)
   failureReason             BookingFailureReason?
   pnrReference              String?
-  duffelOrderId             String?
+  supplierOrderId           String?
   flightSnapshot            Json?
   passengerSnapshot         Json?
   totalAmount               Decimal               @db.Decimal(10, 2)
@@ -211,7 +211,7 @@ model Booking {
   cancellationRefundable    Boolean               @default(false)
   airlineRefundAmount       Decimal?              @db.Decimal(10, 2)
   customerRefundAmount      Decimal?              @db.Decimal(10, 2)
-  duffelCancellationQuoteId String?
+  supplierCancellationQuoteId String?
   createdAt                 DateTime              @default(now())
   updatedAt                 DateTime              @updatedAt
   version                   Int                   @default(1)
@@ -225,8 +225,8 @@ model Booking {
   activeDisruptionRevisionId String?                    @unique
   syncLockedAt               DateTime?
   syncLockToken              String?
-  lastDuffelSyncedAt         DateTime?
-  nextDuffelSyncAt           DateTime?
+  lastSupplierSyncedAt       DateTime?
+  nextSupplierSyncAt         DateTime?
   currentDepartureAt         DateTime?
   nextUnflownDepartureAt     DateTime?
   currentFinalArrivalAt      DateTime?
@@ -249,8 +249,8 @@ model Booking {
   @@index([departureAt])
   @@index([status, createdAt])
   @@index([status, departureAt])
-  @@index([duffelOrderId])
-  @@index([status, nextUnflownDepartureAt, lastDuffelSyncedAt])
+  @@index([supplierOrderId])
+  @@index([status, nextUnflownDepartureAt, lastSupplierSyncedAt])
   @@index([disruptionStatus, disruptionResolvedAt])
   @@index([disruptionNeedsAttention, disruptionAttentionAt])
   @@index([syncLockedAt])
@@ -261,7 +261,7 @@ model BookingIntent {
   id                          String                   @id @default(uuid())
   userId                      String
   flightOfferId               String?
-  duffelOfferId               String
+  supplierOfferId             String
   status                      BookingIntentStatus      @default(PENDING)
   originalPrice               Decimal                  @db.Decimal(10, 2)
   confirmedPrice              Decimal                  @db.Decimal(10, 2)
@@ -322,7 +322,7 @@ model BookingIntentPassenger {
   /// @encrypted
   passportExpiry    String?
   travelerProfileId String?
-  duffelPassengerId String?
+  supplierPassengerId String?
   middleName        String?
   title             String?
   email             String?
@@ -338,7 +338,7 @@ model BookingIntentPassenger {
   @@unique([intentId, position])
   @@index([intentId])
   @@index([travelerProfileId])
-  @@index([intentId, duffelPassengerId])
+  @@index([intentId, supplierPassengerId])
   @@map("booking_intent_passengers")
 }
 
@@ -377,7 +377,7 @@ model SeatSelection {
   id                   String             @id @default(uuid())
   ancillarySelectionId String
   intentPassengerId    String
-  duffelPassengerId    String
+  supplierPassengerId   String
   segmentId            String
   serviceId            String
   seatDesignator       String
@@ -396,7 +396,7 @@ model BaggageSelection {
   id                   String                    @id @default(uuid())
   ancillarySelectionId String
   intentPassengerId    String
-  duffelPassengerId    String
+  supplierPassengerId   String
   serviceId            String
   type                 BaggageType
   weightValue          Int?
@@ -473,7 +473,7 @@ model Airport {
 model FlightOffer {
   id             String          @id @default(uuid())
   searchHash     String
-  duffelOfferId  String
+  supplierOfferId String
   rawOffer       Json
   origin         String          @db.VarChar(3)
   destination    String          @db.VarChar(3)
@@ -489,7 +489,7 @@ model FlightOffer {
   bookingIntents BookingIntent[]
   chatHandoffs   ChatHandoff[]
 
-  @@unique([searchHash, duffelOfferId])
+  @@unique([searchHash, supplierOfferId])
   @@index([searchHash])
   @@index([createdAt])
   @@map("flight_offers")
@@ -863,7 +863,7 @@ model ItineraryRevisionSegment {
   sliceOrder           Int
   segmentOrder         Int
   globalOrder          Int
-  duffelSegmentId      String?
+  supplierSegmentId    String?
   marketingCarrierIata String
   operatingCarrierIata String?
   airlineName          String
@@ -888,7 +888,7 @@ model ItineraryRevisionSegment {
 
   @@unique([revisionId, globalOrder])
   @@index([revisionId, sliceOrder, segmentOrder])
-  @@index([duffelSegmentId])
+  @@index([supplierSegmentId])
   @@map("itinerary_revision_segments")
 }
 
@@ -991,7 +991,7 @@ model ChatHandoff {
   userId                    String
   chatSessionId             String
   flightOfferId             String
-  duffelOfferIdHash         String
+  supplierOfferIdHash       String
   snapshotVersion           Int
   snapshotFingerprint       String
   selectionAttestationHash  String

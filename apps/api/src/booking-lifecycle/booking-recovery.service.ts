@@ -55,7 +55,7 @@ const BOOKING_RECOVERY_INCLUDE = {
 } as const;
 
 type BookingIntentPassengerDetails = {
-  readonly duffelPassengerId: string | null;
+  readonly supplierPassengerId: string | null;
   readonly givenName: string;
   readonly familyName: string;
   readonly dateOfBirth: Date;
@@ -93,7 +93,7 @@ function enrichRedactedDuffelOrder(
     if (!isRecord(passenger)) return;
 
     const dbPass =
-      dbPassengers.find((candidate) => candidate.duffelPassengerId === passenger.id) ??
+      dbPassengers.find((candidate) => candidate.supplierPassengerId === passenger.id) ??
       dbPassengers[index];
     if (dbPass) {
       if (!passenger.given_name || passenger.given_name === 'REDACTED') {
@@ -555,7 +555,7 @@ export class BookingRecoveryService {
         if (didTransition) {
           booking.status = BookingStatus.CONFIRMED;
           booking.pnrReference = bookingReference;
-          booking.duffelOrderId = duffelOrderId;
+          booking.supplierOrderId = duffelOrderId;
           booking.flightSnapshot = flightSnapshot as unknown as Prisma.JsonValue;
           booking.passengerSnapshot = passengerSnapshot as unknown as Prisma.JsonValue;
           booking.departureAt = departureAt;

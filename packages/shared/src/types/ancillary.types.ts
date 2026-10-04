@@ -103,15 +103,20 @@ export type AncillaryCatalog = {
 // Selection persistence types (Phase 1 schema)
 export type AncillaryPassenger = {
   intentPassengerId: string;
-  duffelPassengerId: string;
+  supplierPassengerId: string;
   displayName: string;
   type: PassengerType;
   seatEligible: boolean;
 };
 
+/** Legacy HTTP response shape retained while internal passenger identity is supplier-neutral. */
+export type AncillaryPassengerDto = Omit<AncillaryPassenger, 'supplierPassengerId'> & {
+  duffelPassengerId: string;
+};
+
 export type AncillarySeatSelection = {
   intentPassengerId: string;
-  duffelPassengerId: string;
+  supplierPassengerId: string;
   segmentId: string;
   serviceId: string;
   seatDesignator: string;
@@ -121,13 +126,21 @@ export type AncillarySeatSelection = {
 
 export type AncillaryBaggageSelection = {
   intentPassengerId: string;
-  duffelPassengerId: string;
+  supplierPassengerId: string;
   serviceId: string;
   type: BaggageType;
   quantity: number;
   segmentIds: string[];
   amount: string;
   currency: string;
+};
+
+export type AncillarySeatSelectionDto = Omit<AncillarySeatSelection, 'supplierPassengerId'> & {
+  duffelPassengerId: string;
+};
+
+export type AncillaryBaggageSelectionDto = Omit<AncillaryBaggageSelection, 'supplierPassengerId'> & {
+  duffelPassengerId: string;
 };
 
 export type AncillarySelection = {
@@ -137,6 +150,11 @@ export type AncillarySelection = {
   seats: AncillarySeatSelection[];
   baggage: AncillaryBaggageSelection[];
   totals: AncillaryPriceBreakdown;
+};
+
+export type AncillarySelectionDto = Omit<AncillarySelection, 'seats' | 'baggage'> & {
+  seats: AncillarySeatSelectionDto[];
+  baggage: AncillaryBaggageSelectionDto[];
 };
 
 export type NormalizedSeatSelection = {
@@ -182,7 +200,7 @@ export type AncillaryCatalogResponse = {
   currency: string | null;
   baseAmount: string | null;
   catalog: AncillaryCatalog;
-  passengers: AncillaryPassenger[];
+  passengers: AncillaryPassengerDto[];
   selection: AncillarySelectionSnapshot;
 };
 
@@ -199,7 +217,7 @@ export type CommitAncillarySelectionResponse = {
   selectionVersion: number;
   selectionStatus: 'DRAFT_COMMITTED';
   intentExpiresAt: string;
-  selection: Omit<AncillarySelection, 'id' | 'version' | 'status'>;
+  selection: Omit<AncillarySelectionDto, 'id' | 'version' | 'status'>;
 };
 
 export type AncillaryInvalidSelection = {

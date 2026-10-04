@@ -12,7 +12,7 @@ export class SyncClaimService {
    * Attempts to acquire a sync lock on a booking using CAS.
    * Lock is granted if:
    * - Booking status is CONFIRMED
-   * - duffelOrderId is not null
+   * - supplierOrderId is not null
    * - syncLockedAt is null or older than 5 minutes
    */
   async acquireClaim(bookingId: string): Promise<string | null> {
@@ -25,7 +25,7 @@ export class SyncClaimService {
         where: {
           id: bookingId,
           status: 'CONFIRMED',
-          duffelOrderId: { not: null },
+          supplierOrderId: { not: null },
           OR: [{ syncLockedAt: null }, { syncLockedAt: { lt: staleTime } }],
         },
         data: {

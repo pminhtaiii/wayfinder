@@ -114,7 +114,7 @@ export function mapDuffelOrderToSnapshots(order: unknown): {
           arrivalAt: fieldString(segment, 'arriving_at') || '',
           duration: fieldString(segment, 'duration') || '',
           aircraftType: fieldString(aircraft, 'name'),
-          duffelSegmentId: fieldString(segment, 'id'),
+          supplierSegmentId: fieldString(segment, 'id'),
           sliceOrder,
           segmentOrder,
           globalOrder: globalOrder++,
@@ -188,7 +188,7 @@ export function normalizeDuffelOrder(order: unknown): NormalizedSegment[] {
         sliceOrder,
         segmentOrder,
         globalOrder: globalOrder++,
-        duffelSegmentId: fieldString(segment, 'id') || null,
+        supplierSegmentId: fieldString(segment, 'id') || null,
         marketingCarrierIata: fieldString(marketingCarrier, 'iata_code') || 'XX',
         operatingCarrierIata:
           fieldString(operatingCarrier, 'iata_code') ||

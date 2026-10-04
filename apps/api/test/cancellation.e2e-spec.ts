@@ -128,7 +128,7 @@ describe('Cancellation and refund recovery (E2E)', () => {
     const intent = await prisma.bookingIntent.create({
       data: {
         userId,
-        duffelOfferId: `off-${crypto.randomUUID()}`,
+        supplierOfferId: `off-${crypto.randomUUID()}`,
         status: 'CONFIRMED',
         originalPrice: new Prisma.Decimal('125.50'),
         confirmedPrice: new Prisma.Decimal('125.50'),
@@ -175,8 +175,8 @@ describe('Cancellation and refund recovery (E2E)', () => {
         currency: 'USD',
         status: overrides.status ?? BookingStatus.CONFIRMED,
         departureAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
-        duffelOrderId: `ord-${crypto.randomUUID()}`,
-        duffelCancellationQuoteId: quoteId,
+        supplierOrderId: `ord-${crypto.randomUUID()}`,
+        supplierCancellationQuoteId: quoteId,
         cancellationDeadline: overrides.deadline ?? new Date(Date.now() + 60 * 60 * 1000),
         cancellationRefundable: true,
         customerRefundAmount: new Prisma.Decimal(overrides.refundAmount ?? '100.00'),

@@ -288,7 +288,7 @@ describe('Privacy Corpus & Structured Telemetry Audit (e2e)', () => {
       const offer = await prisma.flightOffer.create({
         data: {
           searchHash: runMarker,
-          duffelOfferId: `off_audit_${runMarker}`,
+          supplierOfferId: `off_audit_${runMarker}`,
           origin: 'SGN',
           destination: 'HAN',
           departureDate: new Date(Date.now() + 86_400_000),

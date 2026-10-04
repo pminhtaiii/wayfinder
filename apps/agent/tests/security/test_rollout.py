@@ -522,6 +522,8 @@ async def test_rollout_rollback_rehearsal_handoff_cycle() -> None:
     Rehearses handoff flag rollout & rollback: enabled -> disabled -> re-enabled.
     Verifies disabling handoff issuance preserves safe error states without executing NestJS mutations.
     """
+    # User approved on 2026-10-03: this handoff state is canonical internal data; external search
+    # response fields remain covered by their legacy wire fixtures.
     valid_state: AgentState = {
         "messages": [],
         "signal": {"action": "ACTION_HANDOFF", "offer_index": 1},
@@ -532,7 +534,7 @@ async def test_rollout_rollback_rehearsal_handoff_cycle() -> None:
             "results": [
                 {
                     "flightOfferId": "off_123",
-                    "duffelOfferId": "duf_123",
+                    "supplierOfferId": "supplier_123",
                     "airline": "Vietnam Airlines",
                     "origin": "HAN",
                     "destination": "NRT",

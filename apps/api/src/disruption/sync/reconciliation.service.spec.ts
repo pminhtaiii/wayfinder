@@ -65,7 +65,7 @@ describe('ReconciliationService & Booking Completion', () => {
     it('should query bookings using correct boundaries and stable ordering', async () => {
       mockPrisma.booking.findMany
         .mockResolvedValueOnce([]) // stale sweep
-        .mockResolvedValueOnce([{ id: 'b-1', status: 'CONFIRMED', duffelOrderId: 'ord-1' }]); // eligible query
+        .mockResolvedValueOnce([{ id: 'b-1', status: 'CONFIRMED', supplierOrderId: 'ord-1' }]); // eligible query
 
       const result = await reconciliationService.reconcile();
 
@@ -74,13 +74,13 @@ describe('ReconciliationService & Booking Completion', () => {
         expect.objectContaining({
           where: expect.objectContaining({
             status: 'CONFIRMED',
-            duffelOrderId: { not: null },
+            supplierOrderId: { not: null },
             nextUnflownDepartureAt: expect.any(Object),
             AND: expect.any(Array),
           }),
           take: 20,
           orderBy: [
-            { lastDuffelSyncedAt: { sort: 'asc', nulls: 'first' } },
+            { lastSupplierSyncedAt: { sort: 'asc', nulls: 'first' } },
             { nextUnflownDepartureAt: 'asc' },
             { id: 'asc' },
           ],
@@ -148,7 +148,7 @@ describe('ReconciliationService & Booking Completion', () => {
     it('should defer processing and increment budgetBlocked when syncBooking rejects with HttpException 429 RATE_LIMIT_EXCEEDED', async () => {
       mockPrisma.booking.findMany
         .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ id: 'b-1', status: 'CONFIRMED', duffelOrderId: 'ord-1' }]);
+        .mockResolvedValueOnce([{ id: 'b-1', status: 'CONFIRMED', supplierOrderId: 'ord-1' }]);
       mockSupplierSyncService.syncBooking.mockRejectedValue(
         new HttpException(
           {
@@ -177,7 +177,7 @@ describe('ReconciliationService & Booking Completion', () => {
     it('should defer processing and increment budgetBlocked when syncBooking rejects with 429 / RATE_LIMIT_EXCEEDED', async () => {
       mockPrisma.booking.findMany
         .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ id: 'b-1', status: 'CONFIRMED', duffelOrderId: 'ord-1' }]);
+        .mockResolvedValueOnce([{ id: 'b-1', status: 'CONFIRMED', supplierOrderId: 'ord-1' }]);
       mockSupplierSyncService.syncBooking.mockRejectedValue({
         status: 429,
         response: { code: 'RATE_LIMIT_EXCEEDED' },
@@ -201,7 +201,7 @@ describe('ReconciliationService & Booking Completion', () => {
     it('should defer processing and increment budgetBlocked when syncBooking rejects with BUDGET_UNAVAILABLE', async () => {
       mockPrisma.booking.findMany
         .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ id: 'b-1', status: 'CONFIRMED', duffelOrderId: 'ord-1' }]);
+        .mockResolvedValueOnce([{ id: 'b-1', status: 'CONFIRMED', supplierOrderId: 'ord-1' }]);
       mockSupplierSyncService.syncBooking.mockRejectedValue(
         new HttpException(
           {
@@ -228,7 +228,7 @@ describe('ReconciliationService & Booking Completion', () => {
     it('should defer processing and increment budgetBlocked when syncBooking rejects with UPSTREAM_UNAVAILABLE', async () => {
       mockPrisma.booking.findMany
         .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ id: 'b-1', status: 'CONFIRMED', duffelOrderId: 'ord-1' }]);
+        .mockResolvedValueOnce([{ id: 'b-1', status: 'CONFIRMED', supplierOrderId: 'ord-1' }]);
       mockSupplierSyncService.syncBooking.mockRejectedValue({
         code: 'UPSTREAM_UNAVAILABLE',
       });
@@ -248,7 +248,7 @@ describe('ReconciliationService & Booking Completion', () => {
     it('should increment unchanged count for NO_CHANGE or duplicate status', async () => {
       mockPrisma.booking.findMany
         .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ id: 'b-1', status: 'CONFIRMED', duffelOrderId: 'ord-1' }]);
+        .mockResolvedValueOnce([{ id: 'b-1', status: 'CONFIRMED', supplierOrderId: 'ord-1' }]);
       mockSupplierSyncService.syncBooking.mockResolvedValue({ status: 'CONVERGED_DUPLICATE' });
 
       const result = await reconciliationService.reconcile();
@@ -261,7 +261,7 @@ describe('ReconciliationService & Booking Completion', () => {
     it('should increment changed count if revision was created', async () => {
       mockPrisma.booking.findMany
         .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ id: 'b-1', status: 'CONFIRMED', duffelOrderId: 'ord-1' }]);
+        .mockResolvedValueOnce([{ id: 'b-1', status: 'CONFIRMED', supplierOrderId: 'ord-1' }]);
       mockSupplierSyncService.syncBooking.mockResolvedValue({
         status: 'REVISION_CREATED',
         revisionId: 'rev-1',
@@ -278,8 +278,8 @@ describe('ReconciliationService & Booking Completion', () => {
       mockPrisma.booking.findMany
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([
-          { id: 'b-1', status: 'CONFIRMED', duffelOrderId: 'ord-1' },
-          { id: 'b-2', status: 'CONFIRMED', duffelOrderId: 'ord-2' },
+          { id: 'b-1', status: 'CONFIRMED', supplierOrderId: 'ord-1' },
+          { id: 'b-2', status: 'CONFIRMED', supplierOrderId: 'ord-2' },
         ]);
       mockSupplierSyncService.syncBooking
         .mockResolvedValueOnce({ status: 'SKIPPED_LOCKED' })
@@ -296,7 +296,7 @@ describe('ReconciliationService & Booking Completion', () => {
     it('should handle failures gracefully, update retry metadata with exponential backoff and release claim', async () => {
       mockPrisma.booking.findMany
         .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ id: 'b-1', status: 'CONFIRMED', duffelOrderId: 'ord-1' }]);
+        .mockResolvedValueOnce([{ id: 'b-1', status: 'CONFIRMED', supplierOrderId: 'ord-1' }]);
       mockSupplierSyncService.syncBooking.mockRejectedValue(new Error('Upstream error'));
 
       // First failure
@@ -307,12 +307,12 @@ describe('ReconciliationService & Booking Completion', () => {
       expect(result.failed).toBe(1);
       expect(mockCacheService.set).toHaveBeenCalledWith('reconciliation:failures:b-1', '1', 172800);
 
-      // Verify that nextDuffelSyncAt is updated (15 mins backoff)
+      // Verify that nextSupplierSyncAt is updated (15 mins backoff)
       expect(mockPrisma.booking.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'b-1' },
           data: expect.objectContaining({
-            nextDuffelSyncAt: expect.any(Date),
+            nextSupplierSyncAt: expect.any(Date),
             syncLockedAt: null,
             syncLockToken: null,
           }),
@@ -323,7 +323,7 @@ describe('ReconciliationService & Booking Completion', () => {
     it('should compute longer backoff for subsequent failures', async () => {
       mockPrisma.booking.findMany
         .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ id: 'b-1', status: 'CONFIRMED', duffelOrderId: 'ord-1' }]);
+        .mockResolvedValueOnce([{ id: 'b-1', status: 'CONFIRMED', supplierOrderId: 'ord-1' }]);
       mockSupplierSyncService.syncBooking.mockRejectedValue(new Error('Upstream error'));
 
       // Mocking 2 previous failures

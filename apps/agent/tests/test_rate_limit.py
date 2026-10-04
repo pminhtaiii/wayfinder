@@ -158,10 +158,13 @@ async def test_two_instance_daily_limit_shared(real_redis):
 # T026: Accepted-only non-charging test
 # ---------------------------------------------------------------------------
 @pytest.mark.asyncio
-async def test_accepted_only_non_charging(real_redis):
+async def test_accepted_only_non_charging(real_redis, monkeypatch: pytest.MonkeyPatch):
     user_id = f"user_noncharge_{int(time.time())}"
     token = make_token(user_id)
     headers = {"Authorization": f"Bearer {token}"}
+    fixed_now = time.time()
+    # User approved on 2026-10-03: pin this fixed-window test to one burst bucket.
+    monkeypatch.setattr("agent.middleware.rate_limit.time.time", lambda: fixed_now)
 
     app = FastAPI()
     app.add_middleware(

@@ -101,7 +101,7 @@ describe('Refund Settlement & Transaction Lifecycle (E2E)', () => {
     return prisma.flightOffer.create({
       data: {
         searchHash: `search-${crypto.randomUUID()}`,
-        duffelOfferId: `off_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        supplierOfferId: `off_${Date.now()}_${Math.random().toString(36).slice(2)}`,
         rawOffer: {},
         origin: 'SGN',
         destination: 'HAN',
@@ -120,7 +120,7 @@ describe('Refund Settlement & Transaction Lifecycle (E2E)', () => {
       data: {
         userId,
         flightOfferId,
-        duffelOfferId: `off_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        supplierOfferId: `off_${Date.now()}_${Math.random().toString(36).slice(2)}`,
         status: 'CONFIRMED',
         originalPrice: new Prisma.Decimal(100.0),
         confirmedPrice: new Prisma.Decimal(100.0),

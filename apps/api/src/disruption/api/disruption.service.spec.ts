@@ -98,7 +98,7 @@ describe('DisruptionService', () => {
               arrivalAt: new Date('2026-09-18T18:00:00.000Z'),
               durationMinutes: 300,
               aircraftType: 'B737',
-              duffelSegmentId: 'seg-1',
+              supplierSegmentId: 'seg-1',
               sliceOrder: 0,
               segmentOrder: 0,
               globalOrder: 0,

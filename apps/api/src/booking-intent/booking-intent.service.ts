@@ -313,7 +313,7 @@ export class BookingIntentService {
         throw new ConflictException({ code: 'CLAIM_LOST', message: 'Handoff claim was lost' });
       }
 
-      const liveOfferPromise = this.fetchLiveOffer(flightOffer.duffelOfferId, 25000);
+      const liveOfferPromise = this.fetchLiveOffer(flightOffer.supplierOfferId, 25000);
       const readinessPromise = canonicalPassengers
         ? this.bookingReadinessService!.evaluateAuthoritativeReadiness(
             flightOffer.rawOffer,
@@ -397,7 +397,7 @@ export class BookingIntentService {
               id: intentId,
               userId,
               flightOfferId: flightOffer.id,
-              duffelOfferId: flightOffer.duffelOfferId,
+              supplierOfferId: flightOffer.supplierOfferId,
               originalPrice: flightOffer.price,
               confirmedPrice: new Prisma.Decimal(confirmedPrice),
               currency: liveOffer.currency,
@@ -455,7 +455,7 @@ export class BookingIntentService {
                         ? this.encryptionService.encrypt(passenger.passportExpiry)
                         : null,
                       travelerProfileId: passenger.travelerProfileId || null,
-                      duffelPassengerId: duffelPassengerIds[index],
+                      supplierPassengerId: duffelPassengerIds[index],
                     },
                   }),
                 ),

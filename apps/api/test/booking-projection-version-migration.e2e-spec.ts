@@ -28,7 +28,7 @@ describe('Booking & BookingAgentProjection Version Migration (E2E)', () => {
     const intent = await prisma.bookingIntent.create({
       data: {
         userId: testUserId,
-        duffelOfferId: `off_test_${randomUUID()}`,
+        supplierOfferId: `off_test_${randomUUID()}`,
         status: BookingIntentStatus.COMPLETED,
         originalPrice: new Prisma.Decimal('199.99'),
         confirmedPrice: new Prisma.Decimal('199.99'),
@@ -158,7 +158,7 @@ describe('Booking & BookingAgentProjection Version Migration (E2E)', () => {
       const secondIntent = await prisma.bookingIntent.create({
         data: {
           userId: testUserId,
-          duffelOfferId: `off_raw_${randomUUID()}`,
+          supplierOfferId: `off_raw_${randomUUID()}`,
           status: BookingIntentStatus.COMPLETED,
           originalPrice: new Prisma.Decimal('299.99'),
           confirmedPrice: new Prisma.Decimal('299.99'),
@@ -257,7 +257,7 @@ describe('Booking & BookingAgentProjection Version Migration (E2E)', () => {
         data: {
           status: 'CONFIRMED',
           pnrReference: 'LEGACY-PNR-001',
-          duffelOrderId: 'ord_legacy_test',
+          supplierOrderId: 'ord_legacy_test',
         },
       });
 

@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrderSnapshotNormalizer } from './order-snapshot.normalizer';
 
+// User-approved 2026-10-03 per test-adaptations-api.md: these assert new internal normalizer writes; upstream order fixtures and legacy JSON/wire keys remain unchanged.
+
 describe('OrderSnapshotNormalizer', () => {
   let normalizer: OrderSnapshotNormalizer;
   let testingModule: TestingModule;
@@ -118,7 +120,7 @@ describe('OrderSnapshotNormalizer', () => {
             arrivalAt: '2026-10-01T10:30:00+02:00',
             duration: 'PT1H30M',
             aircraftType: 'Airbus A320',
-            duffelSegmentId: 'seg_lhr_cdg',
+            supplierSegmentId: 'seg_lhr_cdg',
             sliceOrder: 0,
             segmentOrder: 0,
             globalOrder: 0,
@@ -142,7 +144,7 @@ describe('OrderSnapshotNormalizer', () => {
             arrivalAt: '2026-10-01T14:30:00-04:00',
             duration: 'PT8H30M',
             aircraftType: undefined,
-            duffelSegmentId: 'seg_cdg_jfk',
+            supplierSegmentId: 'seg_cdg_jfk',
             sliceOrder: 0,
             segmentOrder: 1,
             globalOrder: 1,
@@ -166,7 +168,7 @@ describe('OrderSnapshotNormalizer', () => {
             arrivalAt: '2026-10-09T06:00:00+01:00',
             duration: 'PT7H',
             aircraftType: undefined,
-            duffelSegmentId: 'seg_jfk_lhr',
+            supplierSegmentId: 'seg_jfk_lhr',
             sliceOrder: 1,
             segmentOrder: 0,
             globalOrder: 2,
@@ -260,7 +262,7 @@ describe('OrderSnapshotNormalizer', () => {
         sliceOrder: 0,
         segmentOrder: 0,
         globalOrder: 0,
-        duffelSegmentId: 'seg_lhr_cdg',
+        supplierSegmentId: 'seg_lhr_cdg',
         marketingCarrierIata: 'UA',
         operatingCarrierIata: 'LH',
         airlineName: 'Lufthansa',
@@ -284,7 +286,7 @@ describe('OrderSnapshotNormalizer', () => {
         sliceOrder: 0,
         segmentOrder: 1,
         globalOrder: 1,
-        duffelSegmentId: 'seg_cdg_fco',
+        supplierSegmentId: 'seg_cdg_fco',
         marketingCarrierIata: 'AF',
         operatingCarrierIata: 'AF',
         airlineName: 'Air France',
@@ -308,7 +310,7 @@ describe('OrderSnapshotNormalizer', () => {
         sliceOrder: 1,
         segmentOrder: 0,
         globalOrder: 2,
-        duffelSegmentId: 'seg_jfk_lhr',
+        supplierSegmentId: 'seg_jfk_lhr',
         marketingCarrierIata: 'BA',
         operatingCarrierIata: 'AA',
         airlineName: 'American Airlines',
@@ -391,7 +393,7 @@ describe('OrderSnapshotNormalizer', () => {
             arrivalAt: '',
             duration: '',
             aircraftType: undefined,
-            duffelSegmentId: undefined,
+            supplierSegmentId: undefined,
             sliceOrder: 1,
             segmentOrder: 1,
             globalOrder: 0,
@@ -420,7 +422,7 @@ describe('OrderSnapshotNormalizer', () => {
         sliceOrder: 1,
         segmentOrder: 1,
         globalOrder: 0,
-        duffelSegmentId: null,
+        supplierSegmentId: null,
         marketingCarrierIata: 'XX',
         operatingCarrierIata: 'XX',
         airlineName: 'Unknown',

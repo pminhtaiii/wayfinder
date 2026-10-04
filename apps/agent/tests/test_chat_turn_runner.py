@@ -353,6 +353,7 @@ async def test_runner_tool_calls_and_flight_results():
         assert result_data["index"] == 1
         assert result_data["airline"] == "United Airlines"
         assert result_data["price"] == "350.00"
+        # User approved on 2026-10-03: neutral supplier IDs remain forbidden in public tool output.
         for forbidden in [
             "score",
             "matchScore",
@@ -360,6 +361,7 @@ async def test_runner_tool_calls_and_flight_results():
             "matchResult",
             "flightOfferId",
             "duffelOfferId",
+            "supplierOfferId",
         ]:
             assert forbidden not in result_data
 

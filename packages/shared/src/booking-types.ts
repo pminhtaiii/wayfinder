@@ -34,7 +34,7 @@ export interface FlightSegmentSnapshot {
   /** ISO 8601 duration, e.g. "PT5H30M" */
   duration: string;
   aircraftType?: string;
-  duffelSegmentId?: string;
+  supplierSegmentId?: string;
   sliceOrder?: number;
   segmentOrder?: number;
   globalOrder?: number;
@@ -53,6 +53,16 @@ export interface FlightSnapshot {
   baggageAllowance?: string;
   fareClass?: string;
 }
+
+/** Legacy HTTP response shape retained while internal snapshots use supplier names. */
+export type FlightSegmentSnapshotDto = Omit<FlightSegmentSnapshot, 'supplierSegmentId'> & {
+  duffelSegmentId?: string;
+};
+
+/** Legacy HTTP response shape for a complete flight snapshot. */
+export type FlightSnapshotDto = Omit<FlightSnapshot, 'segments'> & {
+  segments: FlightSegmentSnapshotDto[];
+};
 
 /**
  * Details of a single passenger captured at booking time.
@@ -123,7 +133,7 @@ export interface BookingDetailDto {
   failureReason?: BookingFailureReason;
   pnrReference?: string;
   duffelOrderId?: string;
-  flightSnapshot?: FlightSnapshot;
+  flightSnapshot?: FlightSnapshotDto;
   passengerSnapshot?: PassengerSnapshot;
   totalAmount: string;
   currency: string;

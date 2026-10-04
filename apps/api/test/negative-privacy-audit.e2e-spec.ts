@@ -213,7 +213,7 @@ describe('Automated Negative Privacy & Security Continuous Audit (e2e)', () => {
       const hashCols: Array<{ column_name: string }> = await prisma.$queryRaw`
         SELECT column_name
         FROM information_schema.columns
-        WHERE table_name = 'chat_handoffs' AND column_name IN ('tokenHash', 'duffelOfferIdHash', 'selectionAttestationHash');
+        WHERE table_name = 'chat_handoffs' AND column_name IN ('tokenHash', 'supplierOfferIdHash', 'selectionAttestationHash');
       `;
       expect(hashCols.length).toBe(3);
     });
@@ -281,7 +281,7 @@ describe('Automated Negative Privacy & Security Continuous Audit (e2e)', () => {
       const offer = await prisma.flightOffer.create({
         data: {
           searchHash: runMarker,
-          duffelOfferId: `off_01H123456789ABCDEF000000`,
+          supplierOfferId: `off_01H123456789ABCDEF000000`,
           origin: 'SGN',
           destination: 'HAN',
           departureDate: new Date(Date.now() + 86_400_000),

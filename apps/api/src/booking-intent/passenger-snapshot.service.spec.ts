@@ -80,7 +80,7 @@ describe('PassengerSnapshotService', () => {
         passportNumber: null,
         passportExpiry: null,
         travelerProfileId: null,
-        duffelPassengerId: 'duffel_pas_001',
+        supplierPassengerId: 'duffel_pas_001',
         snapshotVersion: 1,
       }),
     );

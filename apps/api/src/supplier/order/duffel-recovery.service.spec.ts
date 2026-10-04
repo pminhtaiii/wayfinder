@@ -173,6 +173,7 @@ describe('DuffelRecoveryService', () => {
       },
     });
 
+    // Explicit user approval 2026-10-03: this current internal recovery snapshot uses supplierSegmentId; persisted JSON, history, and HTTP keys remain unchanged.
     await expect(recoveryService.recoverOrderSnapshots('ord_recovery')).resolves.toStrictEqual({
       flightSnapshot: {
         segments: [
@@ -195,7 +196,7 @@ describe('DuffelRecoveryService', () => {
             arrivalAt: '2026-10-10T12:00:00-07:00',
             duration: 'PT2H',
             aircraftType: 'Boeing 737',
-            duffelSegmentId: 'seg_recovery',
+            supplierSegmentId: 'seg_recovery',
             sliceOrder: 0,
             segmentOrder: 0,
             globalOrder: 0,

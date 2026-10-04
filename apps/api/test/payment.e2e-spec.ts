@@ -109,7 +109,7 @@ describe('Payment (E2E)', () => {
     return prisma.flightOffer.create({
       data: {
         searchHash: 'test-search-hash',
-        duffelOfferId: 'off_duffel_123',
+        supplierOfferId: 'off_duffel_123',
         rawOffer: {},
         origin: 'SGN',
         destination: 'HAN',
@@ -137,7 +137,7 @@ describe('Payment (E2E)', () => {
       data: {
         userId,
         flightOfferId: offerId,
-        duffelOfferId: 'off_duffel_123',
+        supplierOfferId: 'off_duffel_123',
         status: (overrides.status as any) || 'AWAITING_PAYMENT',
         originalPrice: new Prisma.Decimal(100.0),
         confirmedPrice: new Prisma.Decimal(125.5),

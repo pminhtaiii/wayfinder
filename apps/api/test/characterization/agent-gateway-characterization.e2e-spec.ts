@@ -377,7 +377,7 @@ describe('Agent Gateway Characterization (E2E)', () => {
       const intent = await prisma.bookingIntent.create({
         data: {
           userId: userA.id,
-          duffelOfferId: `off_${Date.now()}`,
+          supplierOfferId: `off_${Date.now()}`,
           status: 'CONFIRMED',
           originalPrice: new Prisma.Decimal(100.0),
           confirmedPrice: new Prisma.Decimal(100.0),
@@ -456,7 +456,7 @@ describe('Agent Gateway Characterization (E2E)', () => {
       const intent = await prisma.bookingIntent.create({
         data: {
           userId: userA.id,
-          duffelOfferId: `off_${Date.now()}`,
+          supplierOfferId: `off_${Date.now()}`,
           status: 'CONFIRMED',
           originalPrice: new Prisma.Decimal(100.0),
           confirmedPrice: new Prisma.Decimal(100.0),
@@ -523,7 +523,7 @@ describe('Agent Gateway Characterization (E2E)', () => {
       const intent = await prisma.bookingIntent.create({
         data: {
           userId: userA.id,
-          duffelOfferId: `off_${Date.now()}`,
+          supplierOfferId: `off_${Date.now()}`,
           status: 'CONFIRMED',
           originalPrice: new Prisma.Decimal(100.0),
           confirmedPrice: new Prisma.Decimal(100.0),
@@ -592,7 +592,7 @@ describe('Agent Gateway Characterization (E2E)', () => {
       const offer = await prisma.flightOffer.create({
         data: {
           searchHash: `sh-${crypto.randomUUID()}`,
-          duffelOfferId: `off_readiness_${Date.now()}`,
+          supplierOfferId: `off_readiness_${Date.now()}`,
           rawOffer: {
             expires_at: new Date(Date.now() + 3600000).toISOString(),
             slices: [
@@ -663,7 +663,7 @@ describe('Agent Gateway Characterization (E2E)', () => {
       const offer = await prisma.flightOffer.create({
         data: {
           searchHash: `sh-${crypto.randomUUID()}`,
-          duffelOfferId: `off_handoff_${Date.now()}`,
+          supplierOfferId: `off_handoff_${Date.now()}`,
           rawOffer: {
             expires_at: expiresAt,
             slices: [
@@ -692,7 +692,7 @@ describe('Agent Gateway Characterization (E2E)', () => {
         session.id,
         1,
         expiresAt,
-        [{ flightOfferId: offer.id, duffelOfferId: offer.duffelOfferId }],
+        [{ flightOfferId: offer.id, duffelOfferId: offer.supplierOfferId }],
       );
 
       const res = await request(app.getHttpServer())

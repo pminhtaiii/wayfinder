@@ -412,8 +412,13 @@ async def create_handoff_token(state: AgentState, config: RunnableConfig) -> dic
                     results_list.append(item)
                 elif isinstance(item, dict):
                     flight_offer_id = item.get("flightOfferId")
-                    duffel_offer_id = item.get("duffelOfferId") or flight_offer_id
-                    if not flight_offer_id or not duffel_offer_id:
+                    supplier_offer_id = item.get("supplierOfferId")
+                    if (
+                        "duffelOfferId" in item
+                        or not flight_offer_id
+                        or not isinstance(supplier_offer_id, str)
+                        or not supplier_offer_id.strip()
+                    ):
                         logger.info("create_handoff_token_missing_offer_ids")
                         return {"action": {"error": "Invalid state for handoff creation."}}
 
@@ -430,7 +435,7 @@ async def create_handoff_token(state: AgentState, config: RunnableConfig) -> dic
                         TrustedSearchResult(
                             offerIndex=item.get("offerIndex", i),
                             flightOfferId=str(flight_offer_id),
-                            duffelOfferId=str(duffel_offer_id),
+                            supplierOfferId=supplier_offer_id,
                             airline=str(item.get("airline") or ""),
                             origin=str(item.get("origin") or item.get("departureAirport") or ""),
                             destination=str(

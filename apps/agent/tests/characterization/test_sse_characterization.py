@@ -498,6 +498,8 @@ class TestSSESequenceOrdering:
 
         # Pre-seed a trusted snapshot in repository so search_flights produces flight_results event
         now = datetime.now(timezone.utc)
+        # User approved on 2026-10-03: this Redis seed is canonical internal state; SSE display
+        # assertions below retain the existing public event fields.
         snapshot = TrustedSearchSnapshot.model_validate(
             {
                 "schemaVersion": 1,
@@ -512,7 +514,7 @@ class TestSSESequenceOrdering:
                     {
                         "offerIndex": 1,
                         "flightOfferId": "flight_offer_1",
-                        "duffelOfferId": "duffel_offer_1",
+                        "supplierOfferId": "supplier_offer_1",
                         "airline": "Japan Airlines",
                         "origin": "SGN",
                         "destination": "NRT",

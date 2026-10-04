@@ -184,7 +184,7 @@ describe('Booking Events & Projection Updates E2E (US2 - T033)', () => {
       data: {
         id,
         userId,
-        duffelOfferId: `off_${randomUUID()}`,
+        supplierOfferId: `off_${randomUUID()}`,
         originalPrice: 450.0,
         confirmedPrice: 450.0,
         currency: 'GBP',

@@ -185,7 +185,7 @@ describe('Flights Detail & Re-price (E2E)', () => {
                     data: {
                         id: validOfferUuid,
                         searchHash: mockSearchHash,
-                        duffelOfferId: 'off_mock_123',
+                        supplierOfferId: 'off_mock_123',
                         rawOffer: mockDuffelOffer,
                         origin: 'HAN',
                         destination: 'SGN',

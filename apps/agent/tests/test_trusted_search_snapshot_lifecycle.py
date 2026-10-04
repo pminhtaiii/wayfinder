@@ -1,3 +1,5 @@
+# User approved on 2026-10-03: lifecycle fixtures and selections use canonical supplierOfferId;
+# browser projections continue to reject both internal and legacy provider identity fields.
 import asyncio
 import inspect
 import json
@@ -283,7 +285,7 @@ def _results() -> list[dict[str, Any]]:
         {
             "offerIndex": index,
             "flightOfferId": f"flight-internal-{index}",
-            "duffelOfferId": f"duffel-private-{index}",
+            "supplierOfferId": f"supplier-private-{index}",
             "airline": "Vietnam Airlines",
             "origin": "SGN",
             "destination": "HAN",
@@ -732,7 +734,7 @@ async def test_select_resolves_a_valid_one_based_offer_and_rejects_bounds() -> N
     selection = await lifecycle.select(snapshot, 2)
 
     assert selection.offerIndex == 2
-    assert selection.offer.duffelOfferId == "duffel-private-2"
+    assert selection.offer.supplierOfferId == "supplier-private-2"
     with pytest.raises(ValueError):
         await lifecycle.select(snapshot, 0)
     with pytest.raises(ValueError):
@@ -773,6 +775,7 @@ def _assert_projection_is_safe(
             for key, nested_value in value.items():
                 assert key not in {
                     "duffelOfferId",
+                    "supplierOfferId",
                     "flightOfferId",
                     "selectionAttestation",
                     "fingerprint",

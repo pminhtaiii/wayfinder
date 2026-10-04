@@ -198,6 +198,7 @@ describe('BookingLifecycleService', () => {
 
       await service.createBooking('user-1', 'booking-duffel', 'intent-duffel');
 
+      // Approved 2026-10-03 per test-adaptations-api.md: new internal snapshot writes use the neutral ID; legacy JSON and HTTP keys stay unchanged.
       expect(mockPrisma.booking.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -214,6 +215,7 @@ describe('BookingLifecycleService', () => {
                   departureAt: '2026-09-18T10:00:00Z',
                   arrivalAt: '2026-09-18T18:00:00Z',
                   duration: 'PT8H',
+                  supplierSegmentId: 'seg_1',
                   sliceOrder: 0,
                   segmentOrder: 0,
                   globalOrder: 0,
@@ -533,7 +535,7 @@ describe('BookingLifecycleService', () => {
         id: 'b-1',
         status: BookingStatus.CONFIRMED,
         pnrReference: 'PNR1',
-        duffelOrderId: 'ord-1',
+        supplierOrderId: 'ord-1',
         version: 2,
       });
 
@@ -553,7 +555,7 @@ describe('BookingLifecycleService', () => {
           status: BookingStatus.CONFIRMED,
           failureReason: null,
           pnrReference: 'PNR1',
-          duffelOrderId: 'ord-1',
+          supplierOrderId: 'ord-1',
           flightSnapshot: flightSnapshot as any,
           passengerSnapshot: passengerSnapshot as any,
           departureAt: new Date('2026-09-01T10:00:00.000Z'),
@@ -582,7 +584,7 @@ describe('BookingLifecycleService', () => {
         id: 'b-1',
         status: BookingStatus.CONFIRMED,
         pnrReference: 'PNR1',
-        duffelOrderId: 'ord-1',
+        supplierOrderId: 'ord-1',
         version: 2,
       });
 

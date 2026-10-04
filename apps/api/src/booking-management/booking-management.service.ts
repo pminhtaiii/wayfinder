@@ -70,7 +70,7 @@ export class BookingManagementService {
       where,
       include: {
         payment: { select: { id: true, status: true, stripePaymentIntentId: true } },
-        bookingIntent: { select: { id: true, duffelOfferId: true } },
+        bookingIntent: { select: { id: true, supplierOfferId: true } },
         activeDisruptionRevision: {
           include: {
             segments: { orderBy: { globalOrder: 'asc' } },
@@ -194,7 +194,7 @@ export class BookingManagementService {
       status: booking.status,
       failureReason: booking.failureReason,
       pnrReference: booking.pnrReference,
-      duffelOrderId: booking.duffelOrderId,
+      duffelOrderId: booking.supplierOrderId,
       totalAmount: booking.totalAmount.toString(),
       currency: booking.currency,
       departureAt: booking.departureAt?.toISOString() ?? null,
@@ -209,7 +209,7 @@ export class BookingManagementService {
         : null,
       bookingIntent: {
         id: booking.bookingIntent.id,
-        offerId: booking.bookingIntent.duffelOfferId ?? '',
+        offerId: booking.bookingIntent.supplierOfferId ?? '',
       },
       cancellationDeadline: booking.cancellationDeadline?.toISOString() ?? null,
       cancellationRefundable: booking.cancellationRefundable ?? null,
@@ -219,7 +219,7 @@ export class BookingManagementService {
       customerRefundAmount: booking.customerRefundAmount
         ? booking.customerRefundAmount.toString()
         : null,
-      duffelCancellationQuoteId: parseDuffelCancellationQuoteId(booking.duffelCancellationQuoteId)
+      duffelCancellationQuoteId: parseDuffelCancellationQuoteId(booking.supplierCancellationQuoteId)
         .quoteId,
       createdAt: booking.createdAt.toISOString(),
       updatedAt: booking.updatedAt.toISOString(),
@@ -312,7 +312,7 @@ export class BookingManagementService {
               seg.arrivalAt instanceof Date ? seg.arrivalAt.toISOString() : String(seg.arrivalAt),
             duration: `PT${seg.durationMinutes}M`,
             aircraftType: seg.aircraftType ?? undefined,
-            duffelSegmentId: seg.duffelSegmentId ?? undefined,
+            duffelSegmentId: seg.supplierSegmentId ?? undefined,
             sliceOrder: seg.sliceOrder,
             segmentOrder: seg.segmentOrder,
             globalOrder: seg.globalOrder,

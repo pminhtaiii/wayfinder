@@ -1,3 +1,5 @@
+// User approved on 2026-10-03: internal fixture names match the domain rename.
+// Values and scenarios are unchanged.
 import { normalizeDuffelOrder, normalizeFlightSegments } from './itinerary-normalizer';
 import { DuffelOrder } from '../../duffel/duffel.types';
 import { FlightSegmentSnapshot } from '@shared/booking-types';
@@ -56,7 +58,7 @@ describe('ItineraryNormalizer', () => {
         sliceOrder: 0,
         segmentOrder: 0,
         globalOrder: 0,
-        duffelSegmentId: 'seg_outbound_1',
+        supplierSegmentId: 'seg_outbound_1',
         marketingCarrierIata: 'BA',
         operatingCarrierIata: 'BA',
         airlineName: 'British Airways',
@@ -124,7 +126,7 @@ describe('ItineraryNormalizer', () => {
           arrivalAt: '2026-10-01T13:30:00-04:00',
           duration: 'PT8H30M',
           aircraftType: 'Boeing 777',
-          duffelSegmentId: 'seg_outbound_1',
+          supplierSegmentId: 'seg_outbound_1',
           sliceOrder: 0,
           segmentOrder: 0,
           globalOrder: 0,
@@ -138,7 +140,7 @@ describe('ItineraryNormalizer', () => {
         sliceOrder: 0,
         segmentOrder: 0,
         globalOrder: 0,
-        duffelSegmentId: 'seg_outbound_1',
+        supplierSegmentId: 'seg_outbound_1',
         marketingCarrierIata: 'BA',
         operatingCarrierIata: 'BA',
         airlineName: 'British Airways',
@@ -180,7 +182,7 @@ describe('ItineraryNormalizer', () => {
         sliceOrder: 0,
         segmentOrder: 0,
         globalOrder: 0,
-        duffelSegmentId: null,
+        supplierSegmentId: null,
         marketingCarrierIata: 'DL',
         operatingCarrierIata: 'DL',
         airlineName: 'Delta Air Lines',
@@ -220,7 +222,7 @@ describe('ItineraryNormalizer', () => {
           departureAt: '2026-10-10T08:00:00+07:00',
           arrivalAt: '2026-10-10T10:00:00+07:00',
           duration: 'PT2H',
-          duffelSegmentId: 'seg_legacy_42',
+          supplierSegmentId: 'seg_legacy_42',
           sliceOrder: 1,
           segmentOrder: 2,
           globalOrder: 3,
@@ -230,7 +232,7 @@ describe('ItineraryNormalizer', () => {
       const result = normalizeFlightSegments(legacySegments);
 
       expect(result[0]).toMatchObject({
-        duffelSegmentId: 'seg_legacy_42',
+        supplierSegmentId: 'seg_legacy_42',
         sliceOrder: 1,
         segmentOrder: 2,
         globalOrder: 3,

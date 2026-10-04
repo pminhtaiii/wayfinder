@@ -126,7 +126,7 @@ describe('ChatHandoffService', () => {
 
     jest.spyOn(prisma.flightOffer, 'findUnique').mockResolvedValue({
       id: 'fo1',
-      duffelOfferId: 'duff1',
+      supplierOfferId: 'duff1',
       origin: 'SGN',
       destination: 'NRT',
       price: '420.00',
@@ -159,7 +159,7 @@ describe('ChatHandoffService', () => {
         userId: 'u1',
         chatSessionId: 'cs1',
         flightOfferId: 'fo1',
-        duffelOfferIdHash: 'duff1',
+        supplierOfferIdHash: 'duff1',
         selectionAttestationHash: 'attest',
         selectedOfferIndex: 1,
         snapshotVersion: 1,
@@ -445,7 +445,7 @@ describe('ChatHandoffService', () => {
       jest.spyOn(configService, 'get').mockReturnValue('true');
       jest.spyOn(prisma.flightOffer, 'findUnique').mockResolvedValue({
         id: 'fo1',
-        duffelOfferId: 'different_duff_id',
+        supplierOfferId: 'different_duff_id',
         rawOffer: { expires_at: new Date(Date.now() + 60000).toISOString() },
       } as any);
 
@@ -467,7 +467,7 @@ describe('ChatHandoffService', () => {
       jest.spyOn(configService, 'get').mockReturnValue('true');
       jest.spyOn(prisma.flightOffer, 'findUnique').mockResolvedValue({
         id: 'fo1',
-        duffelOfferId: 'duff1',
+        supplierOfferId: 'duff1',
         rawOffer: { expires_at: new Date(Date.now() - 1000).toISOString() },
       } as any);
 
@@ -562,7 +562,7 @@ describe('ChatHandoffService', () => {
       jest.spyOn(service, 'resolve').mockResolvedValue({
         id: 'handoff-1',
         flightOfferId: 'offer-1',
-        duffelOfferIdHash: 'expected-hash-value',
+        supplierOfferIdHash: 'expected-hash-value',
         expiresAt: new Date('2026-12-01T00:00:00.000Z'),
         consumedAt: null,
         claimedAt: null,
@@ -570,7 +570,7 @@ describe('ChatHandoffService', () => {
         claimRecoverAfter: null,
       } as any);
       jest.spyOn(prisma.flightOffer, 'findUnique').mockResolvedValue({
-        duffelOfferId: 'different-duffel-id',
+        supplierOfferId: 'different-duffel-id',
         origin: 'SGN',
         destination: 'HAN',
       } as any);
@@ -742,7 +742,7 @@ describe('ChatHandoffService', () => {
         chatSession: { userId: 'u1', deletedAt: null },
         chatSessionId: 'session-1',
         flightOfferId: 'offer-1',
-        duffelOfferIdHash: crypto.createHash('sha256').update('duffel-t093').digest('hex'),
+        supplierOfferIdHash: crypto.createHash('sha256').update('duffel-t093').digest('hex'),
         tokenHash: 'token-hash',
         tokenKeyVersion: 1,
         expiresAt: new Date('2026-12-01T00:00:00.000Z'),
@@ -750,7 +750,7 @@ describe('ChatHandoffService', () => {
         consumedAt: null,
       } as any);
       jest.spyOn(prisma.flightOffer, 'findUnique').mockResolvedValue({
-        duffelOfferId: 'duffel-t093',
+        supplierOfferId: 'duffel-t093',
         origin: 'SGN',
         destination: 'HAN',
         adults: 1,
@@ -803,7 +803,7 @@ describe('ChatHandoffService', () => {
       jest.spyOn(service, 'resolve').mockResolvedValue({
         id: 'handoff-1',
         flightOfferId: 'offer-1',
-        duffelOfferIdHash: 'hash',
+        supplierOfferIdHash: 'hash',
         expiresAt: new Date('2026-12-01T00:00:00.000Z'),
         consumedAt: null,
         claimedAt: new Date(Date.now() - 60_000),
@@ -821,7 +821,7 @@ describe('ChatHandoffService', () => {
       jest.spyOn(service, 'resolve').mockResolvedValue({
         id: 'handoff-1',
         flightOfferId: 'offer-1',
-        duffelOfferIdHash: crypto.createHash('sha256').update('duffel-t093').digest('hex'),
+        supplierOfferIdHash: crypto.createHash('sha256').update('duffel-t093').digest('hex'),
         expiresAt: new Date('2026-12-01T00:00:00.000Z'),
         consumedAt: null,
         claimedAt: new Date(Date.now() - 60_000),
@@ -829,7 +829,7 @@ describe('ChatHandoffService', () => {
         claimRecoverAfter: new Date(Date.now() - 5_000),
       } as any);
       jest.spyOn(prisma.flightOffer, 'findUnique').mockResolvedValue({
-        duffelOfferId: 'duffel-t093',
+        supplierOfferId: 'duffel-t093',
         origin: 'SGN',
         destination: 'HAN',
         adults: 1,
@@ -1260,7 +1260,7 @@ describe('Raw-Reader Replacement Parity (T015)', () => {
       userId: 'user-1',
       chatSessionId: 'session-1',
       flightOfferId: 'fo-1',
-      duffelOfferIdHash: 'hash_off_handoff_single',
+      supplierOfferIdHash: 'hash_off_handoff_single',
       tokenHash: 'hash_chk_handoff_validtoken',
       tokenKeyVersion: 1,
       claimExpiresAt: null,
@@ -1272,7 +1272,7 @@ describe('Raw-Reader Replacement Parity (T015)', () => {
 
     const flightOfferRecord = {
       id: 'fo-1',
-      duffelOfferId: 'off_handoff_single',
+      supplierOfferId: 'off_handoff_single',
       rawOffer,
       origin: 'SGN',
       destination: 'DAD',

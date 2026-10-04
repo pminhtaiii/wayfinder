@@ -55,7 +55,7 @@ export class DuffelEventProcessor {
           }
 
           const booking = await this.prisma.booking.findFirst({
-            where: { duffelOrderId: event.duffelOrderId },
+            where: { supplierOrderId: event.duffelOrderId },
           });
 
           if (!booking) {

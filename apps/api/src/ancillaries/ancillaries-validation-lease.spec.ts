@@ -19,7 +19,7 @@ describe('AncillariesService validation lease', () => {
       id: 'intent-1',
       userId: 'user-1',
       status: 'PENDING',
-      duffelOfferId: 'offer-1',
+      supplierOfferId: 'offer-1',
       confirmedPrice: new Prisma.Decimal('420.00'),
       currency: 'USD',
       ancillaryVersion: 3,

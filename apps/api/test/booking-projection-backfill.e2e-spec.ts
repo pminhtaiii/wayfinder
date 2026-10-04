@@ -12,7 +12,7 @@ describe('BookingAgentProjection Backfill (E2E)', () => {
     const intent = await prisma.bookingIntent.create({
       data: {
         userId: testUserId,
-        duffelOfferId: `off_backfill_${randomUUID()}`,
+        supplierOfferId: `off_backfill_${randomUUID()}`,
         status: BookingIntentStatus.COMPLETED,
         originalPrice: new Prisma.Decimal('250.00'),
         confirmedPrice: new Prisma.Decimal('250.00'),
@@ -183,7 +183,7 @@ describe('BookingAgentProjection Backfill (E2E)', () => {
             segments: {
               create: [
                 {
-                  duffelSegmentId: `seg_${randomUUID()}`,
+                  supplierSegmentId: `seg_${randomUUID()}`,
                   airlineName: 'United Airlines',
                   marketingCarrierIata: 'UA',
                   operatingCarrierIata: 'UA',

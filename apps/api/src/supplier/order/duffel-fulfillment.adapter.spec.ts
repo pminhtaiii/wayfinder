@@ -507,6 +507,7 @@ describe('DuffelFulfillmentAdapter', () => {
 
   describe('retrieveOrderSnapshot', () => {
     // Human approved this exact legacy-normalizer output when replacing the old service mock.
+    // Explicit user approval 2026-10-03: this current fulfillment snapshot uses supplierSegmentId; provider order input and legacy JSON/wire fields remain unchanged.
     const mockSnapshots = {
       flightSnapshot: {
         segments: [
@@ -529,7 +530,7 @@ describe('DuffelFulfillmentAdapter', () => {
             arrivalAt: '2026-10-01T13:00:00.000Z',
             duration: 'PT8H',
             aircraftType: undefined,
-            duffelSegmentId: 'seg_1',
+            supplierSegmentId: 'seg_1',
             sliceOrder: 0,
             segmentOrder: 0,
             globalOrder: 0,
