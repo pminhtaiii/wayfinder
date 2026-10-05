@@ -6,7 +6,7 @@ This file tracks the currently active in-flight feature, its checkpoints, and ex
 
 ## Feature 029 — Narrow the Duffel Supplier Boundary
 
-- **Status**: Phases 0–6 and Phase 9 convergence complete (T001–T054, T058–T067); Phase 7 boundary census complete (T056); final gate matrix (T055) pending execution and documentation sync (T057) in progress
+- **Status**: Phases 0–6 and Phase 9 convergence complete (T001–T054, T058–T067); Phase 7 boundary census (T056) and documentation sync (T057) complete; final gate matrix (T055) in progress
 - **Branch**: `codex/029-duffel-provider-narrowing`
 - **Specification**: [specs/029-duffel-provider-narrowing/spec.md](../specs/029-duffel-provider-narrowing/spec.md)
 - **Implementation Plan**: [specs/029-duffel-provider-narrowing/plan.md](../specs/029-duffel-provider-narrowing/plan.md)
@@ -122,7 +122,7 @@ clean migration from scratch; zero orphan duffel database columns; wire compatib
 ### Phase 7 — Final Verification & Audit (T055–T057)
 - [ ] Execute full API/shared/web/agent, E2E, security, and remote CI gates (T055).
 - [x] Audit supplier boundary and provider-name compatibility exceptions (T056).
-- [ ] Synchronize implemented architecture, progress, and relevant library guidance (T057; in progress).
+- [x] Synchronize implemented architecture, progress, and relevant library guidance (T057).
 
 Exit gate:
 ```text
