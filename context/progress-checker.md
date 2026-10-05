@@ -11,7 +11,7 @@ Do not mark a capability complete because it appears in architecture or planning
 Overall status:
 
 ```text
-FEATURES 001–028 100% COMPLETE / FEATURE 029 PHASES 0–7 & PHASE 9 COMPLETE (T001–T067) / PR #371 CI PASSED, MERGE PENDING
+FEATURES 001–028 100% COMPLETE / FEATURE 029 PHASES 0–6, 8 & 9 COMPLETE / T055–T057 WORK COMPLETE / PHASE 7 PENDING PR #371 MERGE; RECORDED CI PASSED
 ```
 
 The system operates on branch `codex/029-duffel-provider-narrowing`. Features 001–028, Feature 029 Phases 0–6, Phase 8 convergence (T058), and Phase 9 convergence (T059–T067) are complete. Phase 7 boundary census (T056), gate matrix validation (T055), and documentation sync (T057) are complete with zero unexplained provider leaks across production code (all `@duffel/api` imports are strictly isolated to 4 supplier adapter files, with all non-webhook database columns neutralized). Slice 6.2 is verified on remote CI via PR [#370](https://github.com/pminhtaiii/wayfinder/pull/370), run [37188540602](https://github.com/pminhtaiii/wayfinder/actions/runs/37188540602), commit `551c3890cd37f65ded2adf900244fc9ca0d76dd8`. PR #368 is closed, Part 1 PR #369 and Part 2 PR #370 are merged into `development`, and PR [#371](https://github.com/pminhtaiii/wayfinder/pull/371) is open targeting `development` for the final convergence and verification slice (verified on remote CI via run [37275073216](https://github.com/pminhtaiii/wayfinder/actions/runs/37275073216), commit `2712cc50ad3cb3898b220fe6d8222dd99483bb3b`, all jobs green).
@@ -20,7 +20,7 @@ The system operates on branch `codex/029-duffel-provider-narrowing`. Features 00
 
 ## Feature 029 — Narrow the Duffel Supplier Boundary (Active)
 
-Phases 0–7 and Phase 9 convergence (T001–T067) are complete locally. All supplier boundary leakages identified during the census have been resolved: travel scope, completion, expiry, and passenger provenance facts are normalized at `SupplierSearchModule` and consumed via `FLIGHT_SEARCH_PORT` (T059, T060, T063); raw offer-to-booking snapshot conversion moved to the supplier search boundary (T061); cancellation outcomes and passenger enrichment normalized inside `SupplierOrderModule` (T062); `FlightSearchOrchestratorService` accepts and returns strictly canonical `FlightOffer` objects (T064); internal cancellation quote helpers and types renamed to Supplier vocabulary (T065); the agent security performance gate blocker was cleared (T066); and Playwright's API launcher honors `DATABASE_URL` override (T067). Phase 7 boundary census (T056), gate matrix validation (T055), and documentation sync (T057) are complete with zero unexplained runtime hits. Feature 029 implementation is complete and verified on remote CI via PR [#371](https://github.com/pminhtaiii/wayfinder/pull/371) (run `37275073216`); final merge authorization remains.
+Phases 0–6, Phase 8, and Phase 9 convergence are complete. T055–T057 work is complete; the local API run was partial (one database-backed suite not run), and Phase 7 remains pending until PR #371 merges. All supplier boundary leakages identified during the census have been resolved: travel scope, completion, expiry, and passenger provenance facts are normalized at `SupplierSearchModule` and consumed via `FLIGHT_SEARCH_PORT` (T059, T060, T063); raw offer-to-booking snapshot conversion moved to the supplier search boundary (T061); cancellation outcomes and passenger enrichment normalized inside `SupplierOrderModule` (T062); `FlightSearchOrchestratorService` accepts and returns strictly canonical `FlightOffer` objects (T064); internal cancellation quote helpers and types renamed to Supplier vocabulary (T065); the agent security performance gate blocker was cleared (T066); and Playwright's API launcher honors `DATABASE_URL` override (T067). Phase 7 boundary census (T056), gate matrix validation (T055), and documentation sync (T057) are complete with zero unexplained runtime hits. Feature 029 implementation is complete and verified on remote CI via PR [#371](https://github.com/pminhtaiii/wayfinder/pull/371) (run `37275073216`); final merge authorization remains.
 
 Detailed phase-by-phase execution, live task checklists, and exit gates are tracked in [active-feature.md](./active-feature.md).
 
@@ -33,7 +33,7 @@ Detailed phase-by-phase execution, live task checklists, and exit gates are trac
 - [x] Phase 6: Neutral Naming & Physical Schema (US4) (T044–T054 complete & CI verified on PR #370, run `37188540602`)
 - [x] Phase 8: Convergence — Non-Global Core Module (T058)
 - [x] Phase 9: Convergence — Boundary Census & Gate Remediation (T059–T067)
-- [x] Phase 7: Final Verification & Audit (T055–T057 complete)
+- [ ] Phase 7: Final Verification & Audit (T055–T057 work complete; pending PR #371 merge)
 
 Exit gate:
 ```text

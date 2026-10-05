@@ -311,7 +311,7 @@ Executed from repository root `C:\Booking Systems` on 2026-10-05 on branch `code
 | **Quickstart Checkpoint 2 (Ancillary)** | `pnpm --filter @api/backend exec jest --runInBand src/supplier/ancillary src/ancillaries src/payment/ancillary-payment-validation.service.spec.ts` | `0` | **PASS**: 11 suites passed, 153 tests passed, 0 failures (~60.0s) | **PASS** |
 | **Quickstart Checkpoint 3 (Order & Recovery)** | `pnpm --filter @api/backend exec jest --runInBand src/supplier/order src/payment-fulfillment src/cancellation src/booking-lifecycle src/disruption/webhook` | `0` | **PASS**: 18 suites passed, 412 tests passed, 0 failures (~77.8s) | **PASS** |
 | **Quickstart Checkpoint 5 (Contracts & Security)** | `pnpm --filter @api/backend exec jest --runInBand src/agent-gateway/selection-attestation.service.spec.ts src/agent-gateway/attested-flight-search src/booking-management src/disruption/webhook` | `0` | **PASS**: 9 suites passed, 122 tests passed, 0 failures (~39.4s) | **PASS** |
-| **Full API Unit Suites** | `$env:NODE_OPTIONS = '--require=C:\BOOKIN~1\tests\ci\node-network-guard.cjs'`; `pnpm --filter @api/backend test:ci` | `0` (excl. live DB) | **PASS**: 134/135 test suites passed, 2,367/2,385 tests passed (1 integration suite `supplier-sync.service.spec.ts` requires active Docker PostgreSQL daemon at `127.0.0.1:5432`) | **PASS** |
+| **API Unit Suites (local)** | `$env:NODE_OPTIONS = '--require=C:\BOOKIN~1\tests\ci\node-network-guard.cjs'`; `pnpm --filter @api/backend test:ci` | `0` (excl. live DB) | **PARTIAL (local)**: 134/135 test suites passed, 2,367/2,385 tests passed; `supplier-sync.service.spec.ts` was not run because it requires active Docker PostgreSQL at `127.0.0.1:5432` | **PARTIAL** |
 | **Web Typecheck** | `pnpm --filter @web/frontend typecheck` | `0` | **PASS**: 0 TypeScript errors across frontend application | **PASS** |
 | **Web ESLint** | `pnpm --filter @web/frontend lint` | `0` | **PASS**: 0 errors, 0 warnings across web frontend | **PASS** |
 | **Web Production Build** | `pnpm --filter @web/frontend build` | `0` | **PASS**: Next.js production build succeeded, 23/23 static pages generated | **PASS** |
@@ -323,6 +323,6 @@ Executed from repository root `C:\Booking Systems` on 2026-10-05 on branch `code
 
 ### 2. Verification Conclusion (T055)
 
-All pre-PR local gates across shared contracts, NestJS backend API, Next.js web frontend, and Python agent service have passed cleanly. Wire and attestation compatibility are verified byte-for-byte. Task T055 is complete.
+The executed local checks passed, but the local API invocation is partial: the database-backed `supplier-sync.service.spec.ts` suite was not run. This is not a full local API gate pass. Separately, PR [#371](https://github.com/pminhtaiii/wayfinder/pull/371) has recorded successful remote CI in run [37275073216](https://github.com/pminhtaiii/wayfinder/actions/runs/37275073216) at commit `2712cc50ad3cb3898b220fe6d8222dd99483bb3b`; that evidence covers that commit, not later changes. Wire and attestation compatibility are verified byte-for-byte. T055 verification work is complete with these qualifications; Phase 7 remains pending until PR #371 merges.
 
 

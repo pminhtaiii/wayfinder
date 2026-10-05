@@ -720,6 +720,28 @@ describe('FlightOfferNormalizer (T014)', () => {
       });
     });
 
+    it.each([
+      ['2026-08-20T00:00:00Z', '2026-08-20T00:00:00Z'],
+      ['2026-08-20T00:00:00.123+05:30', '2026-08-20T00:00:00.123+05:30'],
+      ['2026-08-20T00:00:00+05', '2026-08-20T00:00:00+05'],
+      ['2026-08-20T00:00:00', '2026-08-20T00:00:00'],
+      ['2026-08-20', null],
+      ['August 20, 2026', null],
+      ['2026-02-30T00:00:00Z', null],
+      ['invalid', null],
+    ])('uses the same stored expiry validation for %s', (expiry, expected) => {
+      for (const expiryFields of [{ expires_at: expiry }, { expiresAt: expiry }]) {
+        const storedOffer = {
+          ...createSampleStoredOffer(),
+          expires_at: null,
+          ...expiryFields,
+        };
+
+        expect(normalizeStoredOffer(storedOffer)?.offerExpiresAt).toBe(expected);
+        expect(normalizeStoredOfferFacts(storedOffer).offerExpiresAt).toBe(expected);
+      }
+    });
+
     it('ignores the camel expiry alias when creation requests primary-only facts', () => {
       const camelOnlyRaw = { expiresAt: '2026-08-20T00:00:00Z' };
 

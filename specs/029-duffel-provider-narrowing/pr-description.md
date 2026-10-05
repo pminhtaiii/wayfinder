@@ -49,7 +49,7 @@ This pull request completes the final convergence and verification phases for **
 
 ## Verification Evidence (T055 Matrix)
 
-All local pre-PR verification gates pass cleanly:
+Executed local checks passed; the local API invocation is partial because one database-backed suite was not run:
 
 | Gate / Suite | Target & Command | Exit Code | Result | Status |
 | :--- | :--- | :---: | :--- | :---: |
@@ -61,12 +61,18 @@ All local pre-PR verification gates pass cleanly:
 | **Quickstart CP 2 (Ancillary)** | `jest src/supplier/ancillary src/ancillaries ancillary-payment-validation` | `0` | 11 suites, 153 tests passed (~60.0s) | **PASS** |
 | **Quickstart CP 3 (Order & Recovery)** | `jest src/supplier/order src/payment-fulfillment src/cancellation src/disruption/webhook` | `0` | 18 suites, 412 tests passed (~77.8s) | **PASS** |
 | **Quickstart CP 5 (Contracts & Security)** | `jest selection-attestation attested-flight-search booking-management webhook` | `0` | 9 suites, 122 tests passed (~39.4s) | **PASS** |
-| **Full API Unit Suites** | `pnpm --filter @api/backend test:ci` (ci-network-guard) | `0` | 134/135 suites, 2,367/2,385 tests passed | **PASS** |
+| **API Unit Suites (local)** | `pnpm --filter @api/backend test:ci` (ci-network-guard) | `0` (excl. live DB) | 134/135 suites, 2,367/2,385 tests passed; database-backed `supplier-sync.service.spec.ts` not run | **PARTIAL** |
 | **Web Typecheck** | `pnpm --filter @web/frontend typecheck` | `0` | 0 TypeScript errors | **PASS** |
 | **Web ESLint** | `pnpm --filter @web/frontend lint` | `0` | 0 errors, 0 warnings | **PASS** |
 | **Web Production Build** | `pnpm --filter @web/frontend build` | `0` | Next.js build succeeded (23/23 static pages) | **PASS** |
 | **Agent Ruff Check & Format** | `uv run --package agent ruff check apps/agent && ... format --check` | `0` | 0 lint errors, 0 format discrepancies | **PASS** |
 | **Agent Pytest Suite** | `uv run --package agent pytest apps/agent/tests -m "not redis_integration"` | `0` | 1,295 passed, 11 skipped, 12 deselected, 0 failed | **PASS** |
+
+---
+
+## Remote CI Evidence
+
+Separately, PR [#371](https://github.com/pminhtaiii/wayfinder/pull/371) has recorded successful remote CI in run [37275073216](https://github.com/pminhtaiii/wayfinder/actions/runs/37275073216) at commit `2712cc50ad3cb3898b220fe6d8222dd99483bb3b`, with all jobs green. This evidence applies to that commit and does not turn the partial local API invocation into a full local pass or cover later changes. Phase 7 remains pending until PR #371 merges.
 
 ---
 

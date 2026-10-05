@@ -778,7 +778,7 @@ export class FlightOfferNormalizer {
       candidate?.expires_at ??
       (expiryPolicy === 'legacy-aliases' ? candidate?.expiresAt : undefined);
     const offerExpiresAt =
-      typeof expiryValue === 'string' && !Number.isNaN(new Date(expiryValue).getTime())
+      typeof expiryValue === 'string' && isValidIsoDateTime(expiryValue)
         ? expiryValue
         : null;
 

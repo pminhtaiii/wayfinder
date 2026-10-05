@@ -34,11 +34,11 @@ Use the approved T059/T060 boundary design in `.superpowers/sdd/2026-10-04-featu
 
 ## Checkbox execution steps
 
-- [ ] T059: add and observe RED for legacy stored route aliases and latest return arrival; make the smallest supplier-normalizer change to pass.
-- [ ] T059: add and observe RED for stored expiry alias; normalize it at the supplier boundary and pass.
-- [ ] T059: add and observe RED proving missing normalized passenger identities cannot be recovered from opaque raw payload; use typed normalized passenger facts only.
-- [ ] T059: neutralize passenger identity names through resolver, intent binding, snapshot mapping, and approved adjacent tests; preserve existing stable same-type ordering assertions.
-- [ ] T059: run focused Jest suites, API no-emit typecheck, and API package ESLint; self-review and commit; pause for root's independent review.
+- [x] T059: add and observe RED for legacy stored route aliases and latest return arrival; make the smallest supplier-normalizer change to pass.
+- [x] T059: add and observe RED for stored expiry alias; normalize it at the supplier boundary and pass.
+- [x] T059: add and observe RED proving missing normalized passenger identities cannot be recovered from opaque raw payload; use typed normalized passenger facts only.
+- [x] T059: neutralize passenger identity names through resolver, intent binding, snapshot mapping, and approved adjacent tests; preserve existing stable same-type ordering assertions.
+- [x] T059: run focused Jest suites, API no-emit typecheck, and API package ESLint; self-review and commit; pause for root's independent review.
 - [x] T060: after root review/release, observe RED for normalized scope/trip-date facts winning over conflicting raw fields; consume port facts after decrypting snapshots.
 - [x] T060: observe the consumer RED for expired normalized offer facts and preserve the existing expiry-only raw-snapshot compatibility case and persisted `offerExpiresAt` check.
 - [x] T060: keep route/date and expiry-only snapshots partial; preserve alias/default/date-prefix behavior, option precedence, ciphertext ordering, and all existing safety assertions.

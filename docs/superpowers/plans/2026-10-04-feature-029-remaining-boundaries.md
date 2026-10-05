@@ -1,6 +1,6 @@
 # Feature 029 Booking Boundary Fixes — Remaining Boundaries
 
-> **For agentic workers:** Execute one task at a time with the RED → GREEN → verify → review/commit steps below. Keep tasks T061–T065 separate; pair no more than two tasks per worker.
+> **For agentic workers:** Execute one task at a time with the RED → GREEN → verify → review/commit steps below. Keep tasks T062–T065 separate; pair no more than two tasks per worker.
 
 **Date:** 2026-10-04  
 **Scope:** Supplemental TDD plan for the root-confirmed remaining boundary leaks from T056. Tasks T059/T060 are owned elsewhere.
@@ -19,7 +19,7 @@ NestJS 10, TypeScript 5.9.3, Jest 29.7.0, ESLint 8.57.1, existing Prisma client.
 
 ## Spec
 
-Use the approved Feature 029 design in `specs/029-duffel-provider-narrowing/plan.md` and the bounded findings in `.superpowers/sdd/2026-10-04-feature-029-final-verification/task-3-report.md`. This bite implements only root-confirmed tasks T061–T065. Keep existing public HTTP/SSE shapes, persisted history, cancellation safety, and search ordering. The user approved the design and legitimate existing-test adaptations.
+Use the approved Feature 029 design in `specs/029-duffel-provider-narrowing/plan.md` and the bounded findings in `.superpowers/sdd/2026-10-04-feature-029-final-verification/task-3-report.md`. This bite implements only root-confirmed tasks T062–T065. Keep existing public HTTP/SSE shapes, persisted history, cancellation safety, and search ordering. The user approved the design and legitimate existing-test adaptations.
 
 ## GlobalConstraints
 
@@ -37,34 +37,7 @@ For each task: (1) add/adapt its focused regression and run it to observe RED; (
 
 ## Fixed signatures
 
-The existing search port gains only the optional neutral metadata argument needed to preserve partial stored offers. Metadata comes from the already-loaded intent/offer row, never another query:
-
-```typescript
-export type NeutralStoredOfferMetadata = {
-  supplierOfferId?: string | null;
-  totalAmount?: string | null;
-  currency?: string | null;
-  departureDate?: Date | string | null;
-  adults?: number | null;
-  children?: number | null;
-  infants?: number | null;
-};
-
-export interface FlightSearchPort {
-  normalizeStoredOffer(
-    rawOffer: unknown,
-    metadata?: NeutralStoredOfferMetadata,
-  ): FlightOffer | null;
-}
-
-export type FlightOffer = {
-  // existing fields
-  flightSnapshot?: FlightSnapshot;
-  passengersWereProvided?: boolean;
-};
-```
-
-Snapshot normalization must also accept the historical partial `slices[].segments[]` evidence that `parseDuffelRawOfferSnapshot` accepted without a supplier ID, amount, currency, or passenger array. Use the already-loaded booking intent's neutral metadata to complete the normalizer input; if the existing boundary cannot preserve a valid historical snapshot this way, stop and report the concrete missing fact instead of discarding the itinerary or inventing a wider abstraction.
+The original T061 proposal to extend `normalizeStoredOffer` and add snapshot fields to `FlightOffer` is superseded by the completed [lifecycle snapshot plan](./2026-10-04-feature-029-lifecycle-snapshot.md). Use `normalizeStoredFlightSnapshot(rawOffer: unknown): FlightSnapshot | null` on the existing `FLIGHT_SEARCH_PORT`. For T061, do not change `normalizeStoredOffer` or add fields to `FlightOffer`; partial historical snapshot evidence is handled by the separate snapshot projection.
 
 `DuffelCancellationService` returns the existing cancellation contract, and `DuffelRecoveryService` accepts neutral recovery enrichment:
 
@@ -89,10 +62,6 @@ No new network operation is part of either signature. `readSupplierOrderId(value
 
 ## Checkbox execution steps
 
-- [ ] T061: add and observe RED for snapshots from full and partial stored offers, including snake/camel aliases; verify metadata completes old partial raw snapshots without another query or provider call.
-- [ ] T061: add and observe RED for `PaymentFulfillmentSaga` passing the normalized snapshot in `createBooking`'s existing final argument and lifecycle preserving neutral `segments[]` history.
-- [ ] T061: move the provider parser into SupplierSearch; observe GREEN for supplier normalizer, saga, and lifecycle tests.
-- [ ] T061: run its focused Jest, API typecheck, and API ESLint commands; review and commit T061.
 - [ ] T062: add and observe RED for confirmed/pending/blank cancellation outcomes, replay/budget safety, and supplier-local passenger enrichment of redacted persisted order evidence.
 - [ ] T062: move cancellation response parsing and redacted-order enrichment into SupplierOrder; make recovery consume `CancelOrderOutcome` and neutral enrichment inputs; observe GREEN without added calls.
 - [ ] T062: run its focused Jest, API typecheck, and API ESLint commands; confirm existing 25,000 ms and 50 ms timing assertions are unchanged; review and commit T062.
@@ -105,63 +74,13 @@ No new network operation is part of either signature. `readSupplierOrderId(value
 - [ ] T065: add and observe RED for supplier-neutral quote helper names, byte-compatible delimiters/sentinel behavior, and the unchanged legacy response alias.
 - [ ] T065: rename internal cancellation quote types/helpers and callers; observe GREEN.
 - [ ] T065: run its focused Jest, API typecheck, and API ESLint commands; review and commit T065.
-- [ ] After all five tasks pass, update the relevant `context/` documents and run the combined checkpoint below; leave dashboard history handling for root's final adjudication.
+- [ ] After all four tasks pass, update the relevant `context/` documents and run the combined checkpoint below; leave dashboard history handling for root's final adjudication.
 
-## T061 — Normalize the booking flight snapshot before lifecycle persistence
+## T061 — Superseded by the completed lifecycle snapshot plan
 
-**Files:**
+T061 implementation and local verification are complete under [T061 — Supplier-local lifecycle flight snapshots](./2026-10-04-feature-029-lifecycle-snapshot.md). It is excluded from this plan's active T062–T065 task range.
 
-- `apps/api/src/supplier/search/flight-search.port.ts`
-- `apps/api/src/supplier/search/flight-offer.normalizer.ts` and its spec
-- `apps/api/src/payment-fulfillment/payment-fulfillment.saga.ts`, its module wiring if required, and its spec
-- `apps/api/src/booking-lifecycle/booking-lifecycle.service.ts` and its spec
-
-**Red assertions:**
-
-1. Supplier normalization of a stored offer produces the same canonical `FlightSnapshot` fields that lifecycle currently derives from a Duffel offer: segment identity/order, airline, flight number, airport IATA/name/city/terminal, departure and arrival times, duration, aircraft, cabin class, stops, and outbound/return slices. Cover the existing snake case and camel case aliases, including total and segment duration fallbacks.
-2. `PaymentFulfillmentSaga` obtains that snapshot only by calling `FLIGHT_SEARCH_PORT.normalizeStoredOffer` on the already stored intent offer evidence, then passes it as the existing final `createBooking` argument. Assert no `getOfferById` or other remote search call is added.
-3. `BookingLifecycleService.createBooking` stores an explicitly supplied snapshot, preserves an already neutral `segments[]` snapshot fallback through a shape guard, and does not interpret provider `slices[].segments[]` data itself.
-
-**Implementation:**
-
-Move the raw offer-to-snapshot mapping out of `BookingLifecycleService.parseDuffelRawOfferSnapshot` and into the supplier search normalizer. Return it as optional `FlightOffer.flightSnapshot`. In the saga, normalize its existing persisted raw evidence and pass the canonical snapshot to the already available final lifecycle argument. Lifecycle remains provider-blind; `BookingStateModule` receives no search import or provider dependency. Remove the Duffel-shaped fallback parser from lifecycle, retaining the neutral legacy snapshot read and omission behavior when no valid snapshot exists.
-
-**Public regressions:**
-
-Keep the booking flight snapshot JSON shape stable, including city and airport names, round-trip ordering, duration/stops, and the accepted snake/camel aliases. Do not alter snapshot schema or historical reads.
-
-```typescript
-const normalized = flightSearchPort.normalizeStoredOffer(
-  baseBookingIntent.rawOfferSnapshot,
-  {
-    supplierOfferId: baseBookingIntent.supplierOfferId,
-    totalAmount: baseBookingIntent.confirmedPrice.toString(),
-    currency: baseBookingIntent.currency,
-    adults: baseBookingIntent.passengers.filter((passenger) => passenger.passengerType === 'adult').length,
-    children: baseBookingIntent.passengers.filter((passenger) => passenger.passengerType === 'child').length,
-    infants: baseBookingIntent.passengers.filter((passenger) => passenger.passengerType === 'infant').length,
-  },
-);
-expect(normalized?.flightSnapshot?.segments[0]).toMatchObject({
-  supplierSegmentId: 'seg_1',
-  departureAirport: { name: 'John F Kennedy Intl', city: 'New York' },
-  arrivalAirport: { name: 'London Heathrow', city: 'London' },
-});
-expect(mockBookingLifecycle.createBooking.mock.calls[0]?.[5]).toEqual(
-  baseSnapshots.flightSnapshot,
-);
-```
-
-The TDD adaptation adds the existing lifecycle regression's partial offer fixture (`seg_1`, JFK/New York, LHR/London) to `baseBookingIntent.rawOfferSnapshot`. The fixture's supplier offer ID, confirmed price, currency, and passenger list provide every fallback fact without a new database or supplier call.
-
-**Focused command:**
-
-```powershell
-$env:NODE_OPTIONS = '--require="C:/Booking Systems/tests/ci/node-network-guard.cjs"'
-node node_modules/jest/bin/jest.js --config ./jest.config.json --runInBand --runTestsByPath src/supplier/search/flight-offer.normalizer.spec.ts src/booking-lifecycle/booking-lifecycle.service.spec.ts src/payment-fulfillment/payment-fulfillment.saga.spec.ts
-node ../../node_modules/typescript/bin/tsc --project tsconfig.json --noEmit
-node ../../node_modules/eslint/bin/eslint.js "src/**/*.ts" "../../packages/shared/**/*.ts" --max-warnings 0
-```
+The saga uses `FLIGHT_SEARCH_PORT.normalizeStoredFlightSnapshot(rawOffer)` and passes the resulting `FlightSnapshot` through `createBooking`'s existing sixth argument. This replaces the earlier proposal to use `normalizeStoredOffer` and `FlightOffer.flightSnapshot`. Do not change `normalizeStoredOffer` or add fields to `FlightOffer` for T061. Preserve partial historical evidence, the neutral lifecycle fallback, and `BookingStateModule`'s Prisma/DomainEvents-only dependencies as specified in the completed plan.
 
 ## T062 — Keep cancellation and recovered-order interpretation in SupplierOrder
 
