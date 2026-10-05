@@ -12,6 +12,8 @@ import {
   FlightSearchCriteria,
   FlightSearchPort,
   FlightSearchResult,
+  NeutralStoredOfferMetadata,
+  StoredOfferExpiryPolicy,
 } from './flight-search.port';
 
 @Injectable()
@@ -207,12 +209,18 @@ export class DuffelSearchService implements FlightSearchPort {
     }
   }
 
-  normalizeStoredOffer(rawOffer: unknown): FlightOffer | null {
-    return this.normalizerInstance.normalizeStoredOffer(rawOffer);
+  normalizeStoredOffer(
+    rawOffer: unknown,
+    metadata?: NeutralStoredOfferMetadata,
+  ): FlightOffer | null {
+    return this.normalizerInstance.normalizeStoredOffer(rawOffer, metadata);
   }
 
-  normalizeStoredOfferFacts(rawOffer: unknown): FlightStoredOfferFacts {
-    return this.normalizerInstance.normalizeStoredOfferFacts(rawOffer);
+  normalizeStoredOfferFacts(
+    rawOffer: unknown,
+    expiryPolicy?: StoredOfferExpiryPolicy,
+  ): FlightStoredOfferFacts {
+    return this.normalizerInstance.normalizeStoredOfferFacts(rawOffer, expiryPolicy);
   }
 
   normalizeStoredFlightSnapshot(rawOffer: unknown): FlightSnapshot | null {

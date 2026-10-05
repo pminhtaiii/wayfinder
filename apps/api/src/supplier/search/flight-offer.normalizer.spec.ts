@@ -720,6 +720,16 @@ describe('FlightOfferNormalizer (T014)', () => {
       });
     });
 
+    it('ignores the camel expiry alias when creation requests primary-only facts', () => {
+      const camelOnlyRaw = { expiresAt: '2026-08-20T00:00:00Z' };
+
+      expect(normalizeStoredOfferFacts(camelOnlyRaw, 'primary-only')).toEqual({
+        travelScope: null,
+        tripCompletionDate: null,
+        offerExpiresAt: null,
+      });
+    });
+
     it('preserves partial fact aliases and latest valid arrival date prefix', () => {
       const partialSnapshot = {
         expires_at: null,
@@ -848,6 +858,36 @@ describe('FlightOfferNormalizer (T014)', () => {
       expect(normalizeStoredOffer(storedSnapshot)?.offerExpiresAt).toBe(
         '2026-08-20T00:00:00Z',
       );
+    });
+
+    it('completes partial stored offers from neutral row metadata', () => {
+      const rawOffer = {
+        ...createSampleDuffelOffer(),
+        id: undefined,
+        total_amount: undefined,
+        total_currency: undefined,
+        passengers: undefined,
+      };
+
+      const result = normalizeStoredOffer(rawOffer, {
+        supplierOfferId: 'off_metadata',
+        totalAmount: '220.00',
+        currency: 'USD',
+        adults: 1,
+        children: 0,
+        infants: 0,
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          supplierOfferId: 'off_metadata',
+          totalAmount: '220.00',
+          currency: 'USD',
+          passengersWereProvided: false,
+          passengers: [{ supplierPassengerId: 'pas_stored_1', type: 'ADULT' }],
+        }),
+      );
+      expect(result?.rawSupplierPayload).toBe(rawOffer);
     });
 
     it('normalizes airport codes across outbound and return segments without changing the snapshot', () => {

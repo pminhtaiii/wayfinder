@@ -7,12 +7,15 @@ import {
 } from '@/duffel/duffel.types';
 import { FlightMatchInput } from '@/flight-match/flight-match.types';
 import type { FlightSegmentSnapshot, FlightSnapshot } from '@shared/booking-types';
+import { complementStoredOfferPayload } from './stored-offer-payload.helper';
 import {
   FlightOffer,
   FlightOfferConditions,
   FlightOfferPassenger,
   FlightStoredOfferFacts,
   FlightSegment,
+  NeutralStoredOfferMetadata,
+  StoredOfferExpiryPolicy,
   FlightTravelFacts,
 } from './flight-search.port';
 
@@ -675,16 +678,22 @@ export class FlightOfferNormalizer {
     };
   }
 
-  normalizeStoredOffer(rawOffer: unknown): FlightOffer | null {
-    return FlightOfferNormalizer.normalizeStoredOffer(rawOffer);
+  normalizeStoredOffer(
+    rawOffer: unknown,
+    metadata?: NeutralStoredOfferMetadata,
+  ): FlightOffer | null {
+    return FlightOfferNormalizer.normalizeStoredOffer(rawOffer, metadata);
   }
 
   normalizeStoredFlightSnapshot(rawOffer: unknown): FlightSnapshot | null {
     return FlightOfferNormalizer.normalizeStoredFlightSnapshot(rawOffer);
   }
 
-  normalizeStoredOfferFacts(rawOffer: unknown): FlightStoredOfferFacts {
-    return FlightOfferNormalizer.normalizeStoredOfferFacts(rawOffer);
+  normalizeStoredOfferFacts(
+    rawOffer: unknown,
+    expiryPolicy?: StoredOfferExpiryPolicy,
+  ): FlightStoredOfferFacts {
+    return FlightOfferNormalizer.normalizeStoredOfferFacts(rawOffer, expiryPolicy);
   }
 
   static normalizeStoredFlightSnapshot(rawOffer: unknown): FlightSnapshot | null {
@@ -760,9 +769,14 @@ export class FlightOfferNormalizer {
     };
   }
 
-  static normalizeStoredOfferFacts(rawOffer: unknown): FlightStoredOfferFacts {
+  static normalizeStoredOfferFacts(
+    rawOffer: unknown,
+    expiryPolicy: StoredOfferExpiryPolicy = 'legacy-aliases',
+  ): FlightStoredOfferFacts {
     const candidate = isUnknownRecord(rawOffer) ? rawOffer : null;
-    const expiryValue = candidate?.expires_at ?? candidate?.expiresAt;
+    const expiryValue =
+      candidate?.expires_at ??
+      (expiryPolicy === 'legacy-aliases' ? candidate?.expiresAt : undefined);
     const offerExpiresAt =
       typeof expiryValue === 'string' && !Number.isNaN(new Date(expiryValue).getTime())
         ? expiryValue
@@ -774,17 +788,33 @@ export class FlightOfferNormalizer {
     };
   }
 
-  static normalizeStoredOffer(rawOffer: unknown): FlightOffer | null {
-    if (
-      rawOffer === null ||
-      rawOffer === undefined ||
-      typeof rawOffer !== 'object' ||
-      Array.isArray(rawOffer)
-    ) {
+  static normalizeStoredOffer(
+    rawOffer: unknown,
+    metadata?: NeutralStoredOfferMetadata,
+  ): FlightOffer | null {
+    if (!isUnknownRecord(rawOffer)) {
       return null;
     }
 
-    const candidate = rawOffer as Record<string, unknown>;
+    const passengersWereProvided =
+      Array.isArray(rawOffer.passengers) && rawOffer.passengers.length > 0;
+    const completedOffer = complementStoredOfferPayload(
+      rawOffer,
+      metadata
+        ? {
+            supplierOfferId: metadata.supplierOfferId,
+            price: metadata.totalAmount ?? metadata.price,
+            currency: metadata.currency,
+            departureDate: metadata.departureDate,
+            adults: metadata.adults,
+            children: metadata.children,
+            infants: metadata.infants,
+          }
+        : null,
+    );
+    if (!isUnknownRecord(completedOffer)) return null;
+
+    const candidate = completedOffer;
 
     // 1. Check id is non-empty string
     if (typeof candidate.id !== 'string' || candidate.id.trim() === '') {
@@ -948,6 +978,7 @@ export class FlightOfferNormalizer {
     return {
       ...normalized,
       rawSupplierPayload: rawOffer,
+      passengersWereProvided,
     };
   }
 }
@@ -960,10 +991,16 @@ export function normalizeOffer(
   return FlightOfferNormalizer.normalizeOffer(offer, requestedCabinClass, originalIndex);
 }
 
-export function normalizeStoredOffer(rawOffer: unknown): FlightOffer | null {
-  return FlightOfferNormalizer.normalizeStoredOffer(rawOffer);
+export function normalizeStoredOffer(
+  rawOffer: unknown,
+  metadata?: NeutralStoredOfferMetadata,
+): FlightOffer | null {
+  return FlightOfferNormalizer.normalizeStoredOffer(rawOffer, metadata);
 }
 
-export function normalizeStoredOfferFacts(rawOffer: unknown): FlightStoredOfferFacts {
-  return FlightOfferNormalizer.normalizeStoredOfferFacts(rawOffer);
+export function normalizeStoredOfferFacts(
+  rawOffer: unknown,
+  expiryPolicy?: StoredOfferExpiryPolicy,
+): FlightStoredOfferFacts {
+  return FlightOfferNormalizer.normalizeStoredOfferFacts(rawOffer, expiryPolicy);
 }

@@ -12,7 +12,11 @@ import { ChatHandoffTokenService } from './chat-handoff-token.service';
 import { SelectionAttestationService } from '@/agent-gateway/selection-attestation.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import { FlightOfferNormalizer } from '@/supplier/search/flight-offer.normalizer';
-import { FLIGHT_SEARCH_PORT } from '@/supplier/search/flight-search.port';
+import {
+  FLIGHT_SEARCH_PORT,
+  type NeutralStoredOfferMetadata,
+  type StoredOfferExpiryPolicy,
+} from '@/supplier/search/flight-search.port';
 import { CreateChatHandoffDto } from './dto/create-chat-handoff.dto';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
@@ -25,8 +29,13 @@ function createMockFlightSearchPort() {
     search: jest.fn(),
     getOfferById: jest.fn(),
     createOrder: jest.fn(),
-    normalizeStoredOffer: jest.fn((rawOffer: unknown) =>
-      FlightOfferNormalizer.normalizeStoredOffer(rawOffer),
+    normalizeStoredOffer: jest.fn(
+      (rawOffer: unknown, metadata?: NeutralStoredOfferMetadata) =>
+        FlightOfferNormalizer.normalizeStoredOffer(rawOffer, metadata),
+    ),
+    normalizeStoredOfferFacts: jest.fn(
+      (rawOffer: unknown, expiryPolicy?: StoredOfferExpiryPolicy) =>
+        FlightOfferNormalizer.normalizeStoredOfferFacts(rawOffer, expiryPolicy),
     ),
   };
 }
@@ -36,6 +45,8 @@ function createMockFlightSearchPort() {
 
 describe('ChatHandoffService', () => {
   let service: ChatHandoffService;
+  // Approved 2026-10-04: expose the existing port mock to pin the approved facts policy; preserve existing assertions.
+  let flightSearchPortMock: ReturnType<typeof createMockFlightSearchPort>;
   let prisma: PrismaService;
   let configService: ConfigService;
   let tokenService: ChatHandoffTokenService;
@@ -60,6 +71,7 @@ describe('ChatHandoffService', () => {
   }
 
   beforeEach(async () => {
+    flightSearchPortMock = createMockFlightSearchPort();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ChatHandoffService,
@@ -113,7 +125,7 @@ describe('ChatHandoffService', () => {
         },
         {
           provide: FLIGHT_SEARCH_PORT,
-          useValue: createMockFlightSearchPort(),
+          useValue: flightSearchPortMock,
         },
       ],
     }).compile();
@@ -264,6 +276,33 @@ describe('ChatHandoffService', () => {
     });
 
     it('creates a handoff when ISSUE flag is on and supports createHandoffToken alias', async () => {
+      const now = Date.now();
+      const rawOffer = {
+        expires_at: new Date(now + 8 * 60_000).toISOString(),
+        slices: [
+          {
+            segments: [
+              {
+                origin: { iata_code: 'SGN' },
+                destination: { iata_code: 'NRT' },
+                departing_at: '2026-09-20T02:00:00.000Z',
+                arriving_at: '2026-09-20T08:30:00.000Z',
+                operating_carrier: { name: 'Vietnam Airlines' },
+              },
+            ],
+          },
+        ],
+      };
+      const loadedOffer = await prisma.flightOffer.findUnique({ where: { id: 'fo1' } });
+      if (!loadedOffer) throw new Error('Expected the existing flight-offer fixture');
+      loadedOffer.rawOffer = rawOffer;
+      const factsExpiry = new Date(now + 5 * 60_000).toISOString();
+      flightSearchPortMock.normalizeStoredOfferFacts.mockReturnValue({
+        travelScope: null,
+        tripCompletionDate: null,
+        offerExpiresAt: factsExpiry,
+      });
+
       jest.spyOn(configService, 'get').mockReturnValue('true');
       jest.spyOn(tokenService, 'deriveIdempotencyHash').mockReturnValue('hash');
       jest.spyOn(tokenService, 'generateToken').mockResolvedValue({
@@ -288,6 +327,10 @@ describe('ChatHandoffService', () => {
 
       expect(result.token).toBe('token');
       expect(result.expiresAt).toBeDefined();
+      expect(flightSearchPortMock.normalizeStoredOfferFacts).toHaveBeenCalledWith(
+        rawOffer,
+        'primary-only',
+      );
       expect(attestationService.verifySelectionAttestation).toHaveBeenCalledWith(
         mockAttestation,
         'u1',
@@ -296,6 +339,7 @@ describe('ChatHandoffService', () => {
         [{ flightOfferId: 'fo1', duffelOfferId: 'duff1' }],
       );
       const createdData = (prisma.chatHandoff.create as jest.Mock).mock.calls[0][0].data;
+      expect(createdData.expiresAt).toEqual(new Date(factsExpiry));
       expect(createdData.selectionAttestationHash).toMatch(/^[a-f0-9]{64}$/);
       expect(auditService.createLog).toHaveBeenCalledWith(
         null,
@@ -303,6 +347,82 @@ describe('ChatHandoffService', () => {
           action: 'chat_handoff_created',
           metadata: expect.objectContaining({ operation: 'handoff_create' }),
         }),
+      );
+    });
+
+    it('uses the signed expiry alias when raw storage only has the camel expiry alias', async () => {
+      const now = Date.now();
+      const signedExpiry = new Date(now + 5 * 60_000).toISOString();
+      const rawOffer = {
+        expiresAt: new Date(now + 8 * 60_000).toISOString(),
+        slices: [
+          {
+            segments: [
+              {
+                origin: { iata_code: 'SGN' },
+                destination: { iata_code: 'NRT' },
+                departing_at: '2026-09-20T02:00:00.000Z',
+                arriving_at: '2026-09-20T08:30:00.000Z',
+                operating_carrier: { name: 'Vietnam Airlines' },
+              },
+            ],
+          },
+        ],
+      };
+      const loadedOffer = await prisma.flightOffer.findUnique({ where: { id: 'fo1' } });
+      if (!loadedOffer) throw new Error('Expected the existing flight-offer fixture');
+      loadedOffer.rawOffer = rawOffer;
+
+      jest.spyOn(configService, 'get').mockReturnValue('true');
+      jest.spyOn(tokenService, 'deriveIdempotencyHash').mockReturnValue('hash');
+      jest.spyOn(tokenService, 'generateToken').mockResolvedValue({
+        token: 'token',
+        tokenHash: 'tokenhash',
+        keyVersion: 1,
+      });
+      jest.spyOn(prisma.chatHandoff, 'findUnique').mockResolvedValue(null);
+      const createMock = jest.spyOn(prisma.chatHandoff, 'create').mockResolvedValue({
+        id: '1',
+        userId: 'u1',
+        chatSessionId: 'cs1',
+        flightOfferId: 'fo1',
+        supplierOfferIdHash: 'supplier-hash',
+        snapshotVersion: 1,
+        snapshotFingerprint: 'fingerprint',
+        selectionAttestationHash: 'selection-hash',
+        selectedOfferIndex: 1,
+        tokenHash: 'tokenhash',
+        tokenKeyVersion: 1,
+        idempotencyKeyHash: 'hash',
+        expiresAt: new Date(signedExpiry),
+        claimedAt: null,
+        claimTokenHash: null,
+        claimExpiresAt: null,
+        claimRecoverAfter: null,
+        consumedAt: null,
+        consumedByBookingIntentId: null,
+        createdAt: new Date(now),
+        updatedAt: new Date(now),
+      });
+
+      const mockAttestation = createMockAttestation('u1', 'cs1', 1, [
+        {
+          flightOfferId: 'fo1',
+          duffelOfferId: 'duff1',
+          expires_at: signedExpiry,
+        },
+      ]);
+
+      await service.create({
+        selectionAttestationHash: mockAttestation,
+        selectedOfferIndex: 1,
+      });
+
+      const createdData = createMock.mock.calls[0][0].data;
+      expect(createdData.expiresAt).toEqual(new Date(signedExpiry));
+      expect(flightSearchPortMock.normalizeStoredOfferFacts).toHaveBeenCalledWith(
+        rawOffer,
+        'primary-only',
       );
     });
 
@@ -737,6 +857,22 @@ describe('ChatHandoffService', () => {
           key === 'FEATURE_FLAG_CHAT_HANDOFF_ACCEPT' ? 'true' : 'false',
         );
       jest.spyOn(tokenService, 'verifyToken').mockResolvedValue(true);
+      const rawOffer = {
+        expires_at: '2026-12-31T23:59:59.000Z',
+        slices: [
+          {
+            segments: [
+              {
+                origin: { iata_code: 'SGN' },
+                destination: { iata_code: 'HAN' },
+                departing_at: '2026-12-01T08:00:00.000Z',
+                arriving_at: '2026-12-01T10:00:00.000Z',
+                operating_carrier: { name: 'T093 Airways' },
+              },
+            ],
+          },
+        ],
+      };
       jest.spyOn(prisma.chatHandoff, 'findUnique').mockResolvedValue({
         id: 'handoff-1',
         userId: 'u1',
@@ -759,22 +895,7 @@ describe('ChatHandoffService', () => {
         infants: 0,
         price: '125.00',
         currency: 'USD',
-        rawOffer: {
-          expires_at: '2026-12-31T23:59:59.000Z',
-          slices: [
-            {
-              segments: [
-                {
-                  origin: { iata_code: 'SGN' },
-                  destination: { iata_code: 'HAN' },
-                  departing_at: '2026-12-01T08:00:00.000Z',
-                  arriving_at: '2026-12-01T10:00:00.000Z',
-                  operating_carrier: { name: 'T093 Airways' },
-                },
-              ],
-            },
-          ],
-        },
+        rawOffer,
       } as any);
 
       const result = await service.resolveSafe('token', 'u1');
@@ -795,9 +916,27 @@ describe('ChatHandoffService', () => {
           infants: 0,
         },
       });
+      expect(result).not.toHaveProperty('passengers');
+      expect(flightSearchPortMock.normalizeStoredOffer).toHaveBeenCalledWith(
+        rawOffer,
+        expect.objectContaining({
+          supplierOfferId: 'duffel-t093',
+          totalAmount: '125.00',
+          currency: 'USD',
+          adults: 1,
+          children: 0,
+          infants: 0,
+        }),
+      );
       expect(JSON.stringify(result)).not.toContain('handoff-1');
       expect(JSON.stringify(result)).not.toContain('session-1');
       expect(JSON.stringify(result)).not.toContain('offer-1');
+
+      rawOffer.expires_at = 'December 31, 2030';
+      await expect(service.resolveSafe('token', 'u1')).rejects.toMatchObject({
+        status: 410,
+        response: { code: 'HANDOFF_OFFER_STALE' },
+      });
     });
 
     it('keeps a handoff unavailable throughout its claim recovery buffer', async () => {
@@ -1404,4 +1543,3 @@ describe('Raw-Reader Replacement Parity (T015)', () => {
     }
   });
 });
-

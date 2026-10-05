@@ -44,6 +44,19 @@ export type FlightStoredOfferFacts = FlightTravelFacts & {
   offerExpiresAt: string | null;
 };
 
+export type StoredOfferExpiryPolicy = 'legacy-aliases' | 'primary-only';
+
+export type NeutralStoredOfferMetadata = {
+  supplierOfferId?: string | null;
+  totalAmount?: string | null;
+  price?: unknown;
+  currency?: string | null;
+  departureDate?: Date | string | null;
+  adults?: number | null;
+  children?: number | null;
+  infants?: number | null;
+};
+
 export type FlightOfferConditions = {
   refundable: boolean;
   changeable: boolean;
@@ -64,6 +77,7 @@ export type FlightOffer = {
   travelScope?: FlightTravelFacts['travelScope'];
   tripCompletionDate?: FlightTravelFacts['tripCompletionDate'];
   passengers: readonly FlightOfferPassenger[];
+  passengersWereProvided?: boolean;
   airline: string;
   flightNumber: string;
   departureAirport: string;
@@ -91,7 +105,13 @@ export type FlightSearchResult = {
 export interface FlightSearchPort {
   search(criteria: FlightSearchCriteria, caller: 'user' | 'agent'): Promise<FlightSearchResult>;
   getOfferById(supplierOfferId: string, timeoutMs?: number): Promise<FlightOffer>;
-  normalizeStoredOffer(rawOffer: unknown): FlightOffer | null;
-  normalizeStoredOfferFacts(rawOffer: unknown): FlightStoredOfferFacts;
+  normalizeStoredOffer(
+    rawOffer: unknown,
+    metadata?: NeutralStoredOfferMetadata,
+  ): FlightOffer | null;
+  normalizeStoredOfferFacts(
+    rawOffer: unknown,
+    expiryPolicy?: StoredOfferExpiryPolicy,
+  ): FlightStoredOfferFacts;
   normalizeStoredFlightSnapshot(rawOffer: unknown): FlightSnapshot | null;
 }
