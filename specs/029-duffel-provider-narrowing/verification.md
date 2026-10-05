@@ -380,3 +380,39 @@ Get-Content $runLog | Where-Object { $_ -match '^Running [0-9]+ test|^  [0-9]+ p
 "T093_PLAYWRIGHT_EXIT=$code"
 exit $code
 ```
+
+
+### Final T093 Acceptance Gate — Passing Isolated Full Flow (2026-10-05)
+
+The earlier T093 subsections preserve the engine-bootstrap failures and the seeded retry that timed out after 180,000 ms because its launch omitted the timeout exports documented by `context/testing.md`. They are historical attempts, not the final result. The timeout correction was limited to the execution environment; neither the checked-in test nor application source changed. Final Feature 029 source `791947c365c95e2721893c90cc3d92a433938117` was validated.
+
+A fresh runner-owned database `t093_closeout_20261005_b89eefd2` ran all 25 Prisma migrations successfully using the matching cached schema engine (`605197351a3c8bdd595af2d2a9bc3025bca48ea2`, SHA-256 `A7D949E16CC5937AA77D67888C8993118EF16C764E536E9ED7C17CFE61BB65AD`). The documented API seed command succeeded only against that database and inserted 4,562 airports; the read-only check confirmed `HAN|VN` and `SGN|VN`. PostgreSQL and Redis were task-owned `--rm` containers on loopback ports 5448 and 6392. No shared database or pre-existing container was used for the flow.
+
+Before Playwright started, the same PowerShell process asserted the effective timeout environment was `T093_TEST_TIMEOUT_MS=600000`, `T093_STREAM_TIMEOUT_MS=300000`, and `T093_BROWSER_TIMEOUT_MS=120000`, and verified the checked-in test consumes all three variables. It also set `UV_CACHE_DIR`, `T093_REAL_FLOW`, the isolated `DATABASE_URL`, and the temporary matching `PRISMA_SCHEMA_ENGINE_BINARY` in that same process. The Playwright wrapper imported the checked-in config, redirected only the T093 API and agent Redis URLs to the owned Redis service, and set `testDir` to the checked-in web tests. The captured wrapper source is `.scratch/t093-resume-a1db1376-retry2/wrapper-evidence.txt` (SHA-256 `40B501C445F70EFE4652E6F7B545CBD0172AB7D03930ED586DCEE282391919A1`).
+
+The actual corrected full-flow command and explicit environment assignments were:
+
+```powershell
+# Run from C:\Booking Systems; values shown for DATABASE_URL and the engine path are the actual isolated target, with the disposable password redacted.
+$env:UV_CACHE_DIR = 'C:\Booking Systems\.uv-cache'
+$env:T093_REAL_FLOW = 'true'
+$env:T093_TEST_TIMEOUT_MS = '600000'
+$env:T093_STREAM_TIMEOUT_MS = '300000'
+$env:T093_BROWSER_TIMEOUT_MS = '120000'
+$env:DATABASE_URL = 'postgresql://postgres:<redacted>@127.0.0.1:5448/t093_closeout_20261005_b89eefd2'
+$env:PRISMA_SCHEMA_ENGINE_BINARY = (Join-Path (Get-Location) '.scratch\t093-resume-a1db1376-retry2\schema-engine.exe')
+$runLog = Join-Path (Get-Location) '.scratch\t093-resume-a1db1376-retry2\playwright-timeouts600k.log'
+Push-Location apps/web
+try {
+  & 'C:\Booking Systems\apps\web\node_modules\.bin\playwright.CMD' test --config='C:\Booking Systems\.scratch\t093-resume-a1db1376-retry2\playwright.config.ts' 'tests/chat-t093-real-flow.spec.ts' *> $runLog
+  $code = $LASTEXITCODE
+} finally {
+  Pop-Location
+}
+"PLAYWRIGHT_EXIT=$code"
+exit $code
+```
+
+**T093 passed:** Playwright exited 0; one Chromium test passed in 4.9 minutes: `completes signed search through one token-only consumed intent`. This completes the missing full real-flow acceptance gate. Feature 029 closeout is resolved alongside exact-final-source CI run 37278447237, which passed at the same source SHA; the CI web gate itself ran characterization only, so this isolated real-flow result is the distinct T093 evidence. Local API validation remains **PARTIAL** because the local `supplier-sync.service.spec.ts` suite was not run; final-head remote CI separately reports that suite and all 135 API unit suites passing.
+
+Cleanup stopped only the verified task-owned PostgreSQL container `codex-t093-retry-b89eefd2-postgres` (ID `d7b5720477e3f183e30736a8352e09cfe127f3416a107cc04c614793d872cbe2`, port 5448) and Redis container `codex-t093-retry-b89eefd2-redis` (ID `e18bd8a482887bac0f190a1051bf4d0ad860ab6ef78006aa975482bfb2a72982`, port 6392). Their `--rm` policy removed them. Existing `flight-postgres` and `flight-redis` remained running. Ports 3000–3003, 5448, and 6392 were clear after teardown. The temporary engine executable and wrapper config were removed after the wrapper text and hash were preserved. Sanitized migration, seed, and Playwright logs remain in the task scratch directory. No source, test, package, or lockfile edits were made.
