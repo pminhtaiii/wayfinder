@@ -1,4 +1,5 @@
-import { DuffelOffer } from '@/duffel/duffel.types';
+import { Test, TestingModule } from '@nestjs/testing';
+import { FlightOffer, FlightSegment } from '@/supplier/search/flight-search.port';
 import { ProfileService } from '@/profile/profile.service';
 import { FlightSearchOrchestratorService, OrchestratorParams } from '@/flights/flight-search-orchestrator.service';
 import { FlightMatchScorerService } from './flight-match-scorer.service';
@@ -347,103 +348,114 @@ export const BENCHMARK_PREFERENCES: ScoringPreferences = {
   requiresCheckedBaggage: true,
 };
 
-function createMockDuffelOfferFromInput(input: FlightMatchInput): DuffelOffer {
+function parseSegmentCabinClass(cabin: string): 'economy' | 'premium_economy' | 'business' | 'first' {
+  switch (cabin) {
+    case 'premium_economy':
+      return 'premium_economy';
+    case 'business':
+      return 'business';
+    case 'first':
+      return 'first';
+    case 'economy':
+    default:
+      return 'economy';
+  }
+}
+
+function createMockFlightOfferFromInput(input: FlightMatchInput): FlightOffer {
   const isMultiSegment = input.stops > 0;
-  const segments = [];
+  const segments: FlightSegment[] = [];
 
   const departingIso = `2026-09-01T${input.outboundDepartureHour.toString().padStart(2, '0')}:00:00`;
   const arrivingIso = `2026-09-01T${input.outboundArrivalHour.toString().padStart(2, '0')}:00:00`;
 
   const carrierCode = input.carrierCodes[0] || 'AA';
   const carrierName = input.carrierNamesByCode?.[carrierCode] || 'Airline';
-
-  const baggages =
-    input.hasCheckedBaggage === null
-      ? undefined
-      : input.hasCheckedBaggage
-        ? [{ type: 'checked', quantity: 1 }]
-        : [{ type: 'checked', quantity: 0 }];
+  const segmentCabinClass = parseSegmentCabinClass(input.cabinClass);
 
   if (isMultiSegment) {
     const firstDurationMins = Math.floor(input.duration / (input.stops + 1));
     segments.push({
-      id: `seg_${input.id}_1`,
-      duration: `PT${Math.floor(firstDurationMins / 60)}H${firstDurationMins % 60}M`,
-      departing_at: departingIso,
-      arriving_at: `2026-09-01T${((input.outboundDepartureHour + 2) % 24).toString().padStart(2, '0')}:00:00`,
-      origin: { id: 'plc_sfo', name: 'San Francisco', iata_code: 'SFO', type: 'airport' },
-      destination: { id: 'plc_ord', name: 'Chicago', iata_code: 'ORD', type: 'airport' },
-      marketing_carrier: { id: `arl_${carrierCode.toLowerCase()}`, name: carrierName, iata_code: carrierCode },
-      operating_carrier: { id: `arl_${carrierCode.toLowerCase()}`, name: carrierName, iata_code: carrierCode },
-      marketing_carrier_flight_number: '101',
-      passengers: [
-        {
-          passenger_id: 'pas_1',
-          cabin_class: input.cabinClass,
-          baggages,
-        },
-      ],
+      supplierSegmentId: `seg_${input.id}_1`,
+      carrierCode,
+      flightNumber: '101',
+      operatingCarrier: carrierName,
+      departureAirport: 'SFO',
+      departureTerminal: null,
+      departureTime: departingIso,
+      arrivalAirport: 'ORD',
+      arrivalTerminal: null,
+      arrivalTime: `2026-09-01T${((input.outboundDepartureHour + 2) % 24).toString().padStart(2, '0')}:00:00`,
+      duration: firstDurationMins,
+      aircraft: null,
+      cabinClass: segmentCabinClass,
     });
 
     for (let s = 1; s <= input.stops; s++) {
       const isLast = s === input.stops;
       segments.push({
-        id: `seg_${input.id}_${s + 1}`,
-        duration: 'PT2H',
-        departing_at: `2026-09-01T${((input.outboundDepartureHour + 3) % 24).toString().padStart(2, '0')}:00:00`,
-        arriving_at: isLast
+        supplierSegmentId: `seg_${input.id}_${s + 1}`,
+        carrierCode,
+        flightNumber: '102',
+        operatingCarrier: carrierName,
+        departureAirport: 'ORD',
+        departureTerminal: null,
+        departureTime: `2026-09-01T${((input.outboundDepartureHour + 3) % 24).toString().padStart(2, '0')}:00:00`,
+        arrivalAirport: 'JFK',
+        arrivalTerminal: null,
+        arrivalTime: isLast
           ? arrivingIso
           : `2026-09-01T${((input.outboundDepartureHour + 5) % 24).toString().padStart(2, '0')}:00:00`,
-        origin: { id: 'plc_ord', name: 'Chicago', iata_code: 'ORD', type: 'airport' },
-        destination: { id: 'plc_jfk', name: 'New York', iata_code: 'JFK', type: 'airport' },
-        marketing_carrier: { id: `arl_${carrierCode.toLowerCase()}`, name: carrierName, iata_code: carrierCode },
-        operating_carrier: { id: `arl_${carrierCode.toLowerCase()}`, name: carrierName, iata_code: carrierCode },
-        marketing_carrier_flight_number: '102',
-        passengers: [
-          {
-            passenger_id: 'pas_1',
-            cabin_class: input.cabinClass,
-            baggages,
-          },
-        ],
+        duration: 120,
+        aircraft: null,
+        cabinClass: segmentCabinClass,
       });
     }
   } else {
     segments.push({
-      id: `seg_${input.id}_1`,
-      duration: `PT${Math.floor(input.duration / 60)}H${input.duration % 60}M`,
-      departing_at: departingIso,
-      arriving_at: arrivingIso,
-      origin: { id: 'plc_sfo', name: 'San Francisco', iata_code: 'SFO', type: 'airport' },
-      destination: { id: 'plc_jfk', name: 'New York', iata_code: 'JFK', type: 'airport' },
-      marketing_carrier: { id: `arl_${carrierCode.toLowerCase()}`, name: carrierName, iata_code: carrierCode },
-      operating_carrier: { id: `arl_${carrierCode.toLowerCase()}`, name: carrierName, iata_code: carrierCode },
-      marketing_carrier_flight_number: '100',
-      passengers: [
-        {
-          passenger_id: 'pas_1',
-          cabin_class: input.cabinClass,
-          baggages,
-        },
-      ],
+      supplierSegmentId: `seg_${input.id}_1`,
+      carrierCode,
+      flightNumber: '100',
+      operatingCarrier: carrierName,
+      departureAirport: 'SFO',
+      departureTerminal: null,
+      departureTime: departingIso,
+      arrivalAirport: 'JFK',
+      arrivalTerminal: null,
+      arrivalTime: arrivingIso,
+      duration: input.duration,
+      aircraft: null,
+      cabinClass: segmentCabinClass,
     });
   }
 
   return {
-    id: `raw_${input.id}`,
-    total_amount: input.price.toFixed(2),
-    total_currency: input.currency,
-    passenger_identity_documents_required: false,
-    passengers: [{ id: 'pas_1', type: 'adult' }],
-    slices: [
-      {
-        id: `sli_${input.id}`,
-        duration: `PT${Math.floor(input.duration / 60)}H${input.duration % 60}M`,
-        origin: { id: 'plc_sfo', name: 'San Francisco', iata_code: 'SFO', type: 'airport' },
-        destination: { id: 'plc_jfk', name: 'New York', iata_code: 'JFK', type: 'airport' },
-        segments,
-      },
-    ],
+    id: input.id,
+    supplierOfferId: `supp_${input.id}`,
+    totalAmount: input.price.toFixed(2),
+    price: input.price,
+    currency: input.currency,
+    offerExpiresAt: null,
+    passengers: [{ supplierPassengerId: 'pas_1', type: 'ADULT' }],
+    airline: carrierName,
+    flightNumber: `${carrierCode}100`,
+    departureAirport: 'SFO',
+    arrivalAirport: 'JFK',
+    departureTime: departingIso,
+    arrivalTime: arrivingIso,
+    duration: input.duration,
+    stops: input.stops,
+    fareClass: input.cabinClass,
+    baggageAllowance: input.hasCheckedBaggage ? '1 checked bag' : null,
+    segments,
+    returnSegments: null,
+    conditions: {
+      refundable: false,
+      changeable: true,
+      changeBeforeDeparture: null,
+    },
+    matchInput: input,
+    rawSupplierPayload: {},
   };
 }
 
@@ -530,21 +542,30 @@ describe('Flight Match Performance Benchmark Suite (T039)', () => {
 
   describe('Part 2: Warmed Orchestrator Overhead Benchmark', () => {
     it('measures warmed normalization + scoring overhead under 10 ms p95', async () => {
-      const mockRawOffers: DuffelOffer[] = BENCHMARK_20_OFFERS.map(createMockDuffelOfferFromInput);
-      expect(mockRawOffers).toHaveLength(20);
+      const mockOffers: readonly FlightOffer[] =
+        BENCHMARK_20_OFFERS.map(createMockFlightOfferFromInput);
+      expect(mockOffers).toHaveLength(20);
 
-      const mockProfileService: jest.Mocked<Pick<ProfileService, 'getScoringPreferences'>> = {
-        getScoringPreferences: jest.fn().mockResolvedValue(BENCHMARK_PREFERENCES),
-      };
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          FlightSearchOrchestratorService,
+          {
+            provide: ProfileService,
+            useValue: {
+              getScoringPreferences: jest.fn().mockResolvedValue(BENCHMARK_PREFERENCES),
+            },
+          },
+          { provide: FlightMatchScorerService, useValue: scorerService },
+          { provide: CategoryRankerService, useValue: new CategoryRankerService() },
+        ],
+      }).compile();
 
-      const orchestratorService = new FlightSearchOrchestratorService(
-        mockProfileService as unknown as ProfileService,
-        scorerService,
-        new CategoryRankerService(),
+      const orchestratorService = module.get<FlightSearchOrchestratorService>(
+        FlightSearchOrchestratorService,
       );
 
       const params: OrchestratorParams = {
-        rawOffers: mockRawOffers,
+        offers: mockOffers,
         query: {
           origin: 'SFO',
           destination: 'JFK',

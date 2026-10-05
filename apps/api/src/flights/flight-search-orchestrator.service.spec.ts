@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DuffelOffer } from '@/duffel/duffel.types';
-import { ProfileService } from '@/profile/profile.service';
+import { ProfileService, ScoringPreferences as ProfileScoringPreferences } from '@/profile/profile.service';
 import { FlightMatchScorerService } from '@/flight-match/flight-match-scorer.service';
 import { CategoryRankerService } from '@/flight-match/category-ranker.service';
 import {
@@ -10,6 +10,10 @@ import {
 } from './flight-search-orchestrator.service';
 import { FlightOffer, FlightSearchResult } from '@/supplier/search/flight-search.port';
 import { generateDeterministicUUID } from './flight-offer-normalizer';
+import {
+  ActiveWeights,
+  FlightMatchInput,
+} from '@/flight-match/flight-match.types';
 
 describe('FlightSearchOrchestratorService', () => {
   let service: FlightSearchOrchestratorService;
@@ -54,20 +58,99 @@ describe('FlightSearchOrchestratorService', () => {
     ...overrides,
   });
 
-  const coldStartPreferences = {
-    preferredAirlines: [] as string[],
-    blacklistedAirlines: [] as string[],
-    classPreference: null as string | null,
-    preferredDepartureWindow: null as { start: number; end: number } | null,
-    preferredArrivalWindow: null as { start: number; end: number } | null,
-    maxStops: null as number | null,
-    priceSensitivity: null as 'BUDGET' | 'MODERATE' | 'FLEXIBLE' | null,
-    requiresCheckedBaggage: null as boolean | null,
+  const createMockNormalizedFlightOffer = (
+    id: string,
+    rawDuffelOffer: DuffelOffer = createMockDuffelOffer(id),
+    overrides: Partial<FlightOffer> = {},
+  ): FlightOffer => {
+    const deterministicId = generateDeterministicUUID(id);
+    const totalAmount = overrides.totalAmount ?? rawDuffelOffer.total_amount;
+    const currency = overrides.currency ?? rawDuffelOffer.total_currency;
+    const price = overrides.price ?? parseFloat(totalAmount);
+    return {
+      id: deterministicId,
+      supplierOfferId: id,
+      totalAmount,
+      price,
+      currency,
+      offerExpiresAt: null,
+      passengers: [{ supplierPassengerId: 'pas_1', type: 'ADULT' }],
+      airline: 'British Airways',
+      flightNumber: 'BA100',
+      departureAirport: 'SFO',
+      arrivalAirport: 'JFK',
+      departureTime: '2026-09-01T08:00:00',
+      arrivalTime: '2026-09-01T10:00:00',
+      duration: 120,
+      stops: 0,
+      fareClass: 'Economy',
+      baggageAllowance: '1 checked bag(s)',
+      segments: [
+        {
+          supplierSegmentId: `seg_${id}`,
+          carrierCode: 'BA',
+          flightNumber: '100',
+          operatingCarrier: 'British Airways',
+          departureAirport: 'SFO',
+          departureTerminal: null,
+          departureTime: '2026-09-01T08:00:00',
+          arrivalAirport: 'JFK',
+          arrivalTerminal: null,
+          arrivalTime: '2026-09-01T10:00:00',
+          duration: 120,
+          aircraft: null,
+          cabinClass: 'economy',
+        },
+      ],
+      returnSegments: null,
+      conditions: {
+        refundable: false,
+        changeable: true,
+        changeBeforeDeparture: null,
+      },
+      matchInput: {
+        id: deterministicId,
+        price,
+        currency,
+        stops: 0,
+        duration: 120,
+        outboundDepartureHour: 8,
+        outboundArrivalHour: 10,
+        carrierCodes: ['BA'],
+        cabinClass: 'economy',
+        hasCheckedBaggage: true,
+        originalIndex: 0,
+      },
+      rawSupplierPayload: rawDuffelOffer,
+      ...overrides,
+    };
   };
 
-  const defaultPreferences = {
+  const coldStartPreferences: ProfileScoringPreferences = {
+    preferredAirlines: [],
+    blacklistedAirlines: [],
+    classPreference: null,
+    preferredDepartureWindow: null,
+    preferredArrivalWindow: null,
+    maxStops: null,
+    priceSensitivity: null,
+    requiresCheckedBaggage: null,
+  };
+
+  const defaultPreferences: ProfileScoringPreferences = {
     ...coldStartPreferences,
     preferredAirlines: ['BA'],
+  };
+
+  const mockActiveWeights: ActiveWeights = {
+    PRICE: 0.25,
+    AIRLINE: 0.15,
+    ARRIVAL_SCHEDULE: 0.1,
+    STOPS: 0.15,
+    CABIN: 0.1,
+    DEPARTURE_SCHEDULE: 0.1,
+    BAGGAGE: 0.05,
+    DURATION: 0.1,
   };
 
   const defaultQuery: OrchestratorParams['query'] = {
@@ -83,8 +166,8 @@ describe('FlightSearchOrchestratorService', () => {
     };
 
     scorer = {
-      scoreAll: jest.fn().mockImplementation((offers) =>
-        offers.map((offer: any) => ({
+      scoreAll: jest.fn().mockImplementation((offers: readonly FlightMatchInput[]) =>
+        offers.map((offer) => ({
           offer,
           matchResult: {
             eligibility: { eligible: true, violations: [] },
@@ -93,16 +176,7 @@ describe('FlightSearchOrchestratorService', () => {
             breakdown: [],
             metadata: {
               scoringVersion: 'flight-match-v1',
-              activeWeights: {
-                PRICE: 0.25,
-                AIRLINE: 0.15,
-                ARRIVAL_SCHEDULE: 0.1,
-                STOPS: 0.15,
-                CABIN: 0.1,
-                DEPARTURE_SCHEDULE: 0.1,
-                BAGGAGE: 0.05,
-                DURATION: 0.1,
-              },
+              activeWeights: mockActiveWeights,
             },
           },
         })),
@@ -126,14 +200,18 @@ describe('FlightSearchOrchestratorService', () => {
   });
 
   describe('Core Flow & Normalization', () => {
-    it('normalizes raw offers and caps at 20 canonical valid offers', async () => {
-      const rawOffers: DuffelOffer[] = [];
+    it('accepts canonical offers and caps at 20 canonical valid offers', async () => {
+      const offers: FlightOffer[] = [];
       for (let i = 0; i < 25; i++) {
-        rawOffers.push(createMockDuffelOffer(`off_${i.toString().padStart(2, '0')}`));
+        const offer = createMockNormalizedFlightOffer(`off_${i.toString().padStart(2, '0')}`);
+        offers.push({
+          ...offer,
+          matchInput: { ...offer.matchInput, originalIndex: i },
+        });
       }
 
       const params: OrchestratorParams = {
-        rawOffers,
+        offers,
         query: defaultQuery,
         userId: 'usr_1',
         searchHash: 'hash_123',
@@ -150,12 +228,22 @@ describe('FlightSearchOrchestratorService', () => {
       expect(response.mode).toBe('MATCHED');
     });
 
-    it('tracks dropped offers and rejection counts', async () => {
-      const validOffer = createMockDuffelOffer('off_valid');
-      const malformedOffer = { id: '', slices: [] } as unknown as DuffelOffer;
+    it('tracks dropped offers and rejection counts for mixed currencies', async () => {
+      const validOffer = createMockNormalizedFlightOffer('off_valid');
+      const mixedCurrencyOffer = createMockNormalizedFlightOffer(
+        'off_eur',
+        createMockDuffelOffer('off_eur', { total_currency: 'EUR' }),
+        {
+          currency: 'EUR',
+          matchInput: {
+            ...createMockNormalizedFlightOffer('off_eur').matchInput,
+            currency: 'EUR',
+          },
+        },
+      );
 
       const params: OrchestratorParams = {
-        rawOffers: [validOffer, malformedOffer],
+        offers: [validOffer, mixedCurrencyOffer],
         query: defaultQuery,
         userId: 'usr_1',
         searchHash: 'hash_123',
@@ -165,26 +253,31 @@ describe('FlightSearchOrchestratorService', () => {
       const response = await service.orchestrateSearch(params);
 
       expect(response.droppedCount).toBe(1);
-      expect(response.rejectionCounts['MALFORMED_OFFER']).toBe(1);
+      expect(response.rejectionCounts['MIXED_CURRENCY']).toBe(1);
       expect(response.results).toHaveLength(1);
-      expect(response.results[0].rawOffer.id).toBe('off_valid');
+      expect(response.results[0].offer.supplierOfferId).toBe('off_valid');
     });
 
-    it('maps scored offers back to corresponding original raw offers by originalIndex', async () => {
-      const offer0 = createMockDuffelOffer('off_0');
-      const malformed = { id: '' } as unknown as DuffelOffer;
-      const offer2 = createMockDuffelOffer('off_2');
+    it('maps scored offers back to corresponding canonical offers by originalIndex and offer id', async () => {
+      const offer0 = createMockNormalizedFlightOffer('off_0');
+      const offer1 = createMockNormalizedFlightOffer('off_1');
+      const offer2 = createMockNormalizedFlightOffer('off_2');
+      const offers: FlightOffer[] = [
+        { ...offer0, matchInput: { ...offer0.matchInput, originalIndex: 0 } },
+        { ...offer1, matchInput: { ...offer1.matchInput, originalIndex: 1 } },
+        { ...offer2, matchInput: { ...offer2.matchInput, originalIndex: 2 } },
+      ];
 
       const params: OrchestratorParams = {
-        rawOffers: [offer0, malformed, offer2],
+        offers,
         query: defaultQuery,
         userId: 'usr_1',
         searchHash: 'hash_123',
         cached: false,
       };
 
-      scorer.scoreAll.mockImplementation((offers) =>
-        [...offers].reverse().map((offer: any) => ({
+      scorer.scoreAll.mockImplementation((scoredOffers: readonly FlightMatchInput[]) =>
+        [...scoredOffers].reverse().map((offer) => ({
           offer,
           matchResult: {
             eligibility: { eligible: true, violations: [] },
@@ -193,7 +286,7 @@ describe('FlightSearchOrchestratorService', () => {
             breakdown: [],
             metadata: {
               scoringVersion: 'flight-match-v1',
-              activeWeights: {} as any,
+              activeWeights: mockActiveWeights,
             },
           },
         })),
@@ -201,18 +294,20 @@ describe('FlightSearchOrchestratorService', () => {
 
       const response = await service.orchestrateSearch(params);
 
-      expect(response.results).toHaveLength(2);
-      expect(response.results[0].rawOffer.id).toBe('off_2');
+      expect(response.results).toHaveLength(3);
+      expect(response.results[0].offer.supplierOfferId).toBe('off_2');
       expect(response.results[0].scoredOffer.offer.originalIndex).toBe(2);
-      expect(response.results[1].rawOffer.id).toBe('off_0');
-      expect(response.results[1].scoredOffer.offer.originalIndex).toBe(0);
+      expect(response.results[1].offer.supplierOfferId).toBe('off_1');
+      expect(response.results[1].scoredOffer.offer.originalIndex).toBe(1);
+      expect(response.results[2].offer.supplierOfferId).toBe('off_0');
+      expect(response.results[2].scoredOffer.offer.originalIndex).toBe(0);
     });
   });
 
   describe('Profile Fetching', () => {
     it('calls profileService.getScoringPreferences exactly once when userId is present', async () => {
       const params: OrchestratorParams = {
-        rawOffers: [createMockDuffelOffer('off_1')],
+        offers: [createMockNormalizedFlightOffer('off_1')],
         query: defaultQuery,
         userId: 'usr_123',
         searchHash: 'hash_123',
@@ -227,7 +322,7 @@ describe('FlightSearchOrchestratorService', () => {
 
     it('uses default empty preferences, does not call profileService, and switches to RANKED mode when userId is null', async () => {
       const params: OrchestratorParams = {
-        rawOffers: [createMockDuffelOffer('off_1')],
+        offers: [createMockNormalizedFlightOffer('off_1')],
         query: defaultQuery,
         userId: null,
         searchHash: 'hash_123',
@@ -244,7 +339,7 @@ describe('FlightSearchOrchestratorService', () => {
 
     it('uses default empty preferences, does not call profileService, and switches to RANKED mode when userId is undefined', async () => {
       const params: OrchestratorParams = {
-        rawOffers: [createMockDuffelOffer('off_1')],
+        offers: [createMockNormalizedFlightOffer('off_1')],
         query: defaultQuery,
         userId: undefined,
         searchHash: 'hash_123',
@@ -261,7 +356,7 @@ describe('FlightSearchOrchestratorService', () => {
 
     it('uses default empty preferences, does not call profileService, and switches to RANKED mode when userId is empty string', async () => {
       const params: OrchestratorParams = {
-        rawOffers: [createMockDuffelOffer('off_1')],
+        offers: [createMockNormalizedFlightOffer('off_1')],
         query: defaultQuery,
         userId: '   ',
         searchHash: 'hash_123',
@@ -285,7 +380,7 @@ describe('FlightSearchOrchestratorService', () => {
       });
 
       const params: OrchestratorParams = {
-        rawOffers: [createMockDuffelOffer('off_1')],
+        offers: [createMockNormalizedFlightOffer('off_1')],
         query: { ...defaultQuery, cabinClass: 'business' },
         userId: 'usr_1',
         searchHash: 'hash_123',
@@ -309,7 +404,7 @@ describe('FlightSearchOrchestratorService', () => {
       });
 
       const params: OrchestratorParams = {
-        rawOffers: [createMockDuffelOffer('off_1')],
+        offers: [createMockNormalizedFlightOffer('off_1')],
         query: { ...defaultQuery, cabinClass: undefined },
         userId: 'usr_1',
         searchHash: 'hash_123',
@@ -333,7 +428,7 @@ describe('FlightSearchOrchestratorService', () => {
       });
 
       const params: OrchestratorParams = {
-        rawOffers: [createMockDuffelOffer('off_1')],
+        offers: [createMockNormalizedFlightOffer('off_1')],
         query: { ...defaultQuery, cabinClass: 'first' },
         userId: 'usr_1',
         searchHash: 'hash_123',
@@ -357,7 +452,7 @@ describe('FlightSearchOrchestratorService', () => {
       });
 
       const params: OrchestratorParams = {
-        rawOffers: [createMockDuffelOffer('off_1')],
+        offers: [createMockNormalizedFlightOffer('off_1')],
         query: { ...defaultQuery, cabinClass: undefined },
         userId: 'usr_1',
         searchHash: 'hash_123',
@@ -381,7 +476,7 @@ describe('FlightSearchOrchestratorService', () => {
       });
 
       const params: OrchestratorParams = {
-        rawOffers: [createMockDuffelOffer('off_1')],
+        offers: [createMockNormalizedFlightOffer('off_1')],
         query: { ...defaultQuery, cabinClass: 'business' },
         userId: 'usr_1',
         searchHash: 'hash_123',
@@ -405,7 +500,7 @@ describe('FlightSearchOrchestratorService', () => {
       });
 
       const params: OrchestratorParams = {
-        rawOffers: [createMockDuffelOffer('off_1')],
+        offers: [createMockNormalizedFlightOffer('off_1')],
         query: { ...defaultQuery, cabinClass: undefined },
         userId: 'usr_1',
         searchHash: 'hash_123',
@@ -432,7 +527,7 @@ describe('FlightSearchOrchestratorService', () => {
       });
 
       const params: OrchestratorParams = {
-        rawOffers: [createMockDuffelOffer('off_cached_1')],
+        offers: [createMockNormalizedFlightOffer('off_cached_1')],
         query: defaultQuery,
         userId: 'usr_rescore_42',
         searchHash: 'hash_cached_rescore',
@@ -471,58 +566,58 @@ describe('FlightSearchOrchestratorService', () => {
 
   describe('Aggregate Metadata Generation (T034)', () => {
     it('accurately counts all 4 match levels (STRONG, GOOD, FAIR, WEAK) in matchLevelCounts', async () => {
-      const rawOffers = [
-        createMockDuffelOffer('off_1'),
-        createMockDuffelOffer('off_2'),
-        createMockDuffelOffer('off_3'),
-        createMockDuffelOffer('off_4'),
+      const offers = [
+        createMockNormalizedFlightOffer('off_1'),
+        createMockNormalizedFlightOffer('off_2'),
+        createMockNormalizedFlightOffer('off_3'),
+        createMockNormalizedFlightOffer('off_4'),
       ];
 
       scorer.scoreAll.mockReturnValueOnce([
         {
-          offer: { id: 'uuid_1' } as any,
+          offer: offers[0].matchInput,
           matchResult: {
             eligibility: { eligible: true, violations: [] },
             score: 95,
             matchLevel: 'STRONG',
             breakdown: [],
-            metadata: { scoringVersion: 'flight-match-v1', activeWeights: {} as any },
+            metadata: { scoringVersion: 'flight-match-v1', activeWeights: mockActiveWeights },
           },
         },
         {
-          offer: { id: 'uuid_2' } as any,
+          offer: offers[1].matchInput,
           matchResult: {
             eligibility: { eligible: true, violations: [] },
             score: 75,
             matchLevel: 'GOOD',
             breakdown: [],
-            metadata: { scoringVersion: 'flight-match-v1', activeWeights: {} as any },
+            metadata: { scoringVersion: 'flight-match-v1', activeWeights: mockActiveWeights },
           },
         },
         {
-          offer: { id: 'uuid_3' } as any,
+          offer: offers[2].matchInput,
           matchResult: {
             eligibility: { eligible: true, violations: [] },
             score: 55,
             matchLevel: 'FAIR',
             breakdown: [],
-            metadata: { scoringVersion: 'flight-match-v1', activeWeights: {} as any },
+            metadata: { scoringVersion: 'flight-match-v1', activeWeights: mockActiveWeights },
           },
         },
         {
-          offer: { id: 'uuid_4' } as any,
+          offer: offers[3].matchInput,
           matchResult: {
             eligibility: { eligible: true, violations: [] },
             score: 35,
             matchLevel: 'WEAK',
             breakdown: [],
-            metadata: { scoringVersion: 'flight-match-v1', activeWeights: {} as any },
+            metadata: { scoringVersion: 'flight-match-v1', activeWeights: mockActiveWeights },
           },
         },
       ]);
 
       const params: OrchestratorParams = {
-        rawOffers,
+        offers,
         query: { ...defaultQuery, cabinClass: 'business' },
         userId: 'usr_meta',
         searchHash: 'hash_meta_full',
@@ -548,63 +643,69 @@ describe('FlightSearchOrchestratorService', () => {
     });
 
     it('strictly excludes ineligible offers (eligible: false, matchLevel: null) from matchLevelCounts', async () => {
-      const rawOffers = [
-        createMockDuffelOffer('off_1'),
-        createMockDuffelOffer('off_2'),
-        createMockDuffelOffer('off_3'),
+      const offers = [
+        createMockNormalizedFlightOffer('off_1'),
+        createMockNormalizedFlightOffer('off_2'),
+        createMockNormalizedFlightOffer('off_3'),
       ];
 
       scorer.scoreAll.mockReturnValueOnce([
         {
-          offer: { id: 'uuid_1' } as any,
+          offer: offers[0].matchInput,
           matchResult: {
             eligibility: { eligible: true, violations: [] },
             score: 85,
             matchLevel: 'STRONG',
             breakdown: [],
-            metadata: { scoringVersion: 'flight-match-v1', activeWeights: {} as any },
+            metadata: { scoringVersion: 'flight-match-v1', activeWeights: mockActiveWeights },
           },
         },
         {
-          offer: { id: 'uuid_2' } as any,
+          offer: offers[1].matchInput,
           matchResult: {
             eligibility: {
               eligible: false,
               violations: [
                 {
                   constraint: 'BLACKLISTED_AIRLINE',
-                  explanation: 'Airline is in blacklist' as any,
+                  explanation: {
+                    key: 'constraint.airline.blacklisted',
+                    params: { airline: 'BA' },
+                  },
                 },
               ],
             },
             score: null,
             matchLevel: null,
             breakdown: [],
-            metadata: { scoringVersion: 'flight-match-v1', activeWeights: {} as any },
+            metadata: { scoringVersion: 'flight-match-v1', activeWeights: mockActiveWeights },
           },
         },
         {
-          offer: { id: 'uuid_3' } as any,
+          offer: offers[2].matchInput,
           matchResult: {
             eligibility: {
               eligible: false,
               violations: [
                 {
                   constraint: 'BLACKLISTED_AIRLINE',
-                  explanation: 'Airline is in blacklist' as any,
+                  explanation: {
+                    key: 'constraint.airline.blacklisted',
+                    params: { airline: 'BA' },
+                  },
                 },
               ],
             },
             score: null,
             matchLevel: null,
             breakdown: [],
-            metadata: { scoringVersion: 'flight-match-v1', activeWeights: {} as any },
+            metadata: { scoringVersion: 'flight-match-v1', activeWeights: mockActiveWeights },
           },
         },
       ]);
 
       const params: OrchestratorParams = {
-        rawOffers,
+        offers,
         query: defaultQuery,
         userId: 'usr_ineligible',
         searchHash: 'hash_ineligible',
@@ -626,7 +727,7 @@ describe('FlightSearchOrchestratorService', () => {
 
     it('returns zero counts for eligibleCount and all buckets when canonical offers are empty', async () => {
       const params: OrchestratorParams = {
-        rawOffers: [],
+        offers: [],
         query: defaultQuery,
         userId: 'usr_empty',
         searchHash: 'hash_empty',
@@ -655,7 +756,7 @@ describe('FlightSearchOrchestratorService', () => {
 
     it('defaults requestedCabinClass to economy when query.cabinClass is not provided', async () => {
       const params: OrchestratorParams = {
-        rawOffers: [createMockDuffelOffer('off_1')],
+        offers: [createMockNormalizedFlightOffer('off_1')],
         query: { ...defaultQuery, cabinClass: undefined },
         userId: 'usr_default_cabin',
         searchHash: 'hash_cabin_default',
@@ -668,66 +769,48 @@ describe('FlightSearchOrchestratorService', () => {
   });
 
   describe('Invalid Offer Tracking & Telemetry (T034)', () => {
-    it('logs telemetry when offers are dropped for invalid dates, negative price, currency mismatch without failing', async () => {
-      const validOffer = createMockDuffelOffer('off_valid', {
-        total_currency: 'USD',
-      });
-
-      const invalidDateOffer = createMockDuffelOffer('off_invalid_date', {
-        total_currency: 'USD',
-        slices: [
-          {
-            ...createMockDuffelOffer('off_invalid_date').slices[0],
-            segments: [
-              {
-                ...createMockDuffelOffer('off_invalid_date').slices[0].segments[0],
-                departing_at: 'invalid-iso-date',
-              },
-            ],
+    it('logs telemetry when offers are dropped for currency mismatch without failing', async () => {
+      const validOfferUSD1 = createMockNormalizedFlightOffer('off_usd_1');
+      const validOfferUSD2 = createMockNormalizedFlightOffer('off_usd_2');
+      const mismatchOfferEUR = createMockNormalizedFlightOffer(
+        'off_curr_mismatch',
+        createMockDuffelOffer('off_curr_mismatch', { total_currency: 'EUR' }),
+        {
+          currency: 'EUR',
+          matchInput: {
+            ...createMockNormalizedFlightOffer('off_curr_mismatch').matchInput,
+            currency: 'EUR',
           },
-        ],
-      });
-
-      const negativePriceOffer = createMockDuffelOffer('off_neg_price', {
-        total_amount: '-150.00',
-        total_currency: 'USD',
-      });
-
-      const currencyMismatchOffer = createMockDuffelOffer('off_curr_mismatch', {
-        total_currency: 'EUR',
-      });
+        },
+      );
 
       const params: OrchestratorParams = {
-        rawOffers: [validOffer, invalidDateOffer, negativePriceOffer, currencyMismatchOffer],
+        offers: [validOfferUSD1, validOfferUSD2, mismatchOfferEUR],
         query: defaultQuery,
         userId: 'usr_telemetry',
         searchHash: 'hash_telemetry_test',
         cached: false,
       };
 
-      const loggerWarnSpy = jest.spyOn((service as any).logger, 'warn');
+      const loggerWarnSpy = jest.spyOn(service.logger, 'warn');
 
       const response = await service.orchestrateSearch(params);
 
-      expect(response.droppedCount).toBe(3);
+      expect(response.droppedCount).toBe(1);
       expect(response.rejectionCounts).toEqual({
-        INVALID_TIMESTAMP: 1,
-        INVALID_PRICE: 1,
         MIXED_CURRENCY: 1,
       });
-      expect(response.results).toHaveLength(1);
-      expect(response.results[0].rawOffer.id).toBe('off_valid');
-      expect(response.meta.totalResults).toBe(1);
+      expect(response.results).toHaveLength(2);
+      expect(response.results[0].offer.supplierOfferId).toBe('off_usd_1');
+      expect(response.meta.totalResults).toBe(2);
 
       expect(loggerWarnSpy).toHaveBeenCalledTimes(1);
       expect(loggerWarnSpy).toHaveBeenCalledWith(
         expect.stringContaining('hash_telemetry_test'),
         expect.objectContaining({
           searchHash: 'hash_telemetry_test',
-          droppedCount: 3,
+          droppedCount: 1,
           rejectionCounts: {
-            INVALID_TIMESTAMP: 1,
-            INVALID_PRICE: 1,
             MIXED_CURRENCY: 1,
           },
         }),
@@ -735,16 +818,16 @@ describe('FlightSearchOrchestratorService', () => {
     });
 
     it('does not log telemetry when droppedCount is 0', async () => {
-      const validOffer = createMockDuffelOffer('off_clean');
+      const validOffer = createMockNormalizedFlightOffer('off_clean');
       const params: OrchestratorParams = {
-        rawOffers: [validOffer],
+        offers: [validOffer],
         query: defaultQuery,
         userId: 'usr_clean',
         searchHash: 'hash_clean',
         cached: false,
       };
 
-      const loggerWarnSpy = jest.spyOn((service as any).logger, 'warn');
+      const loggerWarnSpy = jest.spyOn(service.logger, 'warn');
 
       const response = await service.orchestrateSearch(params);
 
@@ -1012,9 +1095,9 @@ describe('FlightSearchOrchestratorService', () => {
 
   describe('Scorer Non-Invocation & RANKED Mode Switching (T043 [US2])', () => {
     it('triggers CategoryRankerService.rank and never calls FlightMatchScorerService.scoreAll on cold start (null userId)', async () => {
-      const rawOffers = [createMockDuffelOffer('off_1'), createMockDuffelOffer('off_2')];
+      const offers = [createMockNormalizedFlightOffer('off_1'), createMockNormalizedFlightOffer('off_2')];
       const params: OrchestratorParams = {
-        rawOffers,
+        offers,
         query: defaultQuery,
         userId: null,
         searchHash: 'hash_cold_start',
@@ -1027,12 +1110,14 @@ describe('FlightSearchOrchestratorService', () => {
       expect(categoryRanker.rank).toHaveBeenCalledTimes(1);
       expect(categoryRanker.rank).toHaveBeenCalledWith(
         expect.arrayContaining([
-          expect.objectContaining({ id: expect.any(String), originalIndex: 0 }),
-          expect.objectContaining({ id: expect.any(String), originalIndex: 1 }),
+          expect.objectContaining({ id: offers[0].id, originalIndex: 0 }),
+          expect.objectContaining({ id: offers[1].id, originalIndex: 0 }),
         ]),
       );
       expect(response.mode).toBe('RANKED');
       expect(response.results).toHaveLength(2);
+      expect(response.results[0].offer).toBe(offers[0]);
+      expect(response.results[1].offer).toBe(offers[1]);
       expect(response.results[0].scoredOffer.matchResult).toBeNull();
       expect(response.results[1].scoredOffer.matchResult).toBeNull();
       expect(response.meta.scoringVersion).toBeNull();
@@ -1044,9 +1129,9 @@ describe('FlightSearchOrchestratorService', () => {
     it('triggers CategoryRankerService.rank and never calls scorer when user has all empty/null preferences', async () => {
       profileService.getScoringPreferences.mockResolvedValueOnce(coldStartPreferences);
 
-      const rawOffers = [createMockDuffelOffer('off_1')];
+      const offers = [createMockNormalizedFlightOffer('off_1')];
       const params: OrchestratorParams = {
-        rawOffers,
+        offers,
         query: defaultQuery,
         userId: 'usr_cold_user',
         searchHash: 'hash_cold_user',
@@ -1059,6 +1144,7 @@ describe('FlightSearchOrchestratorService', () => {
       expect(scorer.scoreAll).not.toHaveBeenCalled();
       expect(categoryRanker.rank).toHaveBeenCalledTimes(1);
       expect(response.mode).toBe('RANKED');
+      expect(response.results[0].offer).toBe(offers[0]);
       expect(response.results[0].scoredOffer.matchResult).toBeNull();
       expect(response.meta.scoringVersion).toBeNull();
       expect(response.meta.eligibleCount).toBeUndefined();
@@ -1066,18 +1152,23 @@ describe('FlightSearchOrchestratorService', () => {
     });
 
     it('preserves 5-tier category ranking order in response results when ranker reorders offers', async () => {
-      const offer0 = createMockDuffelOffer('off_0');
-      const offer1 = createMockDuffelOffer('off_1');
-      const offer2 = createMockDuffelOffer('off_2');
+      const offer0 = createMockNormalizedFlightOffer('off_0');
+      const offer1 = createMockNormalizedFlightOffer('off_1');
+      const offer2 = createMockNormalizedFlightOffer('off_2');
+      const offers: FlightOffer[] = [
+        { ...offer0, matchInput: { ...offer0.matchInput, originalIndex: 0 } },
+        { ...offer1, matchInput: { ...offer1.matchInput, originalIndex: 1 } },
+        { ...offer2, matchInput: { ...offer2.matchInput, originalIndex: 2 } },
+      ];
 
-      categoryRanker.rank.mockImplementationOnce((offers) => [
-        offers[2],
-        offers[0],
-        offers[1],
+      categoryRanker.rank.mockImplementationOnce((rankOffers) => [
+        rankOffers[2],
+        rankOffers[0],
+        rankOffers[1],
       ]);
 
       const params: OrchestratorParams = {
-        rawOffers: [offer0, offer1, offer2],
+        offers,
         query: defaultQuery,
         userId: null,
         searchHash: 'hash_reorder',
@@ -1088,22 +1179,22 @@ describe('FlightSearchOrchestratorService', () => {
 
       expect(response.mode).toBe('RANKED');
       expect(response.results).toHaveLength(3);
-      expect(response.results[0].rawOffer.id).toBe('off_2');
+      expect(response.results[0].offer.supplierOfferId).toBe('off_2');
       expect(response.results[0].scoredOffer.offer.originalIndex).toBe(2);
       expect(response.results[0].scoredOffer.matchResult).toBeNull();
 
-      expect(response.results[1].rawOffer.id).toBe('off_0');
+      expect(response.results[1].offer.supplierOfferId).toBe('off_0');
       expect(response.results[1].scoredOffer.offer.originalIndex).toBe(0);
       expect(response.results[1].scoredOffer.matchResult).toBeNull();
 
-      expect(response.results[2].rawOffer.id).toBe('off_1');
+      expect(response.results[2].offer.supplierOfferId).toBe('off_1');
       expect(response.results[2].scoredOffer.offer.originalIndex).toBe(1);
       expect(response.results[2].scoredOffer.matchResult).toBeNull();
     });
 
     it('handles empty canonical offers in RANKED mode with zero results and null scoringVersion', async () => {
       const params: OrchestratorParams = {
-        rawOffers: [],
+        offers: [],
         query: defaultQuery,
         userId: null,
         searchHash: 'hash_empty_cold',
@@ -1128,9 +1219,9 @@ describe('FlightSearchOrchestratorService', () => {
         maxStops: 1,
       });
 
-      const rawOffers = [createMockDuffelOffer('off_1')];
+      const offers = [createMockNormalizedFlightOffer('off_1')];
       const params: OrchestratorParams = {
-        rawOffers,
+        offers,
         query: defaultQuery,
         userId: 'usr_active',
         searchHash: 'hash_active',
@@ -1142,6 +1233,7 @@ describe('FlightSearchOrchestratorService', () => {
       expect(categoryRanker.rank).not.toHaveBeenCalled();
       expect(scorer.scoreAll).toHaveBeenCalledTimes(1);
       expect(response.mode).toBe('MATCHED');
+      expect(response.results[0].offer.supplierOfferId).toBe('off_1');
       expect(response.results[0].scoredOffer.matchResult).not.toBeNull();
       expect(response.meta.scoringVersion).toBe('flight-match-v1');
       expect(response.meta.eligibleCount).toBe(1);
@@ -1150,71 +1242,6 @@ describe('FlightSearchOrchestratorService', () => {
   });
 
   describe('FlightSearchPort Compatibility with FlightSearchResult and FlightOffer (T013 [US1])', () => {
-    const createMockNormalizedFlightOffer = (
-      id: string,
-      rawDuffelOffer: DuffelOffer,
-      overrides: Partial<FlightOffer> = {},
-    ): FlightOffer => {
-      const deterministicId = generateDeterministicUUID(id);
-      return {
-        id: deterministicId,
-        supplierOfferId: id,
-        totalAmount: rawDuffelOffer.total_amount,
-        price: parseFloat(rawDuffelOffer.total_amount),
-        currency: rawDuffelOffer.total_currency,
-        offerExpiresAt: null,
-        passengers: [{ supplierPassengerId: 'pas_1', type: 'ADULT' }],
-        airline: 'British Airways',
-        flightNumber: 'BA100',
-        departureAirport: 'SFO',
-        arrivalAirport: 'JFK',
-        departureTime: '2026-09-01T08:00:00',
-        arrivalTime: '2026-09-01T10:00:00',
-        duration: 120,
-        stops: 0,
-        fareClass: 'Economy',
-        baggageAllowance: '1 checked bag(s)',
-        segments: [
-          {
-            supplierSegmentId: `seg_${id}`,
-            carrierCode: 'BA',
-            flightNumber: '100',
-            operatingCarrier: 'British Airways',
-            departureAirport: 'SFO',
-            departureTerminal: null,
-            departureTime: '2026-09-01T08:00:00',
-            arrivalAirport: 'JFK',
-            arrivalTerminal: null,
-            arrivalTime: '2026-09-01T10:00:00',
-            duration: 120,
-            aircraft: null,
-            cabinClass: 'economy',
-          },
-        ],
-        returnSegments: null,
-        conditions: {
-          refundable: false,
-          changeable: true,
-          changeBeforeDeparture: null,
-        },
-        matchInput: {
-          id: deterministicId,
-          price: parseFloat(rawDuffelOffer.total_amount),
-          currency: rawDuffelOffer.total_currency,
-          stops: 0,
-          duration: 120,
-          outboundDepartureHour: 8,
-          outboundArrivalHour: 10,
-          carrierCodes: ['BA'],
-          cabinClass: 'economy',
-          hasCheckedBaggage: true,
-          originalIndex: 0,
-        },
-        rawSupplierPayload: rawDuffelOffer,
-        ...overrides,
-      };
-    };
-
     it.each([null, 'usr_personalized'])(
       'filters mixed currencies before the result cap for user %s',
       async (userId) => {
@@ -1240,7 +1267,7 @@ describe('FlightSearchOrchestratorService', () => {
         expect(response.results.map((result) => result.offer)).toEqual([
           offers[0], ...offers.slice(2, 21),
         ]);
-        expect(response.results[1].rawOffer).toBe(offers[2].rawSupplierPayload);
+        expect(response.results[1].offer).toBe(offers[2]);
         expect(response.results.every((result) => result.scoredOffer.offer.currency === 'USD')).toBe(true);
       },
     );
@@ -1265,7 +1292,7 @@ describe('FlightSearchOrchestratorService', () => {
       };
 
       const params: OrchestratorParams = {
-        rawOffers: [searchResult.offers[0].rawSupplierPayload as DuffelOffer],
+        offers: searchResult.offers,
         query: defaultQuery,
         userId: 'usr_envelope',
         searchHash: searchResult.searchHash,
@@ -1277,6 +1304,7 @@ describe('FlightSearchOrchestratorService', () => {
       expect(response.meta.searchHash).toBe(searchResult.searchHash);
       expect(response.meta.cached).toBe(true);
       expect(response.results).toHaveLength(1);
+      expect(response.results[0].offer).toBe(normalizedOffer);
       expect(response.results[0].scoredOffer.offer.id).toBe(normalizedOffer.id);
     });
 
