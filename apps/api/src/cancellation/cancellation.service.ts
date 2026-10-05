@@ -24,8 +24,8 @@ import {
   CancellationQuoteResponseDto,
   CancellationResponseDto,
   CancellationStatusResponseDto,
-  parseDuffelCancellationQuoteId,
-  serializeDuffelCancellationQuoteId,
+  parseSupplierCancellationQuoteId,
+  serializeSupplierCancellationQuoteId,
 } from './cancellation.types';
 
 @Injectable()
@@ -138,7 +138,7 @@ export class CancellationService {
       cancellationDeadline: booking.cancellationDeadline?.toISOString() ?? null,
       airlineRefundAmount: booking.airlineRefundAmount?.toString() ?? null,
       customerRefundAmount: booking.customerRefundAmount?.toString() ?? null,
-      duffelCancellationQuoteId: parseDuffelCancellationQuoteId(
+      duffelCancellationQuoteId: parseSupplierCancellationQuoteId(
         booking.supplierCancellationQuoteId,
       ).quoteId,
       refundStatus,
@@ -183,7 +183,7 @@ export class CancellationService {
       booking.cancellationDeadline &&
       booking.cancellationDeadline > now
     ) {
-      const parsed = parseDuffelCancellationQuoteId(booking.supplierCancellationQuoteId);
+      const parsed = parseSupplierCancellationQuoteId(booking.supplierCancellationQuoteId);
       return {
         quoteId: parsed.quoteId || '',
         bookingId: booking.id,
@@ -234,7 +234,7 @@ export class CancellationService {
           updatedBooking.cancellationDeadline &&
           updatedBooking.cancellationDeadline > new Date()
         ) {
-          const parsed = parseDuffelCancellationQuoteId(
+          const parsed = parseSupplierCancellationQuoteId(
             updatedBooking.supplierCancellationQuoteId,
           );
           return {
@@ -280,7 +280,7 @@ export class CancellationService {
       const nonRefundableAmount = quote.non_refundable_ancillary_amount || null;
       const nonRefundableCurrency = quote.non_refundable_ancillary_currency || null;
 
-      const serializedQuoteId = serializeDuffelCancellationQuoteId(
+      const serializedQuoteId = serializeSupplierCancellationQuoteId(
         quoteId,
         refundTo,
         nonRefundableAmount,
@@ -347,7 +347,7 @@ export class CancellationService {
     if (booking.userId !== userId) {
       throw new ForbiddenException('You do not have access to this booking');
     }
-    const parsed = parseDuffelCancellationQuoteId(booking.supplierCancellationQuoteId);
+    const parsed = parseSupplierCancellationQuoteId(booking.supplierCancellationQuoteId);
     if (!booking.supplierOrderId || parsed.quoteId !== quoteId) {
       throw new BadRequestException('Cancellation quote is invalid');
     }
@@ -578,7 +578,7 @@ export class CancellationService {
       cancellationStatus: booking.status,
       refundStatus,
       refundAmount: booking.customerRefundAmount?.toString() ?? '0.00',
-      duffelCancellationQuoteId: parseDuffelCancellationQuoteId(
+      duffelCancellationQuoteId: parseSupplierCancellationQuoteId(
         booking.supplierCancellationQuoteId,
       ).quoteId,
     };

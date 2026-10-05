@@ -8,6 +8,7 @@ import { PrismaService } from '@/prisma/prisma.service';
 import {
   BookingManagementService,
   parseDuffelCancellationQuoteId,
+  parseSupplierCancellationQuoteId,
 } from './booking-management.service';
 
 describe('BookingManagementService', () => {
@@ -53,21 +54,21 @@ describe('BookingManagementService', () => {
     jest.clearAllMocks();
   });
 
-  describe('parseDuffelCancellationQuoteId', () => {
+  describe('parseSupplierCancellationQuoteId', () => {
     it('returns nulls for null/undefined/empty string', () => {
-      expect(parseDuffelCancellationQuoteId(null)).toEqual({
+      expect(parseSupplierCancellationQuoteId(null)).toEqual({
         quoteId: null,
         refundTo: null,
         nonRefundableAncillaryAmount: null,
         nonRefundableAncillaryCurrency: null,
       });
-      expect(parseDuffelCancellationQuoteId(undefined)).toEqual({
+      expect(parseSupplierCancellationQuoteId(undefined)).toEqual({
         quoteId: null,
         refundTo: null,
         nonRefundableAncillaryAmount: null,
         nonRefundableAncillaryCurrency: null,
       });
-      expect(parseDuffelCancellationQuoteId('')).toEqual({
+      expect(parseSupplierCancellationQuoteId('')).toEqual({
         quoteId: null,
         refundTo: null,
         nonRefundableAncillaryAmount: null,
@@ -76,7 +77,7 @@ describe('BookingManagementService', () => {
     });
 
     it('handles PENDING_QUOTE', () => {
-      expect(parseDuffelCancellationQuoteId('PENDING_QUOTE')).toEqual({
+      expect(parseSupplierCancellationQuoteId('PENDING_QUOTE')).toEqual({
         quoteId: 'PENDING_QUOTE',
         refundTo: null,
         nonRefundableAncillaryAmount: null,
@@ -85,7 +86,7 @@ describe('BookingManagementService', () => {
     });
 
     it('parses single part quote id', () => {
-      expect(parseDuffelCancellationQuoteId('can_quo_123')).toEqual({
+      expect(parseSupplierCancellationQuoteId('can_quo_123')).toEqual({
         quoteId: 'can_quo_123',
         refundTo: null,
         nonRefundableAncillaryAmount: null,
@@ -94,12 +95,19 @@ describe('BookingManagementService', () => {
     });
 
     it('parses pipe-separated full quote metadata', () => {
-      expect(parseDuffelCancellationQuoteId('can_quo_123|balance|15.00|USD')).toEqual({
+      expect(parseSupplierCancellationQuoteId('can_quo_123|balance|15.00|USD')).toEqual({
         quoteId: 'can_quo_123',
         refundTo: 'balance',
         nonRefundableAncillaryAmount: '15.00',
         nonRefundableAncillaryCurrency: 'USD',
       });
+    });
+
+    it('maintains backward-compatible alias parity with parseDuffelCancellationQuoteId', () => {
+      expect(parseDuffelCancellationQuoteId).toBe(parseSupplierCancellationQuoteId);
+      expect(parseDuffelCancellationQuoteId('can_quo_123|balance|15.00|USD')).toEqual(
+        parseSupplierCancellationQuoteId('can_quo_123|balance|15.00|USD'),
+      );
     });
   });
 

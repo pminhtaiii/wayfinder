@@ -23,16 +23,18 @@ export class CancellationStatusResponseDto {
   escalationMessage!: string | null;
 }
 
-export interface ParsedDuffelCancellationQuoteId {
+export interface ParsedSupplierCancellationQuoteId {
   quoteId: string | null;
   refundTo: string | null;
   nonRefundableAncillaryAmount: string | null;
   nonRefundableAncillaryCurrency: string | null;
 }
 
-export function parseDuffelCancellationQuoteId(
+export type ParsedDuffelCancellationQuoteId = ParsedSupplierCancellationQuoteId;
+
+export function parseSupplierCancellationQuoteId(
   serialized: string | null | undefined,
-): ParsedDuffelCancellationQuoteId {
+): ParsedSupplierCancellationQuoteId {
   if (!serialized) {
     return {
       quoteId: null,
@@ -66,7 +68,9 @@ export function parseDuffelCancellationQuoteId(
   };
 }
 
-export function serializeDuffelCancellationQuoteId(
+export const parseDuffelCancellationQuoteId = parseSupplierCancellationQuoteId;
+
+export function serializeSupplierCancellationQuoteId(
   quoteId: string,
   refundTo: string | null,
   nonRefundableAmount: string | null,
@@ -75,3 +79,5 @@ export function serializeDuffelCancellationQuoteId(
   const parts = [quoteId, refundTo || '', nonRefundableAmount || '', nonRefundableCurrency || ''];
   return parts.join('|');
 }
+
+export const serializeDuffelCancellationQuoteId = serializeSupplierCancellationQuoteId;
