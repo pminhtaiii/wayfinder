@@ -213,11 +213,9 @@ describe('Supplier order services (E2E)', () => {
     expect(reserveAttempt).toHaveBeenCalledTimes(4);
 
     await expect(cancellationService.cancelOrder('ord_replay')).resolves.toStrictEqual({
-      id: 'ord_replay',
-      order_id: 'ord_replay',
+      success: true,
+      orderId: 'ord_replay',
       status: 'CANCELLED',
-      cancelled_at: null,
-      cancellation_id: 'oc_replay',
     });
 
     expect(createCancellation).toHaveBeenNthCalledWith(1, { order_id: 'ord_snapshot' });

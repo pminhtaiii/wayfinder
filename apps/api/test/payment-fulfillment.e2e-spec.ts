@@ -1653,7 +1653,8 @@ describe('Payment Fulfillment (E2E Characterization)', () => {
 
       // Human approval 2026-10-02: return an explicit provider confirmation for the successful-cancellation assertions.
       const cancelOrderSpy = jest.spyOn(duffelCancellationService, 'cancelOrder').mockResolvedValue({
-        id: 'cancel_confirmed',
+        success: true,
+        orderId: 'cancel_confirmed',
         status: 'confirmed',
       });
       const cancelHoldSpy = jest.spyOn(stripeService, 'cancelPaymentIntent').mockResolvedValue({
@@ -1712,7 +1713,8 @@ describe('Payment Fulfillment (E2E Characterization)', () => {
 
       // Human approval 2026-10-02: return an explicit provider confirmation for the successful-cancellation assertions.
       const cancelOrderSpy = jest.spyOn(duffelCancellationService, 'cancelOrder').mockResolvedValue({
-        id: 'cancel_confirmed',
+        success: true,
+        orderId: 'cancel_confirmed',
         status: 'confirmed',
       });
       const cancelHoldSpy = jest.spyOn(stripeService, 'cancelPaymentIntent').mockResolvedValue({
