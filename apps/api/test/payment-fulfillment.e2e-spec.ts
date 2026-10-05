@@ -1655,7 +1655,7 @@ describe('Payment Fulfillment (E2E Characterization)', () => {
       const cancelOrderSpy = jest.spyOn(duffelCancellationService, 'cancelOrder').mockResolvedValue({
         success: true,
         orderId: 'cancel_confirmed',
-        status: 'confirmed',
+        status: 'CANCELLED',
       });
       const cancelHoldSpy = jest.spyOn(stripeService, 'cancelPaymentIntent').mockResolvedValue({
         id: payment.stripePaymentIntentId,
@@ -1715,7 +1715,7 @@ describe('Payment Fulfillment (E2E Characterization)', () => {
       const cancelOrderSpy = jest.spyOn(duffelCancellationService, 'cancelOrder').mockResolvedValue({
         success: true,
         orderId: 'cancel_confirmed',
-        status: 'confirmed',
+        status: 'CANCELLED',
       });
       const cancelHoldSpy = jest.spyOn(stripeService, 'cancelPaymentIntent').mockResolvedValue({
         id: payment.stripePaymentIntentId,

@@ -59,7 +59,14 @@ function readOrderId(value: unknown): string | undefined {
 }
 
 function isCancellationConfirmed(outcome: CancelOrderOutcome): boolean {
-  return outcome.success && (outcome.status === undefined || outcome.status.toUpperCase() === 'CANCELLED');
+  if (!outcome.success) {
+    return false;
+  }
+  if (outcome.status === undefined) {
+    return true;
+  }
+  const upper = outcome.status.toUpperCase();
+  return upper === 'CANCELLED' || upper === 'CONFIRMED' || upper === 'CANCELED';
 }
 
 @Injectable()

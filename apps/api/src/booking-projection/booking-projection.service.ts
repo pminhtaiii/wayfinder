@@ -23,6 +23,22 @@ export type SafeBookingProjectionData = {
   changeable: boolean | null;
 };
 
+function formatFlightNumber(
+  carrierCode: string | undefined | null,
+  rawFlightNumber: string | undefined | null,
+): string | null {
+  if (!rawFlightNumber) return null;
+  if (!carrierCode || carrierCode.trim() === '') return rawFlightNumber;
+  const trimmedCarrier = carrierCode.trim();
+  if (
+    rawFlightNumber.startsWith(`${trimmedCarrier} `) ||
+    rawFlightNumber.startsWith(trimmedCarrier)
+  ) {
+    return rawFlightNumber;
+  }
+  return `${trimmedCarrier} ${rawFlightNumber}`;
+}
+
 @Injectable()
 export class BookingProjectionService {
   private readonly logger = new Logger(BookingProjectionService.name);
@@ -113,10 +129,10 @@ export class BookingProjectionService {
       );
       const stopCount = Math.max(0, segments.length - 1);
       const airline = firstSegment.airlineName || '';
-      const flightNumber =
-        firstSegment.marketingCarrierIata && firstSegment.flightNumber
-          ? `${firstSegment.marketingCarrierIata} ${firstSegment.flightNumber}`
-          : firstSegment.flightNumber || null;
+      const flightNumber = formatFlightNumber(
+        firstSegment.marketingCarrierIata,
+        firstSegment.flightNumber,
+      );
 
       return {
         airline,
@@ -134,7 +150,7 @@ export class BookingProjectionService {
     }
 
     // 2. Fallback: flightSnapshot JSON (Permitted ONLY when itineraryRevisions is empty / non-existent)
-    const flightSnapshot = b.flightSnapshot as FlightSnapshot | null;
+    const flightSnapshot = b.flightSnapshot;
     if (
       flightSnapshot &&
       flightSnapshot.segments &&
@@ -161,10 +177,10 @@ export class BookingProjectionService {
           );
           const stopCount = flightSnapshot.stops ?? Math.max(0, segments.length - 1);
           const airline = firstSegment.airline?.name || '';
-          const flightNumber =
-            firstSegment.airline?.iataCode && firstSegment.flightNumber
-              ? `${firstSegment.airline.iataCode} ${firstSegment.flightNumber}`
-              : firstSegment.flightNumber || null;
+          const flightNumber = formatFlightNumber(
+            firstSegment.airline?.iataCode,
+            firstSegment.flightNumber,
+          );
           const baggageSummary = flightSnapshot.baggageAllowance || null;
 
           return {
