@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+// User approved 2026-10-04: additive public booking-boundary regression preserving existing binding coverage.
 import { BookingIntentService } from './booking-intent.service';
 import {
   HttpException,
@@ -10,6 +11,13 @@ import {
 } from '@nestjs/common';
 import { PassengerSnapshotService } from './passenger-snapshot.service';
 import { PassengerSourceResolverService } from './passenger-source-resolver.service';
+import { Test } from '@nestjs/testing';
+import { PrismaService } from '@/prisma/prisma.service';
+import { FLIGHT_SEARCH_PORT } from '@/supplier/search/flight-search.port';
+import { AuditService } from '@/audit/audit.service';
+import { EncryptionService } from '@/common/encryption.service';
+import { BookingReadinessService } from './booking-readiness.service';
+import { PassengerType } from '@prisma/client';
 
 type MockEncryptionService = {
   encrypt: jest.Mock;
@@ -47,9 +55,9 @@ type TestableService = {
     raw: unknown;
     passengers: readonly import('@/supplier/search/flight-search.port').FlightOfferPassenger[];
   }>;
-  extractDuffelPassengerIds(
-    rawOffer: unknown,
-    passengers: Array<{ type: import('@prisma/client').PassengerType }>,
+  extractSupplierPassengerIds(
+    supplierPassengers: readonly import('@/supplier/search/flight-search.port').FlightOfferPassenger[],
+    bookingPassengers: Array<{ type: import('@prisma/client').PassengerType }>,
   ): string[];
 };
 
@@ -125,6 +133,123 @@ describe('BookingIntentService Refinements', () => {
   });
 
   describe('canonical passenger persistence', () => {
+    it('does not recover missing normalized passenger identities from opaque supplier evidence', async () => {
+      const flightOfferId = '11111111-1111-4111-8111-111111111111';
+      const intentCreate = jest.fn().mockResolvedValue({
+        id: 'intent-1',
+        status: 'PENDING',
+        priceChanged: false,
+        currency: 'USD',
+        pricedAt: new Date('2026-08-01T00:00:00.000Z'),
+        intentExpiresAt: new Date('2026-08-01T00:30:00.000Z'),
+        offerExpiresAt: null,
+        origin: 'SGN',
+        destination: 'HAN',
+        departureDate: new Date('2026-08-10T00:00:00.000Z'),
+        returnDate: null,
+        cabinClass: 'ECONOMY',
+      });
+      const passengerCreate = jest.fn().mockResolvedValue({ id: 'passenger-1' });
+      const transactionClient = {
+        bookingIntent: { create: intentCreate },
+        bookingIntentPassenger: { create: passengerCreate },
+        travelerProfile: { findFirst: jest.fn() },
+      };
+      const prisma = {
+        flightOffer: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: flightOfferId,
+            supplierOfferId: 'supplier-offer-1',
+            price: 150,
+            origin: 'SGN',
+            destination: 'HAN',
+            departureDate: new Date('2026-08-10T00:00:00.000Z'),
+            returnDate: null,
+            cabinClass: 'ECONOMY',
+            adults: 1,
+            children: 0,
+            infants: 0,
+          }),
+        },
+        $transaction: jest.fn(
+          async (callback: (tx: typeof transactionClient) => Promise<unknown>) =>
+            callback(transactionClient),
+        ),
+      };
+      const supplier = {
+        getOfferById: jest.fn().mockResolvedValue({
+          id: 'offer-1',
+          supplierOfferId: 'supplier-offer-1',
+          totalAmount: '150.00',
+          currency: 'USD',
+          offerExpiresAt: null,
+          passengers: [],
+          rawSupplierPayload: {
+            passengers: [{ id: 'pas_opaque_1', type: 'adult' }],
+          },
+        }),
+        search: jest.fn(),
+        normalizeStoredOffer: jest.fn(),
+      };
+      const encryption = {
+        encrypt: jest.fn(),
+        decrypt: jest.fn(),
+        encryptBound: jest.fn(),
+        decryptBound: jest.fn(),
+      };
+      const readiness = {
+        evaluateAuthoritativeReadiness: jest
+          .fn()
+          .mockResolvedValue({ ready: true, scope: 'DOMESTIC' }),
+      };
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          BookingIntentService,
+          PassengerSourceResolverService,
+          PassengerSnapshotService,
+          { provide: PrismaService, useValue: prisma },
+          { provide: FLIGHT_SEARCH_PORT, useValue: supplier },
+          { provide: AuditService, useValue: { createLog: jest.fn() } },
+          { provide: EncryptionService, useValue: encryption },
+          { provide: BookingReadinessService, useValue: readiness },
+        ],
+      }).compile();
+
+      try {
+        const service = moduleRef.get(BookingIntentService);
+
+        await expect(
+          service.createIntent('user-1', {
+            flightOfferId,
+            passengers: [
+              {
+                offerPassengerId: 'pas_001',
+                type: PassengerType.ADULT,
+                source: {
+                  type: 'inline',
+                  givenName: 'Grace',
+                  familyName: 'Hopper',
+                  dateOfBirth: '1906-12-09',
+                  gender: 'female',
+                  nationality: 'US',
+                  email: 'grace@example.test',
+                  phoneCountryCode: '+1',
+                  phoneNumber: '5550000000',
+                  title: 'MS',
+                },
+              },
+            ],
+          }),
+        ).rejects.toMatchObject({ response: { code: 'UPSTREAM_UNAVAILABLE' } });
+
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+        expect(intentCreate).not.toHaveBeenCalled();
+        expect(passengerCreate).not.toHaveBeenCalled();
+      } finally {
+        await moduleRef.close();
+      }
+    });
+
     it('resolves an inline source before persisting the immutable passenger snapshot', async () => {
       const offerId = 'offer-1';
       const prisma = {} as CanonicalPrismaMock;
@@ -250,6 +375,7 @@ describe('BookingIntentService Refinements', () => {
           gender: 'female',
           email: 'grace@example.test',
           travelerProfileId: null,
+          supplierPassengerId: 'duffel-passenger-1',
           snapshotVersion: 1,
         }),
       });
@@ -1608,16 +1734,14 @@ describe('BookingIntentService Refinements', () => {
     });
   });
 
-  describe('extractDuffelPassengerIds', () => {
+  describe('extractSupplierPassengerIds', () => {
     it('maps supplier passengers by type and ordinal for new booking intents', () => {
-      const result = testable.extractDuffelPassengerIds(
-        {
-          passengers: [
-            { id: 'pas_adult_1', type: 'adult' },
-            { id: 'pas_child_1', type: 'child' },
-            { id: 'pas_adult_2', type: 'adult' },
-          ],
-        },
+      const result = testable.extractSupplierPassengerIds(
+        [
+          { supplierPassengerId: 'pas_adult_1', type: 'ADULT' },
+          { supplierPassengerId: 'pas_child_1', type: 'CHILD' },
+          { supplierPassengerId: 'pas_adult_2', type: 'ADULT' },
+        ],
         [{ type: 'ADULT' }, { type: 'CHILD' }, { type: 'ADULT' }],
       );
 
@@ -1626,10 +1750,13 @@ describe('BookingIntentService Refinements', () => {
 
     it('rejects a supplier passenger list that cannot map every local passenger', () => {
       expect(() =>
-        testable.extractDuffelPassengerIds({ passengers: [{ id: 'pas_adult_1', type: 'adult' }] }, [
-          { type: 'ADULT' },
-          { type: 'CHILD' },
-        ]),
+        testable.extractSupplierPassengerIds(
+          [{ supplierPassengerId: 'pas_adult_1', type: 'ADULT' }],
+          [
+            { type: 'ADULT' },
+            { type: 'CHILD' },
+          ],
+        ),
       ).toThrow(HttpException);
     });
   });

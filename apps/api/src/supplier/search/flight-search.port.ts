@@ -1,4 +1,5 @@
 import { FlightMatchInput } from '@/flight-match/flight-match.types';
+import type { FlightSnapshot } from '@shared/booking-types';
 
 export const FLIGHT_SEARCH_PORT = Symbol('FLIGHT_SEARCH_PORT');
 
@@ -34,6 +35,28 @@ export type FlightOfferPassenger = {
   type: 'ADULT' | 'CHILD' | 'INFANT';
 };
 
+export type FlightTravelFacts = {
+  travelScope: 'DOMESTIC' | 'INTERNATIONAL' | null;
+  tripCompletionDate: string | null;
+};
+
+export type FlightStoredOfferFacts = FlightTravelFacts & {
+  offerExpiresAt: string | null;
+};
+
+export type StoredOfferExpiryPolicy = 'legacy-aliases' | 'primary-only';
+
+export type NeutralStoredOfferMetadata = {
+  supplierOfferId?: string | null;
+  totalAmount?: string | null;
+  price?: unknown;
+  currency?: string | null;
+  departureDate?: Date | string | null;
+  adults?: number | null;
+  children?: number | null;
+  infants?: number | null;
+};
+
 export type FlightOfferConditions = {
   refundable: boolean;
   changeable: boolean;
@@ -51,7 +74,10 @@ export type FlightOffer = {
   price: number;
   currency: string;
   offerExpiresAt: string | null;
+  travelScope?: FlightTravelFacts['travelScope'];
+  tripCompletionDate?: FlightTravelFacts['tripCompletionDate'];
   passengers: readonly FlightOfferPassenger[];
+  passengersWereProvided?: boolean;
   airline: string;
   flightNumber: string;
   departureAirport: string;
@@ -79,5 +105,13 @@ export type FlightSearchResult = {
 export interface FlightSearchPort {
   search(criteria: FlightSearchCriteria, caller: 'user' | 'agent'): Promise<FlightSearchResult>;
   getOfferById(supplierOfferId: string, timeoutMs?: number): Promise<FlightOffer>;
-  normalizeStoredOffer(rawOffer: unknown): FlightOffer | null;
+  normalizeStoredOffer(
+    rawOffer: unknown,
+    metadata?: NeutralStoredOfferMetadata,
+  ): FlightOffer | null;
+  normalizeStoredOfferFacts(
+    rawOffer: unknown,
+    expiryPolicy?: StoredOfferExpiryPolicy,
+  ): FlightStoredOfferFacts;
+  normalizeStoredFlightSnapshot(rawOffer: unknown): FlightSnapshot | null;
 }

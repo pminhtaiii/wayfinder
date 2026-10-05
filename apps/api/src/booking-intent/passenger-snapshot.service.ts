@@ -172,7 +172,7 @@ export class PassengerSnapshotService {
       passportExpiry,
       issuingCountry: passenger.issuingCountry,
       travelerProfileId: passenger.travelerProfileId,
-      supplierPassengerId: passenger.duffelPassengerId,
+      supplierPassengerId: passenger.supplierPassengerId,
       snapshotVersion,
     };
   }

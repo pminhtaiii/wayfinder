@@ -1,3 +1,4 @@
+// User approved 2026-10-04: add canonical supplier identity expectations while retaining source-resolution coverage.
 import 'reflect-metadata';
 import { UnprocessableEntityException } from '@nestjs/common';
 import { PassengerType } from '@prisma/client';
@@ -35,6 +36,7 @@ function inlinePassenger() {
   return {
     offerPassengerId: 'pas_002',
     type: PassengerType.CHILD,
+    supplierPassengerId: 'supplier_child_001',
     source: {
       type: 'inline' as const,
       givenName: 'Grace',
@@ -71,6 +73,7 @@ describe('PassengerSourceResolverService', () => {
       {
         offerPassengerId: 'pas_001',
         type: PassengerType.ADULT,
+        supplierPassengerId: 'supplier_pas_001',
         source: {
           type: 'traveler_profile',
           travelerProfileId: PROFILE_ID,
@@ -90,6 +93,7 @@ describe('PassengerSourceResolverService', () => {
         travelerProfileId: PROFILE_ID,
         profileRevision: 3,
         sourceType: 'traveler_profile',
+        supplierPassengerId: 'supplier_pas_001',
       }),
     );
     expect(resolved).not.toHaveProperty('source');
@@ -152,6 +156,7 @@ describe('PassengerSourceResolverService', () => {
       {
         offerPassengerId: 'pas_001',
         type: PassengerType.ADULT,
+        supplierPassengerId: 'supplier_pas_001',
         source: {
           type: 'traveler_profile',
           travelerProfileId: PROFILE_ID,
@@ -170,6 +175,7 @@ describe('PassengerSourceResolverService', () => {
         givenName: 'Grace',
         travelerProfileId: null,
         sourceType: 'inline',
+        supplierPassengerId: 'supplier_child_001',
       }),
     );
     expect(resolved[1]).not.toHaveProperty('passportNumber', expect.anything());

@@ -177,6 +177,56 @@ describe('BookingProjectionService', () => {
       const result = service.extractProjectionData(booking);
       expect(result?.flightNumber).toBe('VN123');
     });
+
+    it('does not duplicate carrier prefix when flightNumber already starts with carrier code', () => {
+      const booking = {
+        itineraryRevisions: [
+          {
+            version: 1,
+            segments: [
+              {
+                globalOrder: 0,
+                departureAirportIata: 'JFK',
+                arrivalAirportIata: 'LHR',
+                departureAt: new Date('2026-10-01T10:00:00.000Z'),
+                arrivalAt: new Date('2026-10-01T22:00:00.000Z'),
+                airlineName: 'Delta Air Lines',
+                marketingCarrierIata: 'DL',
+                flightNumber: 'DL100',
+              },
+            ],
+          },
+        ],
+      };
+
+      const result = service.extractProjectionData(booking);
+      expect(result?.flightNumber).toBe('DL100');
+    });
+
+    it('does not duplicate carrier prefix when flightNumber already starts with carrier code and space', () => {
+      const booking = {
+        itineraryRevisions: [
+          {
+            version: 1,
+            segments: [
+              {
+                globalOrder: 0,
+                departureAirportIata: 'JFK',
+                arrivalAirportIata: 'LHR',
+                departureAt: new Date('2026-10-01T10:00:00.000Z'),
+                arrivalAt: new Date('2026-10-01T22:00:00.000Z'),
+                airlineName: 'Delta Air Lines',
+                marketingCarrierIata: 'DL',
+                flightNumber: 'DL 100',
+              },
+            ],
+          },
+        ],
+      };
+
+      const result = service.extractProjectionData(booking);
+      expect(result?.flightNumber).toBe('DL 100');
+    });
   });
 
   describe('Strict Invariant: No Stale Fallback', () => {
@@ -383,6 +433,28 @@ describe('BookingProjectionService', () => {
 
       const result = service.extractProjectionData(booking);
       expect(result?.stopCount).toBe(0);
+    });
+
+    it('does not duplicate carrier prefix in flightSnapshot fallback when flightNumber already starts with iataCode', () => {
+      const booking = {
+        itineraryRevisions: [],
+        flightSnapshot: {
+          stops: 0,
+          segments: [
+            {
+              departureAirport: { iataCode: 'JFK' },
+              arrivalAirport: { iataCode: 'LHR' },
+              departureAt: '2026-10-01T10:00:00.000Z',
+              arrivalAt: '2026-10-01T22:00:00.000Z',
+              airline: { name: 'Delta Air Lines', iataCode: 'DL' },
+              flightNumber: 'DL100',
+            },
+          ],
+        },
+      };
+
+      const result = service.extractProjectionData(booking);
+      expect(result?.flightNumber).toBe('DL100');
     });
   });
 

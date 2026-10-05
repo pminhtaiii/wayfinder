@@ -1,15 +1,19 @@
 import * as crypto from 'crypto';
 import { Injectable, Optional, HttpException, HttpStatus } from '@nestjs/common';
 import { CacheService } from '@/cache/cache.service';
+import type { FlightSnapshot } from '@shared/booking-types';
 import { DuffelRateBudgetService } from '../core/duffel-rate-budget.service';
 import { DuffelSearchAdapter } from './duffel-search.adapter';
 import { FlightOfferNormalizer, validateAndNormalizeOffer } from './flight-offer.normalizer';
 import { DuffelOffer } from '@/duffel/duffel.types';
 import {
   FlightOffer,
+  FlightStoredOfferFacts,
   FlightSearchCriteria,
   FlightSearchPort,
   FlightSearchResult,
+  NeutralStoredOfferMetadata,
+  StoredOfferExpiryPolicy,
 } from './flight-search.port';
 
 @Injectable()
@@ -205,7 +209,21 @@ export class DuffelSearchService implements FlightSearchPort {
     }
   }
 
-  normalizeStoredOffer(rawOffer: unknown): FlightOffer | null {
-    return this.normalizerInstance.normalizeStoredOffer(rawOffer);
+  normalizeStoredOffer(
+    rawOffer: unknown,
+    metadata?: NeutralStoredOfferMetadata,
+  ): FlightOffer | null {
+    return this.normalizerInstance.normalizeStoredOffer(rawOffer, metadata);
+  }
+
+  normalizeStoredOfferFacts(
+    rawOffer: unknown,
+    expiryPolicy?: StoredOfferExpiryPolicy,
+  ): FlightStoredOfferFacts {
+    return this.normalizerInstance.normalizeStoredOfferFacts(rawOffer, expiryPolicy);
+  }
+
+  normalizeStoredFlightSnapshot(rawOffer: unknown): FlightSnapshot | null {
+    return this.normalizerInstance.normalizeStoredFlightSnapshot(rawOffer);
   }
 }

@@ -14,7 +14,9 @@ import {
 import { CancellationService } from './cancellation.service';
 import {
   parseDuffelCancellationQuoteId,
+  parseSupplierCancellationQuoteId,
   serializeDuffelCancellationQuoteId,
+  serializeSupplierCancellationQuoteId,
 } from './cancellation.types';
 import {
   BookingCancellationPendingEvent,
@@ -94,30 +96,30 @@ describe('CancellationService', () => {
     );
   });
 
-  describe('parseDuffelCancellationQuoteId and serializeDuffelCancellationQuoteId', () => {
+  describe('parseSupplierCancellationQuoteId and serializeSupplierCancellationQuoteId', () => {
     it('handles null, undefined, empty string, and PENDING_QUOTE', () => {
-      expect(parseDuffelCancellationQuoteId(null)).toEqual({
+      expect(parseSupplierCancellationQuoteId(null)).toEqual({
         quoteId: null,
         refundTo: null,
         nonRefundableAncillaryAmount: null,
         nonRefundableAncillaryCurrency: null,
       });
 
-      expect(parseDuffelCancellationQuoteId(undefined)).toEqual({
+      expect(parseSupplierCancellationQuoteId(undefined)).toEqual({
         quoteId: null,
         refundTo: null,
         nonRefundableAncillaryAmount: null,
         nonRefundableAncillaryCurrency: null,
       });
 
-      expect(parseDuffelCancellationQuoteId('')).toEqual({
+      expect(parseSupplierCancellationQuoteId('')).toEqual({
         quoteId: null,
         refundTo: null,
         nonRefundableAncillaryAmount: null,
         nonRefundableAncillaryCurrency: null,
       });
 
-      expect(parseDuffelCancellationQuoteId('PENDING_QUOTE')).toEqual({
+      expect(parseSupplierCancellationQuoteId('PENDING_QUOTE')).toEqual({
         quoteId: 'PENDING_QUOTE',
         refundTo: null,
         nonRefundableAncillaryAmount: null,
@@ -126,7 +128,7 @@ describe('CancellationService', () => {
     });
 
     it('parses legacy simple quoteId without delimiter', () => {
-      expect(parseDuffelCancellationQuoteId('can_quo_123')).toEqual({
+      expect(parseSupplierCancellationQuoteId('can_quo_123')).toEqual({
         quoteId: 'can_quo_123',
         refundTo: null,
         nonRefundableAncillaryAmount: null,
@@ -135,7 +137,7 @@ describe('CancellationService', () => {
     });
 
     it('parses serialized multi-part quoteId string', () => {
-      expect(parseDuffelCancellationQuoteId('can_quo_123|balance|15.00|USD')).toEqual({
+      expect(parseSupplierCancellationQuoteId('can_quo_123|balance|15.00|USD')).toEqual({
         quoteId: 'can_quo_123',
         refundTo: 'balance',
         nonRefundableAncillaryAmount: '15.00',
@@ -144,19 +146,35 @@ describe('CancellationService', () => {
     });
 
     it('serializes and round-trips quote metadata', () => {
-      const serialized = serializeDuffelCancellationQuoteId(
+      const serialized = serializeSupplierCancellationQuoteId(
         'can_quo_999',
         'airline_credits',
         '25.00',
         'GBP',
       );
       expect(serialized).toBe('can_quo_999|airline_credits|25.00|GBP');
-      expect(parseDuffelCancellationQuoteId(serialized)).toEqual({
+      expect(parseSupplierCancellationQuoteId(serialized)).toEqual({
         quoteId: 'can_quo_999',
         refundTo: 'airline_credits',
         nonRefundableAncillaryAmount: '25.00',
         nonRefundableAncillaryCurrency: 'GBP',
       });
+    });
+
+    it('maintains backward-compatible alias parity for parse and serialize helpers', () => {
+      expect(parseDuffelCancellationQuoteId).toBe(parseSupplierCancellationQuoteId);
+      expect(serializeDuffelCancellationQuoteId).toBe(serializeSupplierCancellationQuoteId);
+
+      const serializedViaAlias = serializeDuffelCancellationQuoteId(
+        'can_quo_alias',
+        'airline_credits',
+        '50.00',
+        'USD',
+      );
+      expect(serializedViaAlias).toBe('can_quo_alias|airline_credits|50.00|USD');
+      expect(parseDuffelCancellationQuoteId(serializedViaAlias)).toEqual(
+        parseSupplierCancellationQuoteId(serializedViaAlias),
+      );
     });
   });
 

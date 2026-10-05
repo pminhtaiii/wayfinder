@@ -18,8 +18,11 @@ import {
   BookingListResponseDto,
   BookingTab,
 } from './dto';
-import { parseDuffelCancellationQuoteId } from '@/cancellation/cancellation.types';
-export { parseDuffelCancellationQuoteId };
+import {
+  parseDuffelCancellationQuoteId,
+  parseSupplierCancellationQuoteId,
+} from '@/cancellation/cancellation.types';
+export { parseSupplierCancellationQuoteId, parseDuffelCancellationQuoteId };
 
 function isJsonObject(value: unknown): value is Prisma.JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -306,7 +309,7 @@ export class BookingManagementService {
       customerRefundAmount: booking.customerRefundAmount
         ? booking.customerRefundAmount.toString()
         : null,
-      duffelCancellationQuoteId: parseDuffelCancellationQuoteId(
+      duffelCancellationQuoteId: parseSupplierCancellationQuoteId(
         booking.supplierCancellationQuoteId,
       ).quoteId,
       createdAt: booking.createdAt.toISOString(),

@@ -4,6 +4,7 @@ import {
   BoundedSemaphore,
 } from '@/payment-fulfillment/utils/bounded-semaphore';
 import {
+  CancelOrderOutcome,
   CreateOrderInput,
   FulfillmentGatewayPort,
   PassengerEnrichmentInput,
@@ -400,6 +401,30 @@ describe('DuffelFulfillmentAdapter', () => {
   });
 
   describe('cancelOrder', () => {
+    it('forwards the typed cancellation outcome without reinterpreting it as provider data', async () => {
+      const moduleRef = testModules[0];
+      if (!moduleRef) throw new Error('Expected the adapter test module to be initialized.');
+
+      const cancellationService = moduleRef.get(DuffelCancellationService);
+      const expectedOutcome: CancelOrderOutcome = {
+        success: true,
+        orderId: 'ord_123',
+      };
+      const cancelOrder = jest
+        .spyOn(cancellationService, 'cancelOrder')
+        .mockResolvedValue(expectedOutcome);
+
+      await expect(adapter.cancelOrder('ord_123', mockControl)).resolves.toEqual(expectedOutcome);
+
+      expect(cancelOrder).toHaveBeenCalledTimes(1);
+      expect(cancelOrder).toHaveBeenCalledWith('ord_123');
+      expect(mockControl.beforeInvoke).toHaveBeenCalledTimes(1);
+      expect(mockCancellationCreate).not.toHaveBeenCalled();
+      expect(mockCancellationConfirm).not.toHaveBeenCalled();
+      expect(mockOrdersGet).not.toHaveBeenCalled();
+      expect(adapter.semaphore.activeCount).toBe(0);
+    });
+
     it('calls beforeInvoke before Duffel cancellation requests and returns CancelOrderOutcome', async () => {
       mockControl.beforeInvoke = jest.fn().mockImplementation(async () => {
         boundaryOrder.push('beforeInvoke');

@@ -185,3 +185,144 @@ Run from `C:\Booking Systems` on 2026-10-01. T030 rewiring and the T031 checkpoi
 | Full API unit run at `f3793c26` | **PASS**: 128 suites, 2,359 tests. TypeScript check and full API/shared ESLint also pass. The earlier 128-suite/2,346-test run in `api-final-signoff.log` remains a valid historical checkpoint. |
 
 These results record local checks only. T032–T034 checks, code review, scoped convergence, the latest API unit run, and focused E2Es pass. Standards review has 0 open findings and 2 resolved; Spec review is GO. The two human-approved E2E fixture corrections are committed as `34b2db3b` without changing assertions. PR #361 remote CI remains pending push; a green CI result on documentation checkpoint `7af33a78` is historical and does not establish CI status for the current PR head. T035–T043 and broader Phase 5 work remain pending.
+
+---
+
+## Phase 7: Boundary and Provider-Name Census (T056)
+
+Executed from `c:\Booking Systems` on 2026-10-05 across:
+- `apps/api/src/`
+- `packages/shared/src/`
+- `apps/web/`
+- `apps/agent/src/`
+- `apps/api/prisma/schema.prisma`
+
+### 1. Invariant & Boundary Audit Summary
+
+| Audit Item | Target / Invariant | Result | Status |
+| --- | --- | --- | --- |
+| **`DuffelService` in Production** | Exactly 0 references across all production code | **0 hits** across all production source files | **PASS** |
+| **`DuffelModule` in Production** | Exactly 0 references across all production code | **0 hits** across all production source files | **PASS** |
+| **Absent-Assertions in Tests** | Only negative assertions permitted | **3 hits** in `ancillaries.module.spec.ts:21, 34, 38` | **PASS** |
+| **Private SDK Bracket Access `['duffel']`** | Exactly 0 references repository-wide | **0 hits** in `apps/api/src/`, `packages/shared/src/`, `apps/web/`, `apps/agent/src/` | **PASS** |
+| **`@duffel/api` Imports** | Strictly isolated to concrete supplier adapters/providers | **4 production files**, all inside `apps/api/src/supplier/` (`core`, `search`, `ancillary`, `order`) | **PASS** |
+| **Prisma Physical Columns & Indexes** | Non-webhook models must use neutral names (`supplier...`) | All non-webhook columns/indexes use `supplier...` (`supplierOfferId`, `supplierOrderId`, `supplierCancellationQuoteId`, `supplierOfferIdHash`); only webhook table `DuffelWebhookEvent` (`duffel_webhook_events`) retains `duffelOrderId` | **PASS** |
+| **Module Graph & Dependency Flow** | Capability-to-core direction, non-global core, narrow ports | `DuffelCoreModule` has no `@Global()`; imported only by 3 supplier capability modules; `SupplierSearchModule` exports only `FLIGHT_SEARCH_PORT`; zero domain consumers import Duffel core | **PASS** |
+
+---
+
+### 2. Concrete SDK Imports Audit (`@duffel/api`)
+
+Production files importing `@duffel/api`:
+1. `apps/api/src/supplier/core/duffel-sdk.provider.ts` (line 2): Singleton SDK factory & config validator.
+2. `apps/api/src/supplier/search/duffel-search.adapter.ts` (line 10): Concrete search & offer retrieval SDK calls.
+3. `apps/api/src/supplier/ancillary/duffel-ancillary.adapter.ts` (line 2): Seat map & available services SDK calls.
+4. `apps/api/src/supplier/order/duffel-order.adapter.ts` (line 2): Order creation, cancellation quote, & order retrieval SDK calls.
+
+Test files importing `@duffel/api` for typing mock instances:
+- `apps/api/src/ancillaries/ancillaries.service.spec.ts` (line 2): `import { Duffel } from '@duffel/api'` (test double typing).
+- `apps/api/src/payment/ancillary-payment-validation.service.spec.ts` (line 1): `import { Duffel } from '@duffel/api'` (test double typing).
+- `apps/api/src/supplier/ancillary/duffel-ancillary.adapter.spec.ts` (line 3)
+- `apps/api/src/supplier/ancillary/duffel-ancillary.capability.spec.ts` (line 3)
+- `apps/api/src/supplier/ancillary/supplier-ancillary.module.spec.ts` (line 3)
+- `apps/api/src/supplier/core/duffel-core.module.spec.ts` (line 3)
+- `apps/api/src/supplier/order/duffel-order.adapter.spec.ts` (line 1)
+- `apps/api/src/supplier/search/duffel-search.adapter.spec.ts` (line 9)
+
+Zero imports exist in `packages/shared/src/`, `apps/web/`, or `apps/agent/src/`.
+
+---
+
+### 3. Classification of All Legitimate Provider-Named (`duffel`) Occurrences
+
+Every remaining identifier containing `duffel` (case-insensitive) across production source files falls into one of four approved architectural categories:
+
+#### Category A: Concrete Supplier SDK Core & Adapters (`apps/api/src/supplier/`)
+- `apps/api/src/supplier/core/duffel-core.module.ts`: Non-global encapsulation of SDK & budget providers.
+- `apps/api/src/supplier/core/duffel-sdk.provider.ts`: `DUFFEL_SDK` provider, `DUFFEL_SDK_CONFIGURATION`.
+- `apps/api/src/supplier/core/duffel-rate-budget.service.ts`: Daily rate budget enforcement.
+- `apps/api/src/supplier/search/duffel-search.adapter.ts`: Concrete Duffel search adapter.
+- `apps/api/src/supplier/search/duffel-search.service.ts`: Metered search service implementing `FlightSearchPort`.
+- `apps/api/src/supplier/search/flight-offer.normalizer.ts`: Maps raw Duffel offer payloads to canonical `FlightOffer`.
+- `apps/api/src/supplier/ancillary/duffel-ancillary.adapter.ts`: Concrete seat map/services adapter.
+- `apps/api/src/supplier/ancillary/duffel-ancillary.service.ts`: Metered ancillary operations.
+- `apps/api/src/supplier/ancillary/ancillary.normalizer.ts`: Maps raw Duffel seatmaps/services to domain catalog.
+- `apps/api/src/supplier/order/duffel-order.adapter.ts`: Metered order, quote, & order retrieval adapter.
+- `apps/api/src/supplier/order/duffel-fulfillment.adapter.ts`: Implements `FULFILLMENT_GATEWAY_PORT`.
+- `apps/api/src/supplier/order/duffel-cancellation.service.ts`: Concrete cancellation quote & confirm service.
+- `apps/api/src/supplier/order/duffel-recovery.service.ts`: Order retrieval & snapshot mapping service.
+- `apps/api/src/supplier/order/order-snapshot.normalizer.ts`: Maps raw Duffel order payloads into neutral `FlightSnapshot` / `PassengerSnapshot`.
+- `apps/api/src/duffel/duffel.types.ts` & `cancellation-confirmation.ts`: Concrete upstream Duffel TypeScript wire contracts.
+
+#### Category B: Duffel Webhook Subsystem (`apps/api/src/disruption/webhook/` & `schema.prisma`)
+- `apps/api/prisma/schema.prisma` (lines 799–918): `DuffelWebhookEvent` model and `DuffelWebhookEventStatus` enum in table `duffel_webhook_events`.
+- `apps/api/src/disruption/webhook/duffel-webhook.controller.ts`: Webhook listener for Duffel order change events.
+- `apps/api/src/disruption/webhook/duffel-signature.service.ts`: HMAC signature verification using `DUFFEL_WEBHOOK_SECRET`.
+- `apps/api/src/disruption/webhook/duffel-inbox.service.ts`: Webhook inbox deduplication & persistence.
+- `apps/api/src/disruption/webhook/duffel-event.processor.ts`: Asynchronous event processing worker.
+- `apps/api/src/disruption/webhook/duffel-processor-health.service.ts` & `health.controller.ts`: Webhook queue health metrics.
+- `packages/shared/src/disruption-types.ts`: `AdminDuffelWebhookEventDto` and `DuffelWebhookEventStatus`.
+
+#### Category C: Wire & HMAC Attestation Compatibility DTOs / Aliases
+- **Public API Wire DTOs** (`apps/api/src/flights/dto/search-flight.dto.ts`, `apps/api/src/agent-gateway/dto/attested-flight-search.dto.ts`):
+  `duffelOfferId: string` preserved so existing frontend and Python agent clients continue receiving expected JSON wire properties.
+- **HMAC Attestation Compatibility** (`apps/api/src/agent-gateway/selection-attestation.service.ts`, `attested-flight-search.service.ts`, `apps/api/src/chat-handoff/chat-handoff.service.ts`):
+  Signed selection payloads (`sel_v1_`) contain `{ flightOfferId, duffelOfferId }` to ensure HMAC byte-level attestation validity across client-server handoff.
+- **Wire Cancellation Quote Compatibility** (`apps/api/src/cancellation/cancellation.types.ts`, `booking-management/booking-management.service.ts`, `dto/booking-response.dto.ts`):
+  `duffelCancellationQuoteId` and `duffelOrderId` wire fields and backward-compatible function alias `parseDuffelCancellationQuoteId` / `serializeDuffelCancellationQuoteId`.
+- **Wire Ancillary Selection Compatibility** (`packages/shared/src/types/ancillary.types.ts`, `apps/api/src/ancillaries/ancillaries.service.ts`, `ports/fulfillment-gateway.port.ts`):
+  `duffelPassengerId` wire field for selection payload compatibility.
+- **Frontend Edge Ingestion** (`apps/web/lib/server/flight-search.ts:58`):
+  `UpstreamOfferBaseSchema` reads upstream wire `duffelOfferId` and strips it before producing browser client views.
+- **Python Agent Upstream Projection** (`apps/agent/src/agent/guardrails/schemas/tools.py:85`, `search_flights.py:168`):
+  `SearchFlightUpstreamProjection` reads wire `duffelOfferId` and maps it immediately to internal `supplierOfferId`.
+
+#### Category D: Persisted Historical Payment Evidence & Legacy Snapshot Readers
+- **Saga Checkpoint & State Machine** (`apps/api/src/idempotency/payment-idempotency.service.ts:24, 31`, `apps/api/prisma/schema.prisma:617`):
+  `recoveryPoint: 'duffel_order_created'` in `PaymentRecoveryPoint` union type and default progression.
+- **Persisted Payment Events** (`apps/api/src/payment-fulfillment/payment-fulfillment.saga.ts`, `apps/api/src/booking-lifecycle/booking-recovery.service.ts`):
+  Reads historical `PaymentEvent` rows where `eventType: 'duffel_order_created'` or `eventType: 'duffel_order_cancelled'`.
+- **Legacy Snapshot Readers** (`packages/shared/src/booking-types.ts:59`, `apps/api/src/booking-management/booking-management.service.ts:32-50`, `apps/api/src/disruption/domain/itinerary-normalizer.ts:61`):
+  Reads optional legacy `duffelSegmentId` in historical flight snapshots stored in PostgreSQL JSON columns, seamlessly falling back from `supplierSegmentId`.
+- **Security & Observability Guardrails** (`apps/agent/src/agent/graph/nodes.py:417`, `chat_observability.py:30, 52`):
+  Rejects untrusted user-injected `duffelOfferId` at handoff roots and redacts `duffel_offer_id` from telemetry.
+
+---
+
+### 4. Verification Conclusion
+
+Every single occurrence of `duffel` across the target directories has been identified, line-verified, and justified. Zero unexplained runtime hits exist. The boundary encapsulation is complete, types are clean, and non-webhook database columns are fully neutralized. Task T056 is complete.
+
+---
+
+## Phase 7: Pre-PR Gate Matrix and Validation (T055)
+
+Executed from repository root `C:\Booking Systems` on 2026-10-05 on branch `codex/029-duffel-provider-narrowing`.
+
+### 1. Pre-PR Validation Matrix Summary
+
+| Gate / Suite | Target & Command | Exit Code | Result | Status |
+| --- | --- | --- | --- | --- |
+| **CI Workflow Contract** | `node --test tests/ci/ci-workflow.contract.test.mjs` | `0` | **PASS**: 24/24 subtests passed, 0 failures (~1.4s) | **PASS** |
+| **Shared Contracts** | `pnpm --filter @shared/types test` | `0` | **PASS**: 111/111 tests passed, 0 failures (~2.5s) | **PASS** |
+| **API ESLint** | `pnpm exec eslint "apps/api/**/*.ts" "packages/shared/**/*.ts" --max-warnings 0` | `0` | **PASS**: 0 errors, 0 warnings across API and shared packages | **PASS** |
+| **API Typecheck** | `pnpm --filter @api/backend exec tsc -p tsconfig.json --noEmit` | `0` | **PASS**: 0 compilation errors across backend API | **PASS** |
+| **Quickstart Checkpoint 1 (Core & Search)** | `pnpm --filter @api/backend exec jest --runInBand src/supplier/core src/supplier/search src/flights src/agent-gateway/attested-flight-search` | `0` | **PASS**: 14 suites passed, 359 tests passed, 0 failures (~52.8s) | **PASS** |
+| **Quickstart Checkpoint 2 (Ancillary)** | `pnpm --filter @api/backend exec jest --runInBand src/supplier/ancillary src/ancillaries src/payment/ancillary-payment-validation.service.spec.ts` | `0` | **PASS**: 11 suites passed, 153 tests passed, 0 failures (~60.0s) | **PASS** |
+| **Quickstart Checkpoint 3 (Order & Recovery)** | `pnpm --filter @api/backend exec jest --runInBand src/supplier/order src/payment-fulfillment src/cancellation src/booking-lifecycle src/disruption/webhook` | `0` | **PASS**: 18 suites passed, 412 tests passed, 0 failures (~77.8s) | **PASS** |
+| **Quickstart Checkpoint 5 (Contracts & Security)** | `pnpm --filter @api/backend exec jest --runInBand src/agent-gateway/selection-attestation.service.spec.ts src/agent-gateway/attested-flight-search src/booking-management src/disruption/webhook` | `0` | **PASS**: 9 suites passed, 122 tests passed, 0 failures (~39.4s) | **PASS** |
+| **API Unit Suites (local)** | `$env:NODE_OPTIONS = '--require=C:\BOOKIN~1\tests\ci\node-network-guard.cjs'`; `pnpm --filter @api/backend test:ci` | `0` (excl. live DB) | **PARTIAL (local)**: 134/135 test suites passed, 2,367/2,385 tests passed; `supplier-sync.service.spec.ts` was not run because it requires active Docker PostgreSQL at `127.0.0.1:5432` | **PARTIAL** |
+| **Web Typecheck** | `pnpm --filter @web/frontend typecheck` | `0` | **PASS**: 0 TypeScript errors across frontend application | **PASS** |
+| **Web ESLint** | `pnpm --filter @web/frontend lint` | `0` | **PASS**: 0 errors, 0 warnings across web frontend | **PASS** |
+| **Web Production Build** | `pnpm --filter @web/frontend build` | `0` | **PASS**: Next.js production build succeeded, 23/23 static pages generated | **PASS** |
+| **Agent Ruff Check** | `uv run --package agent ruff check apps/agent` | `0` | **PASS**: 0 lint errors across Python agent service | **PASS** |
+| **Agent Ruff Format** | `uv run --package agent ruff format --check apps/agent` | `0` | **PASS**: 0 formatting discrepancies across Python agent service | **PASS** |
+| **Agent Pytest Suite** | `$env:PYTHONPATH = "tests/ci/python;apps/agent/src"`; `uv run --package agent pytest apps/agent/tests -m "not redis_integration"` | `0` | **PASS**: 1,295 passed, 11 skipped, 12 deselected, 0 failed under SC-004 ceilings via documented priority launcher | **PASS** |
+
+---
+
+### 2. Verification Conclusion (T055)
+
+The executed local checks passed, but the local API invocation is partial: the database-backed `supplier-sync.service.spec.ts` suite was not run. This is not a full local API gate pass. Separately, PR [#371](https://github.com/pminhtaiii/wayfinder/pull/371) has recorded successful remote CI in run [37275073216](https://github.com/pminhtaiii/wayfinder/actions/runs/37275073216) at commit `2712cc50ad3cb3898b220fe6d8222dd99483bb3b`; that evidence covers that commit, not later changes. Wire and attestation compatibility are verified byte-for-byte. T055 verification work is complete with these qualifications; Phase 7 remains pending until PR #371 merges.
+
+

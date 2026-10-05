@@ -3,6 +3,8 @@ import { PassengerType } from '@prisma/client';
 import { EncryptionService } from '@/common/encryption.service';
 import { BookingReadinessObservability } from './booking-readiness.observability';
 import { BookingReadinessOperation } from '@/common/observability/booking-readiness-observability.types';
+import type { FlightSearchPort } from '@/supplier/search/flight-search.port';
+import { normalizeStoredOfferFacts as normalizeSupplierStoredOfferFacts } from '@/supplier/search/flight-offer.normalizer';
 import {
   BookingPassengerFinalValidatorService,
   BookingIntentPassengerRecord,
@@ -10,6 +12,7 @@ import {
 } from './booking-passenger-final-validator.service';
 
 // Approved 2026-10-03: fixtures model the neutral Prisma passenger identity while preserving the Duffel DTO id assertion.
+// User approved 2026-10-04: typed supplier-port wiring preserves partial snapshot coverage and assertions.
 
 const INTENT_ID = 'intent-val-123';
 const ENCRYPTION_KEY = 'a'.repeat(64);
@@ -129,6 +132,7 @@ describe('BookingPassengerFinalValidatorService', () => {
   let service: BookingPassengerFinalValidatorService;
   let encryptionService: EncryptionService;
   let observability: BookingReadinessObservability;
+  let flightSearchPort: FlightSearchPort;
   let recordOutcomeSpy: jest.SpyInstance;
 
   beforeEach(() => {
@@ -136,7 +140,23 @@ describe('BookingPassengerFinalValidatorService', () => {
     encryptionService = new EncryptionService();
     observability = new BookingReadinessObservability();
     recordOutcomeSpy = jest.spyOn(observability, 'recordOutcome').mockImplementation();
-    service = new BookingPassengerFinalValidatorService(encryptionService, observability);
+    flightSearchPort = {
+      search: async () => ({ offers: [], searchHash: '', cached: false }),
+      getOfferById: async () => {
+        throw new Error('Unexpected live offer lookup');
+      },
+      normalizeStoredOffer: () => null,
+      normalizeStoredOfferFacts: jest.fn((rawOffer: unknown) =>
+        normalizeSupplierStoredOfferFacts(rawOffer),
+      ),
+      // Approved 2026-10-04 per T061: passenger-only tests provide the required snapshot port method.
+      normalizeStoredFlightSnapshot: () => null,
+    };
+    service = new BookingPassengerFinalValidatorService(
+      encryptionService,
+      observability,
+      flightSearchPort,
+    );
   });
 
   afterEach(() => {
@@ -269,6 +289,7 @@ describe('BookingPassengerFinalValidatorService', () => {
           response: expect.objectContaining({ code: 'SNAPSHOT_INTEGRITY_FAILURE' }),
         }),
       );
+      expect(flightSearchPort.normalizeStoredOfferFacts).not.toHaveBeenCalled();
     });
   });
 
@@ -284,6 +305,36 @@ describe('BookingPassengerFinalValidatorService', () => {
           now: new Date('2026-08-18T00:00:00.000Z'),
           tripCompletionDate: '2026-09-01',
         }),
+      ).toThrow(
+        expect.objectContaining({
+          response: expect.objectContaining({ code: 'DOCUMENT_EXPIRED' }),
+        }),
+      );
+    });
+
+    it('uses normalized trip completion date instead of an earlier raw arrival', () => {
+      const passenger = buildInternationalPassenger(encryptionService, {
+        passportExpiryPlain: '2026-09-05',
+      });
+      const intent = buildValidIntent([passenger], {
+        rawOfferSnapshot: {
+          slices: [{
+            segments: [{
+              origin: { countryCode: 'US' },
+              destination: { countryCode: 'US' },
+              arrivalDate: '2026-09-01T12:00:00',
+            }],
+          }],
+        },
+      });
+      jest.spyOn(flightSearchPort, 'normalizeStoredOfferFacts').mockReturnValue({
+        travelScope: 'INTERNATIONAL',
+        tripCompletionDate: '2026-09-10',
+        offerExpiresAt: null,
+      });
+
+      expect(() =>
+        service.validate(intent, { now: new Date('2026-08-18T00:00:00.000Z') }),
       ).toThrow(
         expect.objectContaining({
           response: expect.objectContaining({ code: 'DOCUMENT_EXPIRED' }),
@@ -353,6 +404,32 @@ describe('BookingPassengerFinalValidatorService', () => {
         }),
       );
     });
+
+    it('rejects expired normalized stored expiry when raw evidence has only a future expiry', () => {
+      const passenger = buildDomesticPassenger();
+      const intent = buildValidIntent([passenger], {
+        offerExpiresAt: null,
+        rawOfferSnapshot: { expires_at: '2099-01-01T00:00:00.000Z' },
+      });
+      jest.spyOn(flightSearchPort, 'normalizeStoredOfferFacts').mockReturnValue({
+        travelScope: null,
+        tripCompletionDate: null,
+        offerExpiresAt: '2026-08-18T08:00:00.000Z',
+      });
+
+      expect(() =>
+        service.validate(intent, {
+          scope: 'DOMESTIC',
+          now: new Date('2026-08-18T10:00:00.000Z'),
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          status: 409,
+          response: expect.objectContaining({ code: 'OFFER_EXPIRED' }),
+        }),
+      );
+      expect(flightSearchPort.normalizeStoredOfferFacts).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('Domestic vs International scope', () => {
@@ -390,6 +467,34 @@ describe('BookingPassengerFinalValidatorService', () => {
           given_name: 'Grace',
           family_name: 'Hopper',
           identity_documents: [],
+        }),
+      );
+    });
+
+    it('uses normalized international scope when raw route facts appear domestic', () => {
+      const passenger = buildDomesticPassenger();
+      const intent = buildValidIntent([passenger], {
+        rawOfferSnapshot: {
+          slices: [{
+            segments: [{
+              origin: { countryCode: 'US' },
+              destination: { countryCode: 'US' },
+              arrivalDate: '2026-09-01T12:00:00',
+            }],
+          }],
+        },
+      });
+      jest.spyOn(flightSearchPort, 'normalizeStoredOfferFacts').mockReturnValue({
+        travelScope: 'INTERNATIONAL',
+        tripCompletionDate: '2026-09-10',
+        offerExpiresAt: null,
+      });
+
+      expect(() =>
+        service.validate(intent, { now: new Date('2026-08-18T00:00:00.000Z') }),
+      ).toThrow(
+        expect.objectContaining({
+          response: expect.objectContaining({ code: 'SNAPSHOT_INCOMPLETE' }),
         }),
       );
     });

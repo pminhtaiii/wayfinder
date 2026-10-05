@@ -14,6 +14,20 @@ import { PaymentIdempotencyService } from '@/idempotency/payment-idempotency.ser
 import { AuditService } from '@/audit/audit.service';
 import { PaymentMethodService } from '@/payment/payment-method.service';
 import { AncillaryPaymentValidationService } from './ancillary-payment-validation.service';
+import type { FlightSearchPort } from '@/supplier/search/flight-search.port';
+
+// Approved 2026-10-04 per T061: these saga fixtures have no saved snapshot; retain their payment assertions.
+const flightSearchPort: FlightSearchPort = {
+  search: async () => ({ offers: [], searchHash: '', cached: false }),
+  getOfferById: async () => { throw new Error('Unexpected live offer lookup'); },
+  normalizeStoredOffer: () => null,
+  normalizeStoredOfferFacts: () => ({
+    travelScope: null,
+    tripCompletionDate: null,
+    offerExpiresAt: null,
+  }),
+  normalizeStoredFlightSnapshot: () => null,
+};
 
 describe('PaymentService - Ancillary Pipeline', () => {
   let service: PaymentService;
@@ -213,6 +227,7 @@ describe('PaymentService - Ancillary Pipeline', () => {
       mockBookingLifecycleService,
       mockPrisma as unknown as PrismaService,
       mockAudit as unknown as AuditService,
+      flightSearchPort,
     );
   });
 

@@ -89,6 +89,7 @@ Always verify the change-aware service chains locally before opening or updating
 - **API Unit Tests**: `$env:NODE_OPTIONS = "--require=$PWD/tests/ci/node-network-guard.cjs"`; `pnpm --filter @api/backend test -- --runInBand`
 - **Web Gate & Build**: `pnpm --filter @web/frontend lint` && `pnpm --filter @web/frontend typecheck` && `pnpm --filter @web/frontend build`
 - **Agent Gate & Tests**: `$env:UV_CACHE_DIR = "c:\Booking Systems\.uv-cache"`; `uv run --package agent ruff check apps/agent` && `uv run --package agent ruff format --check apps/agent`; with `$env:PYTHONPATH = "$PWD/tests/ci/python;$PWD/apps/agent/src"` run `uv run --package agent pytest apps/agent/tests -m "not redis_integration"`
+- **Windows agent timing gate**: If the guarded non-Redis suite repeatedly fails only SC-004 wall-time measurements while its isolated benchmark passes, verify the Python network guard and run the full suite once with `ABOVE_NORMAL_PRIORITY_CLASS` applied only to the Python process executing pytest; restore that process's previous class in `finally`. Keep the suite, sample counts, percentiles, and ceilings unchanged; do not use realtime or machine-wide priority changes. This is a host-specific measured timing mitigation, not a proven scanner regression. See the [T066 verification plan](../docs/superpowers/plans/2026-10-04-feature-029-agent-performance-fix.md) for the exact launcher and evidence.
 - **Branch Protection Requirement**: Only require `ci-status` on branch protection rules for `development`.
 
 ---

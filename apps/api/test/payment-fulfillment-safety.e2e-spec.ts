@@ -17,6 +17,7 @@ import { PaymentFulfillmentSaga } from '@/payment-fulfillment/payment-fulfillmen
 import { RefundTransactionService } from '@/refund/refund-transaction.service';
 import { RefundSettlementService } from '@/refund-settlement/refund-settlement.service';
 import { StripeService } from '@/common/stripe.service';
+import { FLIGHT_SEARCH_PORT } from '@/supplier/search/flight-search.port';
 
 type QueryArgs = {
   where?: Record<string, unknown>;
@@ -306,11 +307,20 @@ async function createSafetyFixture(): Promise<SafetyFixture> {
         }
         throw result;
       }
-      if (isRecord(result) && ['confirmed', 'cancelled', 'canceled'].includes(
+      const isConfirmed = isRecord(result) && ['confirmed', 'cancelled', 'canceled'].includes(
         typeof result.status === 'string' ? result.status.toLowerCase() : '',
-      )) {
+      );
+      if (isConfirmed) {
         cancellationEffects += 1;
         timeline.push('duffel.confirmed');
+      }
+      if (isRecord(result)) {
+        return {
+          success: typeof result.success === 'boolean' ? result.success : isConfirmed,
+          orderId: typeof result.id === 'string' ? result.id : 'order-safety-1',
+          status: typeof result.status === 'string' ? result.status : undefined,
+          ...result,
+        };
       }
       return result;
     }),
@@ -324,6 +334,15 @@ async function createSafetyFixture(): Promise<SafetyFixture> {
       { provide: DuffelRecoveryService, useValue: { mapOrderToSnapshots: jest.fn() } },
       { provide: PAYMENT_GATEWAY_PORT, useValue: paymentGateway },
       { provide: FULFILLMENT_GATEWAY_PORT, useValue: fulfillmentGateway },
+      {
+        provide: FLIGHT_SEARCH_PORT,
+        useValue: {
+          searchFlights: jest.fn(),
+          normalizeStoredFlightSnapshot: jest.fn(),
+          readStoredOfferFacts: jest.fn(),
+          createNeutralStoredOfferMetadata: jest.fn(),
+        },
+      },
       PaymentIdempotencyService,
       PaymentMethodService,
       AuditService,

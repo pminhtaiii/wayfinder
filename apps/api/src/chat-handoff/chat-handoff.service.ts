@@ -18,7 +18,6 @@ import {
   type FlightSearchPort,
   type FlightSegment,
 } from '@/supplier/search/flight-search.port';
-import { complementStoredOfferPayload } from '@/supplier/search/stored-offer-payload.helper';
 import {
   createChatTelemetryEvent,
   emitChatTelemetry,
@@ -400,10 +399,12 @@ export class ChatHandoffService {
       });
     }
 
-    const rawOffer = isJsonRecord(flightOffer.rawOffer) ? flightOffer.rawOffer : null;
-    const rawOfferExpiryStr = isoDateValue(rawOffer?.expires_at);
-    const selectedOfferExpiryStr = selectedOffer.expires_at ?? selectedOffer.expiresAt;
-    const effectiveOfferExpiryStr = rawOfferExpiryStr ?? selectedOfferExpiryStr;
+    const storedFacts = this.flightSearchPort.normalizeStoredOfferFacts(
+      flightOffer.rawOffer,
+      'primary-only',
+    );
+    const effectiveOfferExpiryStr =
+      storedFacts.offerExpiresAt ?? selectedOffer.expires_at ?? selectedOffer.expiresAt;
     if (!effectiveOfferExpiryStr) {
       throw new GoneException({
         code: 'HANDOFF_OFFER_STALE',
@@ -558,9 +559,16 @@ export class ChatHandoffService {
     flightOffer: FlightOffer | null,
     selectedOffer: AttestationOffer,
   ): ChatHandoffDisplayDto | undefined {
-    const payload = complementStoredOfferPayload(flightOffer?.rawOffer, flightOffer);
-    const normalizedOffer = payload
-      ? this.flightSearchPort.normalizeStoredOffer(payload)
+    const normalizedOffer = flightOffer
+      ? this.flightSearchPort.normalizeStoredOffer(flightOffer.rawOffer, {
+          supplierOfferId: flightOffer.supplierOfferId,
+          totalAmount: flightOffer.price != null ? String(flightOffer.price) : undefined,
+          currency: flightOffer.currency,
+          departureDate: flightOffer.departureDate,
+          adults: flightOffer.adults,
+          children: flightOffer.children,
+          infants: flightOffer.infants,
+        })
       : null;
 
     const firstSegment = normalizedOffer?.segments[0];
@@ -784,12 +792,18 @@ export class ChatHandoffService {
       });
     }
 
-    const hadOriginalPassengers =
-      isJsonRecord(flightOffer.rawOffer) &&
-      Array.isArray((flightOffer.rawOffer as Record<string, unknown>).passengers) &&
-      ((flightOffer.rawOffer as Record<string, unknown>).passengers as unknown[]).length > 0;
-    const payload = complementStoredOfferPayload(flightOffer.rawOffer, flightOffer);
-    const normalizedOffer = this.flightSearchPort.normalizeStoredOffer(payload);
+    const normalizedOffer = this.flightSearchPort.normalizeStoredOffer(
+      flightOffer.rawOffer,
+      {
+        supplierOfferId: flightOffer.supplierOfferId,
+        totalAmount: flightOffer.price != null ? String(flightOffer.price) : undefined,
+        currency: flightOffer.currency,
+        adults: flightOffer.adults,
+        children: flightOffer.children,
+        infants: flightOffer.infants,
+      },
+    );
+    const hadOriginalPassengers = normalizedOffer?.passengersWereProvided ?? false;
     if (
       !normalizedOffer ||
       !normalizedOffer.offerExpiresAt ||

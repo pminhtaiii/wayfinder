@@ -13,6 +13,7 @@ import {
   PersistedOrderEvidence,
 } from '@/payment-fulfillment/ports';
 import { PrismaService } from '@/prisma/prisma.service';
+import type { FlightSearchPort } from '@/supplier/search/flight-search.port';
 
 const order = { id: 'order-1', booking_reference: 'PNR123' };
 const boundSelection = {
@@ -25,6 +26,19 @@ const boundSelection = {
     { serviceId: 'bag-1', quantity: 2 },
     { serviceId: 'bag-1', quantity: 2 },
   ],
+};
+
+// Approved 2026-10-04 per T061: these saga fixtures have no saved snapshot; retain their payment assertions.
+const flightSearchPort: FlightSearchPort = {
+  search: async () => ({ offers: [], searchHash: '', cached: false }),
+  getOfferById: async () => { throw new Error('Unexpected live offer lookup'); },
+  normalizeStoredOffer: () => null,
+  normalizeStoredOfferFacts: () => ({
+    travelScope: null,
+    tripCompletionDate: null,
+    offerExpiresAt: null,
+  }),
+  normalizeStoredFlightSnapshot: () => null,
 };
 
 type HarnessOptions = {
@@ -268,6 +282,7 @@ function buildHarness(options: HarnessOptions = {}) {
     booking as unknown as BookingLifecycleService,
     prisma as unknown as PrismaService,
     audit as unknown as AuditService,
+    flightSearchPort,
   );
 
   return {
