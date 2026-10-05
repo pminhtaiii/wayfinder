@@ -142,7 +142,7 @@ Approved Slice 6.1 scope: T045 pins legacy reads and strict stale-agent state; n
 
 ## Phase 7: Polish and cross-cutting audit
 
-- [ ] T055 Run full pre-PR API/shared/web/agent gates and E2E scenarios from `context/testing.md` and `specs/029-duffel-provider-narrowing/quickstart.md`; record pass/fail evidence in `specs/029-duffel-provider-narrowing/verification.md`.
+- [x] T055 Run full pre-PR API/shared/web/agent gates and E2E scenarios from `context/testing.md` and `specs/029-duffel-provider-narrowing/quickstart.md`; record pass/fail evidence in `specs/029-duffel-provider-narrowing/verification.md`.
 - [x] T056 Audit remaining `DuffelService`, `DuffelModule`, private SDK, `@duffel/api`, and provider-named identifier hits in `apps/api/src/`, `packages/shared/src/`, `apps/web/`, `apps/agent/src/`, and `apps/api/prisma/schema.prisma`; document only SDK/webhook/wire/history exceptions in `specs/029-duffel-provider-narrowing/verification.md`.
 - [x] T057 Update implemented architecture and status in `context/architecture.md` and `context/progress-checker.md`; update `context/library-docs.md` and other directly affected context files if their Duffel guidance is stale.
 
