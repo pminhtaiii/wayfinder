@@ -11,18 +11,18 @@ Do not mark a capability complete because it appears in architecture or planning
 Overall status:
 
 ```text
-FEATURES 001–028 100% COMPLETE / FEATURE 029 IMPLEMENTATION MERGED / FINAL-SOURCE CI PASSED / T093 BLOCKED AND NOT RUN; ACCEPTANCE INCOMPLETE
+FEATURES 001–028 100% COMPLETE / FEATURE 029 COMPLETE / FINAL-SOURCE CI PASSED / T093 ACCEPTANCE PASSED; LOCAL API PARTIAL
 ```
 
 Feature 029 was developed on `codex/029-duffel-provider-narrowing` and PR [#371](https://github.com/pminhtaiii/wayfinder/pull/371) merged into `development` at `8efbfc5aff4eea7179ef83529d11898b7e8477fb`. Exact-source CI run [37278447237](https://github.com/pminhtaiii/wayfinder/actions/runs/37278447237) passed on source HEAD `791947c365c95e2721893c90cc3d92a433938117`; the API unit job passed 135/135 suites, including the database-backed supplier-sync suite, and API E2E passed 71/71 suites. The local T055 API invocation remains partial at 134/135 suites and 2,367/2,385 tests; remote CI covers the omitted suite but does not change the local result. Earlier Slice 6.2 verification remains recorded under PR [#370](https://github.com/pminhtaiii/wayfinder/pull/370), run [37188540602](https://github.com/pminhtaiii/wayfinder/actions/runs/37188540602), source `551c3890cd37f65ded2adf900244fc9ca0d76dd8`. PR #368 closed without merging; PRs #369 and #370 are historical merged slices.
 
 ---
 
-## Feature 029 — Narrow the Duffel Supplier Boundary (Acceptance Incomplete)
+## Feature 029 — Narrow the Duffel Supplier Boundary (Complete)
 
-Feature 029 implementation tasks T001–T057 and convergence tasks T058–T067 are complete and merged. The boundary census found zero unexplained runtime hits. The remaining acceptance gate is T093, a full real-flow Playwright run against its dedicated disposable database and runner-owned services. T093 is blocked and was not run: `prisma migrate deploy` first failed to download the schema engine through the configured proxy (`ECONNREFUSED 127.0.0.1:9`); one corrective attempt with the cached Windows engine failed to parse the engine response (`Unexpected token 'o', "operable p"...`) before any migration was applied. The worker cleaned up only its runner-owned PostgreSQL and Redis containers, and left existing containers untouched. No application service, Playwright process, or test assertion ran, and no successful T093 exit code exists. The local API run remains partial (134/135 suites, 2,367/2,385 tests); exact-source remote CI passes the omitted database-backed supplier-sync suite. Feature 029 must remain incomplete until T093 completes with exit code 0. See the [post-merge verification record](../specs/029-duffel-provider-narrowing/verification.md#post-merge-integration-and-acceptance-update-2026-10-05).
+Feature 029 implementation tasks T001–T057 and convergence tasks T058–T067 are complete and merged. The boundary census found zero unexplained runtime hits. T093 full real-flow Playwright acceptance passed with exit code 0: one Chromium test completed in 4.9 minutes against a fresh disposable database after 25 migrations and seeding 4,562 airports, including SGN and HAN. The documented timeout values were set in the Playwright process, application source and test assertions were unchanged, and only runner-owned PostgreSQL and Redis containers were stopped. Exact-final-source CI run [37278447237](https://github.com/pminhtaiii/wayfinder/actions/runs/37278447237) passed the API unit job (135/135 suites, including the database-backed supplier-sync suite) and API E2E job (71/71 suites). The local API run remains partial (134/135 suites, 2,367/2,385 tests); remote CI provides coverage for the omitted suite without changing the local result. Feature 029 acceptance is complete. See the [Feature 029 verification record](../specs/029-duffel-provider-narrowing/verification.md) for the final T093 result and historical attempts.
 
-Feature 030 has not been specified or selected. Next-feature planning waits only for the user's selection; T093 remains the separate Feature 029 acceptance blocker. No backlog item or second supplier has been selected.
+Feature 030 has not been specified or selected. Next-feature planning waits only for user selection. No backlog item or second supplier has been selected.
 
 Detailed phase-by-phase execution, live task checklists, and exit gates are tracked in [active-feature.md](./active-feature.md).
 
@@ -35,7 +35,7 @@ Detailed phase-by-phase execution, live task checklists, and exit gates are trac
 - [x] Phase 6: Neutral Naming & Physical Schema (US4) (T044–T054 complete & CI verified on PR #370, run `37188540602`)
 - [x] Phase 8: Convergence — Non-Global Core Module (T058)
 - [x] Phase 9: Convergence — Boundary Census & Gate Remediation (T059–T067)
-- [ ] Phase 7: Final Verification & Audit (T055–T057 evidence recorded; PR #371 merged and exact-source CI passed; pending T093 real-flow acceptance, currently blocked before test launch)
+- [x] Phase 7: Final Verification & Audit (T055–T057 evidence recorded; PR #371 merged and exact-source CI passed; T093 real-flow acceptance passed)
 
 Exit gate:
 ```text

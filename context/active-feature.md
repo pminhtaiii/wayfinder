@@ -4,22 +4,22 @@ This file tracks the currently active in-flight feature, its checkpoints, and ex
 
 ---
 
-## Feature 029 — Narrow the Duffel Supplier Boundary
+## Feature 029 — Narrow the Duffel Supplier Boundary (Complete)
 
-- **Status**: Feature 029 implementation and integration are complete and verified; acceptance is incomplete because the required T093 real-flow Playwright gate is blocked and has not run
+- **Status**: Complete; implementation, integration, and T093 real-flow acceptance are verified
 - **Branch**: `codex/029-duffel-provider-narrowing`
 - **Specification**: [specs/029-duffel-provider-narrowing/spec.md](../specs/029-duffel-provider-narrowing/spec.md)
 - **Implementation Plan**: [specs/029-duffel-provider-narrowing/plan.md](../specs/029-duffel-provider-narrowing/plan.md)
 - **Tasks**: [specs/029-duffel-provider-narrowing/tasks.md](../specs/029-duffel-provider-narrowing/tasks.md)
 
 ### Current Summary
-PR [#371](https://github.com/pminhtaiii/wayfinder/pull/371) merged into `development` at `8efbfc5aff4eea7179ef83529d11898b7e8477fb`; its tested source HEAD is `791947c365c95e2721893c90cc3d92a433938117`. Exact-source CI run [37278447237](https://github.com/pminhtaiii/wayfinder/actions/runs/37278447237) succeeded. Its API unit job passed all 135 suites, including `supplier-sync.service.spec.ts`, and its API E2E job passed 71/71 suites. The local T055 API invocation remains partial at 134/135 suites and 2,367/2,385 tests because the database-backed suite was unavailable in that invocation; remote CI supplies coverage for that suite without changing the local result. The required T093 full real-flow Playwright gate is blocked and unrun: `prisma migrate deploy` first failed to download the schema engine through the configured proxy (`ECONNREFUSED 127.0.0.1:9`). One corrective attempt using the cached Windows engine then failed to parse the engine response (`Unexpected token 'o', "operable p"...`) before any migration was applied. The runner-owned database and Redis containers were removed after the attempt; existing containers were untouched. No application service, Playwright process, or T093 assertion ran, and no T093 exit code 0 exists. See the [post-merge verification record](../specs/029-duffel-provider-narrowing/verification.md#post-merge-integration-and-acceptance-update-2026-10-05).
+PR [#371](https://github.com/pminhtaiii/wayfinder/pull/371) merged into `development` at `8efbfc5aff4eea7179ef83529d11898b7e8477fb`; its tested source HEAD is `791947c365c95e2721893c90cc3d92a433938117`. Exact-source CI run [37278447237](https://github.com/pminhtaiii/wayfinder/actions/runs/37278447237) succeeded. Its API unit job passed all 135 suites, including `supplier-sync.service.spec.ts`, and its API E2E job passed 71/71 suites. The local T055 API invocation remains partial at 134/135 suites and 2,367/2,385 tests because the database-backed suite was unavailable in that invocation; remote CI supplies coverage for that suite without changing the local result. T093 passed: the corrected full-flow Playwright run exited 0 with one Chromium test passing in 4.9 minutes against a fresh disposable database after 25 migrations and seeding 4,562 airports, including SGN and HAN. The documented timeout values were set in the Playwright process; application source and test assertions were unchanged. Only the runner-owned PostgreSQL and Redis containers were stopped, and existing containers remained untouched. See the [Feature 029 verification record](../specs/029-duffel-provider-narrowing/verification.md) for the final acceptance result and historical attempts.
 
 Historical Slice 6.2 (T047–T054: Neutral Names and Physical Schema) completed on remote CI. The forward migration `20260929000000_supplier_identifiers` renamed all 11 non-webhook columns and 5 dependent indexes without `@map` annotations. Dedicated disposable databases `feature029_slice62_fresh` and `feature029_slice62_upgrade` verified the full migration chain and upgrade path with 16 preserved sentinels, 12 links, and null controls. Consumer modules across booking, payment, cancellation, disruption, and agent gateway were migrated without type assertions; public wire compatibility and signed `sel_v1_` HMAC bytes were preserved. That slice's local validation recorded API 134 suites/2,337 tests, 66/66 affected E2Es, contracts 111/111, web compatibility 122/122, and clean typechecks and ESLint. Standards and Spec reviews completed with findings addressed.
 
 Earlier integration history: PR [#369](https://github.com/pminhtaiii/wayfinder/pull/369) (Part 1) merged into `development` (`09806abd`); PR #368 closed without merging. Historical slice PR [#370](https://github.com/pminhtaiii/wayfinder/pull/370) (Part 2) replaced #368 and merged into `development`. PR #370’s final pushed HEAD `551c3890cd37f65ded2adf900244fc9ca0d76dd8` was verified by remote CI run [37188540602](https://github.com/pminhtaiii/wayfinder/actions/runs/37188540602), with all 12 jobs successful. See the [Slice 6.2 verification record](../specs/029-duffel-provider-narrowing/slice-6-2-verification.md#remote-ci-verification-pull-request-370) for that historical slice’s PR history and job results.
 
-Phase 9 convergence (T059–T067), Phase 7 Boundary Census (T056), and the T055–T057 final verification work are complete. The census found zero unexplained runtime provider hits, with `@duffel/api` confined to four supplier adapter files and non-webhook database names neutralized. T059–T067 resolved the recorded boundary and gate findings: supplier travel, completion, expiry, and passenger facts flow through `FLIGHT_SEARCH_PORT`; booking snapshots and cancellation outcomes are normalized at supplier boundaries; cancellation quote helpers use Supplier vocabulary with wire aliases preserved; the agent security performance gate is green; and the Playwright API launcher honors the caller's `DATABASE_URL`. PR #371 is merged and exact-source CI is recorded above. Feature acceptance remains pending T093.
+Phase 9 convergence (T059–T067), Phase 7 Boundary Census (T056), T055–T057 final verification, and the T093 real-flow acceptance gate are complete. The census found zero unexplained runtime provider hits, with `@duffel/api` confined to four supplier adapter files and non-webhook database names neutralized. T059–T067 resolved the recorded boundary and gate findings: supplier travel, completion, expiry, and passenger facts flow through `FLIGHT_SEARCH_PORT`; booking snapshots and cancellation outcomes are normalized at supplier boundaries; cancellation quote helpers use Supplier vocabulary with wire aliases preserved; the agent security performance gate is green; and the Playwright API launcher honors the caller database URL. PR #371 is merged and exact-source CI is recorded above. T093 final passing run is documented in the verification record.
 
 Review follow-up: Prisma consumers and database fixtures use the renamed supplier fields, with explicit mappings preserving existing HTTP keys, signed selection payloads, and `DuffelWebhookEvent.duffelOrderId`. The final expiry-normalization correction and regression cases are included in tested source HEAD `791947c365c95e2721893c90cc3d92a433938117`, covered by exact-source CI run [37278447237](https://github.com/pminhtaiii/wayfinder/actions/runs/37278447237). That CI run did not execute the separate T093 real-flow Playwright gate.
 
@@ -122,14 +122,14 @@ Exit gate:
 clean migration from scratch; zero orphan duffel database columns; wire compatibility preserved (verified on dedicated fresh/upgrade DBs; 66/66 E2Es pass; 134 suites / 2,337 unit tests pass)
 ```
 
-### Phase 7 — Final Verification & Audit (T055–T057; pending T093 acceptance)
+### Phase 7 — Final Verification & Audit (T055–T057; T093 acceptance complete)
 - [x] Record API/shared/web/agent, E2E, security, and remote CI gate results (T055; local API result is partial, with remote CI evidence recorded separately).
 - [x] Audit supplier boundary and provider-name compatibility exceptions (T056).
 - [x] Synchronize implemented architecture, progress, and relevant library guidance (T057).
 
 Exit gate:
 ```text
-T055–T057 evidence recorded; PR #371 merged to development; exact-source CI passed; T093 real-flow acceptance must complete successfully before Feature 029 is marked complete
+T055–T057 evidence recorded; PR #371 merged to development; exact-source CI passed; T093 full real-flow Playwright acceptance passed; Feature 029 complete
 ```
 
 ### Phase 9 — Convergence (Phase 7 Boundary Census & Gate Remediation; T059–T067)
