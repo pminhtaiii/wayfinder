@@ -358,3 +358,25 @@ The checked-in `apps/web/tests/chat-t093-real-flow.spec.ts` was unchanged for th
 Both runner-owned `--rm` containers were stopped by their verified IDs and removed: PostgreSQL `codex-t093-resume-a1db1376-postgres` (`127.0.0.1:5447`) and Redis `codex-t093-resume-a1db1376-redis` (`127.0.0.1:6391`). The pre-existing `flight-postgres` and `flight-redis` remained running; app ports 3000–3003 and disposable ports 5447/6391 were clear after teardown. The Playwright error artifact remains available under `test-results/chat-t093-real-flow-T093-r-67610--token-only-consumed-intent-chromium/`.
 
 **Current result: T093 is not passed and Feature 029 acceptance closeout remains incomplete.** Isolated migration and seed setup succeeded, but no full T093 run exited 0. The remaining acceptance gate is completion of the unchanged real-flow stream through the search and checkout assertions. This local result is separate from final-source CI run 37278447237 at `791947c365c95e2721893c90cc3d92a433938117`; that run’s web gate executed characterization and did not run T093.
+
+#### Historical seeded-retry PowerShell invocation
+
+This is the actual launch used for the seeded retry that timed out. It is recorded historically, including the environment settings that were actually assigned. The disposable PostgreSQL password is redacted. The timeout variables required by `context/testing.md` were not assigned by this invocation; the Playwright artifact reports a test timeout of 180,000 ms.
+
+```powershell
+# Run from C:\Booking Systems
+$env:T093_REAL_FLOW = 'true'
+$env:DATABASE_URL = 'postgresql://postgres:<redacted>@127.0.0.1:5447/t093_closeout_20261005_resume_a1db1376'
+$env:PRISMA_SCHEMA_ENGINE_BINARY = (Join-Path (Get-Location) '.scratch\t093-resume-a1db1376\schema-engine.exe')
+$runLog = Join-Path (Get-Location) '.scratch\t093-resume-a1db1376\playwright-second.log'
+Push-Location apps/web
+try {
+  & '.\node_modules\.bin\playwright.cmd' test --config='C:\Booking Systems\.scratch\t093-resume-a1db1376\playwright.config.ts' tests/chat-t093-real-flow.spec.ts *> $runLog
+  $code = $LASTEXITCODE
+} finally {
+  Pop-Location
+}
+Get-Content $runLog | Where-Object { $_ -match '^Running [0-9]+ test|^  [0-9]+ passed|^  [0-9]+ failed|^\s+\[chromium\]|^T093_PLAYWRIGHT_EXIT|Error:|Test timeout' } | ForEach-Object { $_ }
+"T093_PLAYWRIGHT_EXIT=$code"
+exit $code
+```
