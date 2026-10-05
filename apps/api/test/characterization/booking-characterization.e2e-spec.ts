@@ -325,7 +325,7 @@ describe('Booking Characterization (E2E)', () => {
       expect(projection!.origin).toBe('SGN');
       expect(projection!.destination).toBe('HAN');
       expect(projection!.airline).toBe('Vietnam Airlines');
-      expect(projection!.flightNumber).toBe('VN VN123');
+      expect(projection!.flightNumber).toBe('VN123');
       expect(projection!.stopCount).toBe(0);
       expect(projection!.baggageSummary).toBe('1 checked bag (23kg)');
     });
