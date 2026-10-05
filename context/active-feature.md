@@ -4,6 +4,18 @@ This file tracks the currently active in-flight feature, its checkpoints, and ex
 
 ---
 
+## CI Test Suite Separation (Implemented; Verification Limits Recorded)
+
+- **Goal**: Separate unit, interface/component, infrastructure integration/migration, and performance results while preserving existing required coverage.
+- **Direction**: Independent suite commands and named change-aware CI jobs, a shared smoke/critical-flow startup, and one required `ci-status` aggregate.
+- **Decision record**: [CI test boundaries](../docs/adr/research-ci-test-boundaries-grilling-session.md).
+- **Exit gates**: Exhaustive suite partition checks, focused runner checks, workflow/status contract tests, package lint/typechecks, and independent review. Infrastructure-backed checks require available disposable services; record any unexecuted checks explicitly.
+- **Delivered**: Four API test lanes, web unit/browser-interface lanes, three agent lanes, independent local commands, and fail-closed `ci-status` aggregation. Shared smoke/critical-flow startup is retained.
+- **Verified**: All 206 existing required API suites classified exactly once; web isolated Node tests 420/420; agent isolated tests 1,290 passed/4 skipped before additional guard regressions; CI contracts 40/40; network/smoke-runner checks 25/25; focused disposable-database API tests 18/18; package lint/typechecks and independent reviews passed.
+- **Limits**: Browser characterization passed 14/16 with navigation timeout/route expectation failures. Optional web route-contract cases fail locally (56/64); two unchanged agent benchmark latency assertions fail on this Windows host. One Redis wait-time check passed in isolation after a timing failure in the full Redis lane. Remote CI, the full API runtime matrix, and T093 were not rerun. See the decision record for exact results and final browser/guard verification.
+
+---
+
 ## Feature 029 — Narrow the Duffel Supplier Boundary (Complete)
 
 - **Status**: Complete; implementation, integration, and T093 real-flow acceptance are verified

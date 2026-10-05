@@ -147,8 +147,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Lint API and shared code
         run: pnpm exec eslint "apps/api/**/*.ts" "packages/shared/**/*.ts" --max-warnings 0
-      - name: Run shared package contract tests
-        run: pnpm --filter @shared/types test
+      - name: Build shared package
+        run: pnpm build:shared
       - name: Generate Prisma Client
         run: pnpm --filter @api/backend exec prisma generate
       - name: Typecheck API
@@ -159,28 +159,8 @@ jobs:
     if: ${{ needs.detect-changes.outputs.api == 'true' && needs.api-gate.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: flight_booking
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d flight_booking"
-          --health-interval 10s --health-timeout 5s --health-retries 5
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s --health-timeout 5s --health-retries 5
     env:
-      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/flight_booking?schema=public
-      REDIS_URL: redis://127.0.0.1:6379/0
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ci_dummy?schema=public
       NODE_ENV: test
       DUFFEL_ACCESS_TOKEN: duffel_test_ci_not_a_secret
       STRIPE_SECRET_KEY: sk_test_ci_not_a_secret
@@ -210,17 +190,114 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
       - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
-      - name: Build shared package, generate Prisma Client, and deploy migrations
+      - name: Build shared package and generate Prisma Client
         run: |
           pnpm build:shared
           pnpm --filter @api/backend exec prisma generate
-          pnpm --filter @api/backend exec prisma migrate deploy
       - name: Run API unit tests with loopback-only network
         env:
           NODE_OPTIONS: --require=${{ github.workspace }}/tests/ci/node-network-guard.cjs
-        run: pnpm --filter @api/backend run test:ci
+        run: pnpm --filter @api/backend run test:unit
 
-  api-e2e-tests:
+  api-interface-tests:
+    needs: [detect-changes, api-gate]
+    if: ${{ needs.detect-changes.outputs.api == 'true' && needs.api-gate.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ci_dummy?schema=public
+      NODE_ENV: test
+      DUFFEL_ACCESS_TOKEN: duffel_test_ci_not_a_secret
+      STRIPE_SECRET_KEY: sk_test_ci_not_a_secret
+      STRIPE_WEBHOOK_SECRET: whsec_ci_not_a_secret
+      JWT_SECRET: ci-not-a-secret-jwt
+      AGENT_SERVICE_API_KEY: ci-not-a-secret-agent-key
+      CLAIM_TOKEN_SECRET: ci-not-a-secret-claim-key
+      ATTESTATION_SECRET: ci-not-a-secret-attestation
+      ENCRYPTION_KEY: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      CHAT_ENCRYPTION_KEY: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    steps:
+      - name: Use LF checkout behavior
+        run: git config --global core.autocrlf input
+      - name: Checkout pull request
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up pnpm 10.34.5
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 10.34.5
+      - name: Set up Node 20
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install Node dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build shared package and generate Prisma Client
+        run: |
+          pnpm build:shared
+          pnpm --filter @api/backend exec prisma generate
+      - name: Verify API test partitions cover the previous suite
+        run: pnpm --filter @api/backend exec node test/api-test-partition.contract.test.mjs
+      - name: Run shared package contract tests
+        run: pnpm --filter @shared/types test
+      - name: Run API contract tests with loopback-only network
+        env:
+          NODE_OPTIONS: --require=${{ github.workspace }}/tests/ci/node-network-guard.cjs
+        run: pnpm --filter @api/backend run test:contract
+      - name: Run API component tests with loopback-only network
+        env:
+          NODE_OPTIONS: --require=${{ github.workspace }}/tests/ci/node-network-guard.cjs
+        run: pnpm --filter @api/backend run test:component
+
+  api-performance-tests:
+    needs: [detect-changes, api-gate]
+    if: ${{ needs.detect-changes.outputs.api == 'true' && needs.api-gate.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ci_dummy?schema=public
+      NODE_ENV: test
+      DUFFEL_ACCESS_TOKEN: duffel_test_ci_not_a_secret
+      STRIPE_SECRET_KEY: sk_test_ci_not_a_secret
+      STRIPE_WEBHOOK_SECRET: whsec_ci_not_a_secret
+      JWT_SECRET: ci-not-a-secret-jwt
+      AGENT_SERVICE_API_KEY: ci-not-a-secret-agent-key
+      CLAIM_TOKEN_SECRET: ci-not-a-secret-claim-key
+      ATTESTATION_SECRET: ci-not-a-secret-attestation
+      ENCRYPTION_KEY: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      CHAT_ENCRYPTION_KEY: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    steps:
+      - name: Use LF checkout behavior
+        run: git config --global core.autocrlf input
+      - name: Checkout pull request
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up pnpm 10.34.5
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 10.34.5
+      - name: Set up Node 20
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install Node dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build shared package and generate Prisma Client
+        run: |
+          pnpm build:shared
+          pnpm --filter @api/backend exec prisma generate
+      - name: Run API performance checks with loopback-only network
+        env:
+          NODE_OPTIONS: --require=${{ github.workspace }}/tests/ci/node-network-guard.cjs
+        run: pnpm --filter @api/backend run test:performance:unit
+
+  api-integration-tests:
     needs: [detect-changes, api-gate]
     if: ${{ needs.detect-changes.outputs.api == 'true' && needs.api-gate.result == 'success' }}
     runs-on: ubuntu-latest
@@ -303,11 +380,11 @@ jobs:
           NODE_OPTIONS: --require=${{ github.workspace }}/tests/ci/node-network-guard.cjs
           T054_ADMIN_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres?schema=public
         run: node tests/ci/supplier-identifiers-migration.e2e.mjs
-      - name: Run API E2E tests with loopback-only network
+      - name: Run API integration tests with loopback-only network
         env:
           NODE_OPTIONS: --require=${{ github.workspace }}/tests/ci/node-network-guard.cjs
           TIKTOKEN_CACHE_DIR: ${{ github.workspace }}/.tiktoken_cache
-        run: pnpm --filter @api/backend test:e2e
+        run: pnpm --filter @api/backend run test:integration
 
   web-gate:
     needs: detect-changes
@@ -343,13 +420,67 @@ jobs:
         run: |
           pnpm build:shared
           pnpm --filter @web/frontend typecheck
-      - name: Run supplier identity compatibility tests
+
+  web-unit-tests:
+    needs: [detect-changes, web-gate]
+    if: ${{ needs.detect-changes.outputs.web == 'true' && needs.web-gate.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Use LF checkout behavior
+        run: git config --global core.autocrlf input
+      - name: Checkout pull request
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up pnpm 10.34.5
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 10.34.5
+      - name: Set up Node 20
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install Node dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build shared package
+        run: pnpm build:shared
+      - name: Run web unit tests with loopback-only network
         env:
           NODE_OPTIONS: --require=${{ github.workspace }}/tests/ci/node-network-guard.cjs
-        run: pnpm --filter @web/frontend run test:compatibility
-      - name: Run web characterization safety checks
-        env:
-          PLAYWRIGHT_FRONTEND_ONLY: 'true'
+        run: pnpm --filter @web/frontend run test:unit
+
+  web-interface-tests:
+    needs: [detect-changes, web-gate]
+    if: ${{ needs.detect-changes.outputs.web == 'true' && needs.web-gate.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PLAYWRIGHT_FRONTEND_ONLY: 'true'
+    steps:
+      - name: Use LF checkout behavior
+        run: git config --global core.autocrlf input
+      - name: Checkout pull request
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up pnpm 10.34.5
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 10.34.5
+      - name: Set up Node 20
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install Node dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build shared package
+        run: pnpm build:shared
+      - name: Run web interface characterization
         run: pnpm --filter @web/frontend test:characterization
 
   web-build:
@@ -415,12 +546,56 @@ jobs:
         run: uv python install 3.11
       - name: Install Agent dependencies from root lock
         run: uv sync --locked --package agent
+      - name: Validate complete Agent test partition
+        env:
+          CI_VALIDATE_TEST_PARTITIONS: '1'
+        run: uv run --package agent pytest apps/agent/tests --collect-only -qq
       - name: Lint Agent
         run: |
           uv run --package agent ruff check apps/agent
           uv run --package agent ruff format --check apps/agent
 
-  agent-tests:
+  agent-unit-tests:
+    needs: [detect-changes, agent-gate]
+    if: ${{ needs.detect-changes.outputs.agent == 'true' && needs.agent-gate.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NODE_ENV: test
+      JWT_SECRET: ci-not-a-secret-jwt
+      AGENT_SERVICE_API_KEY: ci-not-a-secret-agent-key
+      CLAIM_TOKEN_SECRET: ci-not-a-secret-claim-key
+      NESTJS_API_URL: http://127.0.0.1:3001/api
+      MIMO_API_KEY: test-mimo-key
+      MIMO_API_URL: http://127.0.0.1:8000
+      TIKTOKEN_CACHE_DIR: ${{ github.workspace }}/.tiktoken_cache
+    steps:
+      - name: Use LF checkout behavior
+        run: git config --global core.autocrlf input
+      - name: Checkout pull request
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up uv 0.12.0 and Python 3.11
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: 0.12.0
+          python-version: '3.11'
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install Python 3.11
+        run: uv python install 3.11
+      - name: Install Agent dependencies from root lock
+        run: uv sync --locked --package agent
+      - name: Pre-warm tiktoken cache
+        run: uv run python -c "import tiktoken; tiktoken.get_encoding('cl100k_base')"
+      - name: Run Agent unit tests with loopback-only network
+        env:
+          PYTHONPATH: ${{ github.workspace }}/tests/ci/python:${{ github.workspace }}/apps/agent/src
+          TIKTOKEN_CACHE_DIR: ${{ github.workspace }}/.tiktoken_cache
+        run: uv run --package agent pytest apps/agent/tests -m agent_unit --strict-markers
+
+  agent-integration-tests:
     needs: [detect-changes, agent-gate]
     if: ${{ needs.detect-changes.outputs.agent == 'true' && needs.agent-gate.result == 'success' }}
     runs-on: ubuntu-latest
@@ -463,17 +638,62 @@ jobs:
         run: uv sync --locked --package agent
       - name: Pre-warm tiktoken cache
         run: uv run python -c "import tiktoken; tiktoken.get_encoding('cl100k_base')"
-      - name: Run non-Redis Agent tests with loopback-only network
-        env:
-          PYTHONPATH: ${{ github.workspace }}/tests/ci/python:${{ github.workspace }}/apps/agent/src
-          TIKTOKEN_CACHE_DIR: ${{ github.workspace }}/.tiktoken_cache
-        run: uv run --package agent pytest apps/agent/tests -m "not redis_integration"
-      - name: Run required Redis integration tests with loopback-only network
+      - name: Run required Agent Redis integration tests with loopback-only network
         env:
           PYTHONPATH: ${{ github.workspace }}/tests/ci/python:${{ github.workspace }}/apps/agent/src
           CI_REQUIRE_REDIS_TESTS: '1'
           TIKTOKEN_CACHE_DIR: ${{ github.workspace }}/.tiktoken_cache
-        run: uv run --package agent pytest apps/agent/tests -m redis_integration --strict-markers
+        run: uv run --package agent pytest apps/agent/tests -m agent_redis --strict-markers
+
+  agent-performance-tests:
+    needs: [detect-changes, agent-gate]
+    if: ${{ needs.detect-changes.outputs.agent == 'true' && needs.agent-gate.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      REDIS_URL: redis://127.0.0.1:6379/0
+      NODE_ENV: test
+      JWT_SECRET: ci-not-a-secret-jwt
+      AGENT_SERVICE_API_KEY: ci-not-a-secret-agent-key
+      CLAIM_TOKEN_SECRET: ci-not-a-secret-claim-key
+      NESTJS_API_URL: http://127.0.0.1:3001/api
+      MIMO_API_KEY: test-mimo-key
+      MIMO_API_URL: http://127.0.0.1:8000
+      TIKTOKEN_CACHE_DIR: ${{ github.workspace }}/.tiktoken_cache
+    steps:
+      - name: Use LF checkout behavior
+        run: git config --global core.autocrlf input
+      - name: Checkout pull request
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up uv 0.12.0 and Python 3.11
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: 0.12.0
+          python-version: '3.11'
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install Python 3.11
+        run: uv python install 3.11
+      - name: Install Agent dependencies from root lock
+        run: uv sync --locked --package agent
+      - name: Pre-warm tiktoken cache
+        run: uv run python -c "import tiktoken; tiktoken.get_encoding('cl100k_base')"
+      - name: Run required Agent performance tests with loopback-only network
+        env:
+          PYTHONPATH: ${{ github.workspace }}/tests/ci/python:${{ github.workspace }}/apps/agent/src
+          CI_REQUIRE_PERFORMANCE_TESTS: '1'
+          TIKTOKEN_CACHE_DIR: ${{ github.workspace }}/.tiktoken_cache
+        run: uv run --package agent pytest apps/agent/tests -m agent_performance --strict-markers
 
   security-sast:
     needs: detect-changes
@@ -579,15 +799,15 @@ jobs:
           retention-days: 5
 
   smoke-and-sanity:
-    needs: [detect-changes, api-unit-tests, api-e2e-tests, web-build, agent-tests]
+    needs: [detect-changes, api-unit-tests, api-interface-tests, api-integration-tests, api-performance-tests, web-build, web-unit-tests, web-interface-tests, agent-unit-tests, agent-integration-tests, agent-performance-tests]
     if: >-
       ${{
         always() &&
         needs.detect-changes.result == 'success' &&
         (needs.detect-changes.outputs.api == 'true' || needs.detect-changes.outputs.web == 'true' || needs.detect-changes.outputs.agent == 'true') &&
-        (needs.detect-changes.outputs.api != 'true' || (needs.api-unit-tests.result == 'success' && needs.api-e2e-tests.result == 'success')) &&
-        (needs.detect-changes.outputs.web != 'true' || needs.web-build.result == 'success') &&
-        (needs.detect-changes.outputs.agent != 'true' || needs.agent-tests.result == 'success')
+        (needs.detect-changes.outputs.api != 'true' || (needs.api-unit-tests.result == 'success' && needs.api-interface-tests.result == 'success' && needs.api-integration-tests.result == 'success' && needs.api-performance-tests.result == 'success')) &&
+        (needs.detect-changes.outputs.web != 'true' || (needs.web-build.result == 'success' && needs.web-unit-tests.result == 'success' && needs.web-interface-tests.result == 'success')) &&
+        (needs.detect-changes.outputs.agent != 'true' || (needs.agent-unit-tests.result == 'success' && needs.agent-integration-tests.result == 'success' && needs.agent-performance-tests.result == 'success'))
       }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -700,11 +920,17 @@ jobs:
         detect-changes,
         api-gate,
         api-unit-tests,
-        api-e2e-tests,
+        api-interface-tests,
+        api-integration-tests,
+        api-performance-tests,
         web-gate,
         web-build,
+        web-unit-tests,
+        web-interface-tests,
         agent-gate,
-        agent-tests,
+        agent-unit-tests,
+        agent-integration-tests,
+        agent-performance-tests,
         security-sast,
         security-supply-chain,
         smoke-and-sanity,
@@ -719,11 +945,17 @@ jobs:
       SECURITY_CHANGED: ${{ needs.detect-changes.outputs.security }}
       API_GATE_RESULT: ${{ needs.api-gate.result }}
       API_UNIT_TESTS_RESULT: ${{ needs.api-unit-tests.result }}
-      API_E2E_TESTS_RESULT: ${{ needs.api-e2e-tests.result }}
+      API_INTERFACE_TESTS_RESULT: ${{ needs.api-interface-tests.result }}
+      API_INTEGRATION_TESTS_RESULT: ${{ needs.api-integration-tests.result }}
+      API_PERFORMANCE_TESTS_RESULT: ${{ needs.api-performance-tests.result }}
       WEB_GATE_RESULT: ${{ needs.web-gate.result }}
       WEB_BUILD_RESULT: ${{ needs.web-build.result }}
+      WEB_UNIT_TESTS_RESULT: ${{ needs.web-unit-tests.result }}
+      WEB_INTERFACE_TESTS_RESULT: ${{ needs.web-interface-tests.result }}
       AGENT_GATE_RESULT: ${{ needs.agent-gate.result }}
-      AGENT_TESTS_RESULT: ${{ needs.agent-tests.result }}
+      AGENT_UNIT_TESTS_RESULT: ${{ needs.agent-unit-tests.result }}
+      AGENT_INTEGRATION_TESTS_RESULT: ${{ needs.agent-integration-tests.result }}
+      AGENT_PERFORMANCE_TESTS_RESULT: ${{ needs.agent-performance-tests.result }}
       SECURITY_SAST_RESULT: ${{ needs.security-sast.result }}
       SECURITY_SUPPLY_CHAIN_RESULT: ${{ needs.security-supply-chain.result }}
       SMOKE_AND_SANITY_RESULT: ${{ needs.smoke-and-sanity.result }}

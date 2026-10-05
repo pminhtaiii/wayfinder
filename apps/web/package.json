@@ -10,7 +10,12 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "playwright test --config=tests/playwright.config.ts",
-    "test:characterization": "playwright test tests/characterization/ --config=tests/playwright.config.ts",
+    "test:unit": "node scripts/run-node-tests.mjs unit",
+    "test:route-contracts": "node scripts/run-node-tests.mjs routes",
+    "test:node": "node scripts/run-node-tests.mjs all",
+    "test:interface": "node scripts/run-playwright.mjs interface",
+    "test:characterization": "pnpm test:interface",
+    "test:system": "node scripts/run-playwright.mjs system",
     "test:compatibility": "tsx --test lib/server/flight-search.spec.ts lib/server/booking-management.spec.ts tests/handoff-checkout-proxy.unit.ts tests/supplier-identity-injection.unit.ts"
   },
   "dependencies": {

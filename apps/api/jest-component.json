@@ -1,0 +1,23 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testTimeout": 30000,
+  "testMatch": [
+    "<rootDir>/src/**/*.module.spec.ts",
+    "<rootDir>/src/**/*.adapter.spec.ts",
+    "<rootDir>/src/flights/flights-module-wiring.spec.ts",
+    "<rootDir>/test/supplier-order-module.e2e-spec.ts",
+    "<rootDir>/test/supplier-order-services.e2e-spec.ts",
+    "<rootDir>/test/supplier-ancillary.e2e-spec.ts",
+    "<rootDir>/test/ancillary-catalog.e2e-spec.ts",
+    "<rootDir>/test/payment-fulfillment-safety.e2e-spec.ts"
+  ],
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "moduleNameMapper": {
+    "^@/(.*)$": "<rootDir>/src/$1",
+    "^@shared/(.*)$": "<rootDir>/../../packages/shared/src/$1"
+  }
+}

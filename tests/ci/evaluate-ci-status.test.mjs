@@ -4,28 +4,23 @@ import { dirname, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { evaluateCiStatus } from '../../scripts/ci/evaluate-ci-status.mjs';
+import { evaluateCiStatus, SERVICE_CHAINS } from '../../scripts/ci/evaluate-ci-status.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const evaluatorPath = resolve(root, 'scripts/ci/evaluate-ci-status.mjs');
 const SMOKE_JOB = 'smoke-and-sanity';
 
 function flatResults({ api, web, agent, smoke }) {
+  const changes = { api, web, agent, security: 'false' };
+  const jobs = Object.fromEntries(
+    Object.entries(SERVICE_CHAINS).flatMap(([service, chain]) =>
+      chain.map((job) => [job, changes[service] === 'true' ? 'success' : 'skipped']),
+    ),
+  );
   return {
-    api,
-    web,
-    agent,
-    security: 'false',
+    ...changes,
     'detect-changes': 'success',
-    'api-gate': api === 'true' ? 'success' : 'skipped',
-    'api-unit-tests': api === 'true' ? 'success' : 'skipped',
-    'api-e2e-tests': api === 'true' ? 'success' : 'skipped',
-    'web-gate': web === 'true' ? 'success' : 'skipped',
-    'web-build': web === 'true' ? 'success' : 'skipped',
-    'agent-gate': agent === 'true' ? 'success' : 'skipped',
-    'agent-tests': agent === 'true' ? 'success' : 'skipped',
-    'security-sast': 'skipped',
-    'security-supply-chain': 'skipped',
+    ...jobs,
     [SMOKE_JOB]: smoke,
   };
 }
@@ -137,14 +132,11 @@ function cliEnvironment(smoke) {
     AGENT_CHANGED: 'false',
     SECURITY_CHANGED: 'false',
     API_GATE_RESULT: 'skipped',
-    API_UNIT_TESTS_RESULT: 'skipped',
-    API_E2E_TESTS_RESULT: 'skipped',
-    WEB_GATE_RESULT: 'skipped',
-    WEB_BUILD_RESULT: 'skipped',
-    AGENT_GATE_RESULT: 'skipped',
-    AGENT_TESTS_RESULT: 'skipped',
-    SECURITY_SAST_RESULT: 'skipped',
-    SECURITY_SUPPLY_CHAIN_RESULT: 'skipped',
+    ...Object.fromEntries(
+      Object.values(SERVICE_CHAINS)
+        .flat()
+        .map((job) => [`${job.replaceAll('-', '_').toUpperCase()}_RESULT`, 'skipped']),
+    ),
     ...(smoke === undefined ? {} : { SMOKE_AND_SANITY_RESULT: smoke }),
   };
   if (smoke === undefined) {

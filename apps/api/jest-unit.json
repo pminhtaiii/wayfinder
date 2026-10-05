@@ -1,0 +1,21 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "src",
+  "testEnvironment": "node",
+  "testMatch": ["<rootDir>/**/*.spec.ts"],
+  "testPathIgnorePatterns": [
+    "\\.module\\.spec\\.ts$",
+    "\\.adapter\\.spec\\.ts$",
+    "flights-module-wiring\\.spec\\.ts$",
+    "compatibility\\.spec\\.ts$",
+    "performance\\.spec\\.ts$",
+    "supplier-sync\\.service\\.spec\\.ts$"
+  ],
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "moduleNameMapper": {
+    "^@/(.*)$": "<rootDir>/$1",
+    "^@shared/(.*)$": "<rootDir>/../../../packages/shared/src/$1"
+  }
+}

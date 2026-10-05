@@ -6,6 +6,8 @@ import pytest
 from agent.queue.message_queue import SessionLockRepository
 
 CI_REQUIRE_REDIS_TESTS = os.environ.get("CI_REQUIRE_REDIS_TESTS") == "1"
+CI_REQUIRE_PERFORMANCE_TESTS = os.environ.get("CI_REQUIRE_PERFORMANCE_TESTS") == "1"
+CI_VALIDATE_TEST_PARTITIONS = os.environ.get("CI_VALIDATE_TEST_PARTITIONS") == "1"
 
 # Set environment variables before importing any application code
 os.environ["JWT_SECRET"] = "testsecret_must_be_at_least_32_bytes_long_for_security_reasons"
@@ -17,19 +19,40 @@ os.environ["FEATURE_FLAG_BOOKING_READINESS"] = "true"
 
 
 def pytest_collection_modifyitems(items):
-    """Classify tests using the real Redis fixture as integration coverage."""
+    """Assign each test to exactly one primary CI lane."""
     for item in items:
         if "redis_client" in item.fixturenames or "t098_redis_client" in item.fixturenames:
             item.add_marker(pytest.mark.redis_integration)
+        if item.get_closest_marker("performance"):
+            item.add_marker(pytest.mark.agent_performance)
+        elif item.get_closest_marker("redis_integration"):
+            item.add_marker(pytest.mark.agent_redis)
+        else:
+            item.add_marker(pytest.mark.agent_unit)
 
 
 def pytest_collection_finish(session):
-    """CI must prove that the Redis integration group is present and non-empty."""
-    if CI_REQUIRE_REDIS_TESTS and not any(
-        item.get_closest_marker("redis_integration") for item in session.items
+    """Check lane membership and required lane coverage after test collection."""
+    lanes = ("agent_unit", "agent_redis", "agent_performance")
+    lane_counts = {
+        lane: sum(item.get_closest_marker(lane) is not None for item in session.items)
+        for lane in lanes
+    }
+    if any(
+        sum(item.get_closest_marker(lane) is not None for lane in lanes) != 1
+        for item in session.items
     ):
+        pytest.exit("Every test must belong to exactly one agent CI lane", returncode=1)
+    if CI_VALIDATE_TEST_PARTITIONS and sum(lane_counts.values()) != len(session.items):
+        pytest.exit("Agent CI lane union does not cover every collected test", returncode=1)
+    if CI_REQUIRE_REDIS_TESTS and not lane_counts["agent_redis"]:
         pytest.exit(
             "CI_REQUIRE_REDIS_TESTS=1 requires at least one redis_integration test",
+            returncode=1,
+        )
+    if CI_REQUIRE_PERFORMANCE_TESTS and not lane_counts["agent_performance"]:
+        pytest.exit(
+            "CI_REQUIRE_PERFORMANCE_TESTS=1 requires at least one performance test",
             returncode=1,
         )
 
@@ -39,14 +62,21 @@ def pytest_runtest_makereport(item, call):
     """Turn an unavailable required Redis service from a skip into a failure."""
     outcome = yield
     report = outcome.get_result()
-    if (
-        CI_REQUIRE_REDIS_TESTS
+    required_redis = (CI_REQUIRE_REDIS_TESTS and item.get_closest_marker("agent_redis")) or (
+        CI_REQUIRE_PERFORMANCE_TESTS
+        and item.get_closest_marker("agent_performance")
         and item.get_closest_marker("redis_integration")
-        and report.when == "setup"
+    )
+    if (
+        required_redis
+        and item.get_closest_marker("redis_integration")
+        and report.when in {"setup", "call"}
         and report.skipped
     ):
         report.outcome = "failed"
-        report.longrepr = "Redis integration test skipped while CI_REQUIRE_REDIS_TESTS=1"
+        report.longrepr = (
+            "Redis integration test skipped while Redis-backed CI coverage is required"
+        )
 
 
 @pytest.fixture(autouse=True)

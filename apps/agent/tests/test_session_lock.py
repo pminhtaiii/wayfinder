@@ -8,6 +8,8 @@ import pytest
 from agent.queue.message_queue import MessageQueueManager
 from agent.repositories.session_lock_repository import SessionLockRepository
 
+pytestmark = pytest.mark.redis_integration
+
 
 @pytest.fixture(autouse=True)
 async def setup_redis():
