@@ -128,10 +128,7 @@ export class DuffelAncillaryService {
     let catalog: AncillaryCatalog;
     try {
       const [rawSeatMaps, rawOffer] = await Promise.race([
-        Promise.all([
-          this.adapter.getSeatMaps(offerId),
-          this.adapter.getOfferWithServices(offerId),
-        ]),
+        this.adapter.getCatalogData(offerId),
         timeoutPromise,
       ]);
       catalog = this.normalizer.normalizeCatalog(rawSeatMaps, rawOffer);

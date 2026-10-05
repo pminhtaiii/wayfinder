@@ -1,3 +1,5 @@
+// User approved on 2026-10-03: internal fixture names match the domain rename.
+// Values and scenarios are unchanged.
 import type {
   AncillaryCatalog,
   AncillaryPassenger,
@@ -87,21 +89,21 @@ const catalog: AncillaryCatalog = {
 const passengers: AncillaryPassenger[] = [
   {
     intentPassengerId: 'local-adult',
-    duffelPassengerId: 'pas-adult',
+    supplierPassengerId: 'pas-adult',
     displayName: 'Adult',
     type: 'ADULT',
     seatEligible: true,
   },
   {
     intentPassengerId: 'local-child',
-    duffelPassengerId: 'pas-child',
+    supplierPassengerId: 'pas-child',
     displayName: 'Child',
     type: 'CHILD',
     seatEligible: true,
   },
   {
     intentPassengerId: 'local-infant',
-    duffelPassengerId: 'pas-infant',
+    supplierPassengerId: 'pas-infant',
     displayName: 'Infant',
     type: 'INFANT',
     seatEligible: false,

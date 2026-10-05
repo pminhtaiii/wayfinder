@@ -113,7 +113,7 @@ describe('Traveler Profile & Booking Readiness Migration E2E', () => {
     const intent = await prisma.bookingIntent.create({
       data: {
         userId: user.id,
-        duffelOfferId: 'offer_123',
+        supplierOfferId: 'offer_123',
         status: 'PENDING',
         originalPrice: 100.0,
         confirmedPrice: 100.0,
@@ -181,7 +181,7 @@ describe('Traveler Profile & Booking Readiness Migration E2E', () => {
     const intent = await prisma.bookingIntent.create({
       data: {
         userId: user.id,
-        duffelOfferId: 'offer_1234',
+        supplierOfferId: 'offer_1234',
         status: 'PENDING',
         originalPrice: 150.0,
         confirmedPrice: 150.0,

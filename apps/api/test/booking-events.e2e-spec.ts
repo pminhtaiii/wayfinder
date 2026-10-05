@@ -184,7 +184,7 @@ describe('Booking Events & Projection Updates E2E (US2 - T033)', () => {
       data: {
         id,
         userId,
-        duffelOfferId: `off_${randomUUID()}`,
+        supplierOfferId: `off_${randomUUID()}`,
         originalPrice: 450.0,
         confirmedPrice: 450.0,
         currency: 'GBP',
@@ -194,13 +194,17 @@ describe('Booking Events & Projection Updates E2E (US2 - T033)', () => {
         departureDate: new Date('2026-10-01'),
         adults: 1,
         rawOfferSnapshot: {
+          totalDuration: sampleFlightSnapshot.totalDuration,
+          stops: sampleFlightSnapshot.stops,
+          cabinClass: sampleFlightSnapshot.cabinClass,
           segments: [
             {
               departureAirport: { iataCode: 'JFK', name: 'John F Kennedy Intl', city: 'New York' },
               arrivalAirport: { iataCode: 'LHR', name: 'London Heathrow', city: 'London' },
               departureAt: new Date(Date.now() + 86400000).toISOString(),
               arrivalAt: new Date(Date.now() + 86400000 + 7 * 3600000).toISOString(),
-              airline: { name: 'Delta Air Lines' },
+              duration: 'PT7H',
+              airline: { name: 'Delta Air Lines', iataCode: 'DL' },
               operatingCarrierName: 'Delta Air Lines',
               flightNumber: 'DL100',
             },
@@ -422,7 +426,8 @@ describe('Booking Events & Projection Updates E2E (US2 - T033)', () => {
 
       const recovered = await lifecycleService.recordRecoveryOutcome(bookingId, 'CONFIRMED', {
         pnrReference: 'PNR_REC_1',
-        duffelOrderId: 'ORD_REC_1',
+        // Approved 2026-10-03: this internal recovery detail uses the neutral Prisma identity; historical metadata stays unchanged.
+        supplierOrderId: 'ORD_REC_1',
         recoveryOutcome: 'CONFIRMED_AFTER_PROCESSING',
         flightSnapshot: sampleFlightSnapshot,
         passengerSnapshot: samplePassengerSnapshot,

@@ -560,6 +560,8 @@ async def test_sse_action_handoff_ordering_and_schema(mock_nestjs_client, multi_
     headers = get_auth_headers()
 
     trusted_snapshot = {
+        # User approved on 2026-10-03: rename only this internal handoff snapshot fixture to the
+        # canonical identity field; gateway and SSE contract fixtures remain legacy-shaped.
         # User-approved CI fixture correction (2026-09-09): trusted snapshots
         # must identify the authenticated owner and session for handoff validation.
         "userId": "12345",
@@ -570,7 +572,7 @@ async def test_sse_action_handoff_ordering_and_schema(mock_nestjs_client, multi_
         "results": [
             {
                 "flightOfferId": "offer-123",
-                "duffelOfferId": "duffel-secret-456",
+                "supplierOfferId": "duffel-secret-456",
                 "airline": "VN",
                 "flightNumber": "VN310",
                 "departureAirport": "HAN",

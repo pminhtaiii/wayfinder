@@ -16,7 +16,6 @@ import { AgentBookingReadinessModule } from './agent-gateway/booking-readiness/a
 import { SafeBookingReadModule } from './agent-gateway/safe-booking-read/safe-booking-read.module';
 import { TravelerPreferencesModule } from './agent-gateway/traveler-preferences/traveler-preferences.module';
 import { AirportsModule } from './airports/airports.module';
-import { DuffelModule } from './duffel/duffel.module';
 import { SupplierOrderModule } from './supplier/order/supplier-order.module';
 import { SupplierSearchModule } from './supplier/search/supplier-search.module';
 import { FlightsModule } from './flights/flights.module';
@@ -135,7 +134,6 @@ export const envSchema = z
     SafeBookingReadModule,
     TravelerPreferencesModule,
     AirportsModule,
-    DuffelModule,
     SupplierOrderModule,
     SupplierSearchModule,
     FlightsModule,

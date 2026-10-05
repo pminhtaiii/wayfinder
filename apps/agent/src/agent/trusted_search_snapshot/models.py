@@ -36,7 +36,7 @@ class TrustedSearchResult(BaseModel):
 
     offerIndex: int = Field(gt=0, strict=True)
     flightOfferId: str = Field(min_length=1)
-    duffelOfferId: str = Field(min_length=1)
+    supplierOfferId: str = Field(min_length=1)
     airline: str
     origin: str
     destination: str

@@ -18,7 +18,6 @@ import { AppModule } from '@/app.module';
 import { PrismaService } from '@/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { StripeService } from '@/common/stripe.service';
-import { DuffelService } from '@/duffel/duffel.service';
 import { BookingLifecycleService } from '@/booking-lifecycle/booking-lifecycle.service';
 import { BookingRecoveryService } from '@/booking-lifecycle/booking-recovery.service';
 import { BookingManagementService } from '@/booking-management/booking-management.service';
@@ -54,7 +53,6 @@ describe('Booking Characterization (E2E)', () => {
   let prisma: PrismaService;
   let jwtService: JwtService;
   let stripeService: StripeService;
-  let duffelService: DuffelService;
   let bookingLifecycleService: BookingLifecycleService;
   let bookingRecoveryService: BookingRecoveryService;
   let bookingManagementService: BookingManagementService;
@@ -84,7 +82,6 @@ describe('Booking Characterization (E2E)', () => {
     prisma = moduleFixture.get<PrismaService>(PrismaService);
     jwtService = moduleFixture.get<JwtService>(JwtService);
     stripeService = moduleFixture.get<StripeService>(StripeService);
-    duffelService = moduleFixture.get<DuffelService>(DuffelService);
     bookingLifecycleService = moduleFixture.get<BookingLifecycleService>(BookingLifecycleService);
     bookingRecoveryService = moduleFixture.get<BookingRecoveryService>(BookingRecoveryService);
     bookingManagementService =
@@ -154,7 +151,7 @@ describe('Booking Characterization (E2E)', () => {
     return prisma.bookingIntent.create({
       data: {
         userId,
-        duffelOfferId: `off_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        supplierOfferId: `off_${Date.now()}_${Math.random().toString(36).slice(2)}`,
         status: 'AWAITING_PAYMENT',
         originalPrice: new Prisma.Decimal(price),
         confirmedPrice: new Prisma.Decimal(price),
@@ -244,7 +241,7 @@ describe('Booking Characterization (E2E)', () => {
       expect(booking.currency).toBe('USD');
       expect(booking.failureReason).toBeNull();
       expect(booking.pnrReference).toBeNull();
-      expect(booking.duffelOrderId).toBeNull();
+      expect(booking.supplierOrderId).toBeNull();
     });
 
     it('idempotently returns existing booking when called again with same bookingIntentId or bookingId', async () => {
@@ -310,7 +307,7 @@ describe('Booking Characterization (E2E)', () => {
 
       expect(confirmedBooking.status).toBe(BookingStatus.CONFIRMED);
       expect(confirmedBooking.pnrReference).toBe(pnr);
-      expect(confirmedBooking.duffelOrderId).toBe(duffelOrderId);
+      expect(confirmedBooking.supplierOrderId).toBe(duffelOrderId);
       expect(confirmedBooking.departureAt).toEqual(new Date('2027-10-01T08:00:00Z'));
       expect(confirmedBooking.failureReason).toBeNull();
       expect(confirmedBooking.flightSnapshot).toBeDefined();
@@ -328,7 +325,7 @@ describe('Booking Characterization (E2E)', () => {
       expect(projection!.origin).toBe('SGN');
       expect(projection!.destination).toBe('HAN');
       expect(projection!.airline).toBe('Vietnam Airlines');
-      expect(projection!.flightNumber).toBe('VN VN123');
+      expect(projection!.flightNumber).toBe('VN123');
       expect(projection!.stopCount).toBe(0);
       expect(projection!.baggageSummary).toBe('1 checked bag (23kg)');
     });
@@ -591,7 +588,7 @@ describe('Booking Characterization (E2E)', () => {
 
       expect(reconciled.status).toBe(BookingStatus.CONFIRMED);
       expect(reconciled.pnrReference).toBe('REC123');
-      expect(reconciled.duffelOrderId).toBe('ord_stale_rec_123');
+      expect(reconciled.supplierOrderId).toBe('ord_stale_rec_123');
       expect(reconciled.departureAt).toBeDefined();
 
       const updatedPayment = await prisma.payment.findUniqueOrThrow({ where: { id: payment.id } });
@@ -658,7 +655,7 @@ describe('Booking Characterization (E2E)', () => {
           currency: 'USD',
           status: BookingStatus.CONFIRMED,
           pnrReference: 'DET001',
-          duffelOrderId: 'ord_detail_1',
+          supplierOrderId: 'ord_detail_1',
           flightSnapshot: sampleFlightSnapshot as unknown as Prisma.InputJsonValue,
           passengerSnapshot: samplePassengerSnapshot as unknown as Prisma.InputJsonValue,
           departureAt: new Date('2027-10-01T08:00:00Z'),

@@ -1724,4 +1724,34 @@ describe('flight-search server seam', () => {
       });
     });
   });
+
+  describe('Feature 029 browser identity boundary baseline', (): void => {
+    it('rejects a future supplier identity field without serializing provider identifiers', async (): Promise<void> => {
+      const responseOffer = {
+        ...upstreamOffer,
+        supplierOfferId: 'supplier_offer_secret',
+      };
+      globalThis.fetch = async (): Promise<Response> =>
+        new Response(
+          JSON.stringify({
+            mode: 'RANKED',
+            results: [{ ...responseOffer, matchResult: null }],
+            meta: validRankedMeta,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+
+      const outcome = await searchFlights(validQuery);
+
+      assert.equal(outcome.ok, false);
+      if (!outcome.ok) {
+        assert.equal(outcome.reason, 'UPSTREAM_UNAVAILABLE');
+      }
+      const serialized = JSON.stringify(outcome);
+      assert.equal(serialized.includes('duffelOfferId'), false);
+      assert.equal(serialized.includes('supplierOfferId'), false);
+      assert.equal(serialized.includes('off_provider_secret'), false);
+      assert.equal(serialized.includes('supplier_offer_secret'), false);
+    });
+  });
 });

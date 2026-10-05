@@ -1,3 +1,5 @@
+# User approved on 2026-10-03: canonical snapshot inputs use supplierOfferId and public projections
+# must keep that neutral identity hidden alongside legacy provider and flight identifiers.
 import json
 import logging
 from datetime import datetime, timedelta, timezone
@@ -140,7 +142,7 @@ def test_trusted_snapshot_serialization_and_projection_zero_leakage():
             TrustedSearchResult(
                 offerIndex=1,
                 flightOfferId="local_flight_offer_id_uuid_777777",
-                duffelOfferId="off_01H123456789ABCDEF000000",
+                supplierOfferId="off_01H123456789ABCDEF000000",
                 airline="VN",
                 origin="SGN",
                 destination="HAN",
@@ -152,7 +154,7 @@ def test_trusted_snapshot_serialization_and_projection_zero_leakage():
             TrustedSearchResult(
                 offerIndex=2,
                 flightOfferId="flight-offer-local-uuid-1234",
-                duffelOfferId="duffel_offer_id_duff_123456789",
+                supplierOfferId="duffel_offer_id_duff_123456789",
                 airline="VJ",
                 origin="SGN",
                 destination="HAN",
@@ -183,6 +185,7 @@ def test_trusted_snapshot_serialization_and_projection_zero_leakage():
         assert "duffel_offer_id_duff_123456789" not in projected_json
         assert "flightOfferId" not in projected_json
         assert "duffelOfferId" not in projected_json
+        assert "supplierOfferId" not in projected_json
 
         for forbidden in FORBIDDEN_PRIVACY_CORPUS:
             assert forbidden not in projected_json
@@ -215,7 +218,7 @@ async def test_trusted_snapshot_repository_redis_operations():
             TrustedSearchResult(
                 offerIndex=1,
                 flightOfferId="local_flight_offer_id_uuid_777777",
-                duffelOfferId="off_01H123456789ABCDEF000000",
+                supplierOfferId="off_01H123456789ABCDEF000000",
                 airline="VN",
                 origin="SGN",
                 destination="HAN",
@@ -348,6 +351,7 @@ def test_sse_action_handoff_event_schema_boundary():
         "offerId",
         "flightOfferId",
         "duffelOfferId",
+        "supplierOfferId",
         "userId",
         "sessionId",
         "url",
@@ -459,7 +463,7 @@ async def test_sse_streaming_chunk_stream_simulation_scan():
             TrustedSearchResult(
                 offerIndex=1,
                 flightOfferId="flight-offer-local-uuid-1234",
-                duffelOfferId="duffel_offer_id_duff_123456789",
+                supplierOfferId="duffel_offer_id_duff_123456789",
                 airline="Vietnam Airlines",
                 origin="SGN",
                 destination="HAN",

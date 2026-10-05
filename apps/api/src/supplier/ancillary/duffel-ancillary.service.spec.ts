@@ -1,12 +1,15 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { Duffel } from '@duffel/api';
+import { Test, TestingModule } from '@nestjs/testing';
 import { CacheService } from '@/cache/cache.service';
 import {
   BudgetReservationResult,
   DuffelRateBudgetService,
 } from '@/supplier/core/duffel-rate-budget.service';
+import { DUFFEL_SDK } from '@/supplier/core/duffel-core.module';
 import { AncillaryCatalog } from '@shared/types';
-import { DuffelService } from '@/duffel/duffel.service';
+import { AncillaryNormalizer } from './ancillary.normalizer';
+import { DuffelAncillaryAdapter } from './duffel-ancillary.adapter';
+import { DuffelAncillaryService } from './duffel-ancillary.service';
 
 type RawSeatMap = Record<string, unknown>;
 type RawOffer = {
@@ -107,12 +110,13 @@ const deferred = <T>(): {
   return { promise, resolve: resolvePromise };
 };
 
-describe('DuffelService ancillary catalog contract', () => {
-  let service: DuffelService;
+describe('DuffelAncillaryService catalog contract', () => {
+  let moduleRef: TestingModule | undefined;
+  let service: DuffelAncillaryService;
   let cache: jest.Mocked<Pick<CacheService, 'get' | 'set' | 'getTtl'>>;
   let rateBudget: jest.Mocked<Pick<DuffelRateBudgetService, 'reserveAttempt'>>;
 
-  beforeEach(() => {
+  beforeEach(async (): Promise<void> => {
     mockSeatMapsGet.mockReset();
     mockOffersGet.mockReset();
     cache = {
@@ -127,17 +131,26 @@ describe('DuffelService ancillary catalog contract', () => {
       >().mockResolvedValue({ ok: true }),
     };
 
-    // The installed SDK exposes many operations; this test double implements only the two calls
-    // exercised by getSeatMapsAndServices, so the cast keeps the boundary narrow and typed.
     const sdk = {
       seatMaps: { get: mockSeatMapsGet },
       offers: { get: mockOffersGet },
-    } as unknown as Duffel;
-    service = new DuffelService(
-      cache as unknown as CacheService,
-      rateBudget as unknown as DuffelRateBudgetService,
-      sdk,
-    );
+    };
+    moduleRef = await Test.createTestingModule({
+      providers: [
+        DuffelAncillaryService,
+        DuffelAncillaryAdapter,
+        AncillaryNormalizer,
+        { provide: DUFFEL_SDK, useValue: sdk },
+        { provide: DuffelRateBudgetService, useValue: rateBudget },
+        { provide: CacheService, useValue: cache },
+      ],
+    }).compile();
+    service = moduleRef.get(DuffelAncillaryService);
+  });
+
+  afterEach(async (): Promise<void> => {
+    await moduleRef?.close();
+    moduleRef = undefined;
   });
 
   it('returns a seat-map-unavailable segment while retaining baggage on a supplier 404', async () => {

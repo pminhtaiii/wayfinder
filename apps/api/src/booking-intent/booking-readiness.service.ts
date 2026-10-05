@@ -252,7 +252,7 @@ export class BookingReadinessService {
     passengers: readonly ResolvedPassenger[],
     context?: ReadinessContext,
     flightOffer?: {
-      duffelOfferId?: string | null;
+      supplierOfferId?: string | null;
       price?: unknown;
       currency?: string | null;
       departureDate?: Date | string | null;
@@ -383,7 +383,7 @@ export class BookingReadinessService {
   normalizeStoredOffer(
     rawOffer: unknown,
     flightOffer?: {
-      duffelOfferId?: string | null;
+      supplierOfferId?: string | null;
       price?: unknown;
       currency?: string | null;
       departureDate?: Date | string | null;
@@ -452,7 +452,7 @@ export class BookingReadinessService {
   private assertOfferNotExpired(
     rawOffer: unknown,
     flightOffer?: {
-      duffelOfferId?: string | null;
+      supplierOfferId?: string | null;
       price?: unknown;
       currency?: string | null;
       departureDate?: Date | string | null;

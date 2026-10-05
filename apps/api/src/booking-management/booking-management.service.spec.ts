@@ -1,8 +1,14 @@
+// Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Test } from '@nestjs/testing';
 import { BookingStatus, DisruptionStatus } from '@prisma/client';
+import { BookingLifecycleService } from '@/booking-lifecycle/booking-lifecycle.service';
+import { PrismaService } from '@/prisma/prisma.service';
 import {
   BookingManagementService,
   parseDuffelCancellationQuoteId,
+  parseSupplierCancellationQuoteId,
 } from './booking-management.service';
 
 describe('BookingManagementService', () => {
@@ -48,21 +54,21 @@ describe('BookingManagementService', () => {
     jest.clearAllMocks();
   });
 
-  describe('parseDuffelCancellationQuoteId', () => {
+  describe('parseSupplierCancellationQuoteId', () => {
     it('returns nulls for null/undefined/empty string', () => {
-      expect(parseDuffelCancellationQuoteId(null)).toEqual({
+      expect(parseSupplierCancellationQuoteId(null)).toEqual({
         quoteId: null,
         refundTo: null,
         nonRefundableAncillaryAmount: null,
         nonRefundableAncillaryCurrency: null,
       });
-      expect(parseDuffelCancellationQuoteId(undefined)).toEqual({
+      expect(parseSupplierCancellationQuoteId(undefined)).toEqual({
         quoteId: null,
         refundTo: null,
         nonRefundableAncillaryAmount: null,
         nonRefundableAncillaryCurrency: null,
       });
-      expect(parseDuffelCancellationQuoteId('')).toEqual({
+      expect(parseSupplierCancellationQuoteId('')).toEqual({
         quoteId: null,
         refundTo: null,
         nonRefundableAncillaryAmount: null,
@@ -71,7 +77,7 @@ describe('BookingManagementService', () => {
     });
 
     it('handles PENDING_QUOTE', () => {
-      expect(parseDuffelCancellationQuoteId('PENDING_QUOTE')).toEqual({
+      expect(parseSupplierCancellationQuoteId('PENDING_QUOTE')).toEqual({
         quoteId: 'PENDING_QUOTE',
         refundTo: null,
         nonRefundableAncillaryAmount: null,
@@ -80,7 +86,7 @@ describe('BookingManagementService', () => {
     });
 
     it('parses single part quote id', () => {
-      expect(parseDuffelCancellationQuoteId('can_quo_123')).toEqual({
+      expect(parseSupplierCancellationQuoteId('can_quo_123')).toEqual({
         quoteId: 'can_quo_123',
         refundTo: null,
         nonRefundableAncillaryAmount: null,
@@ -89,12 +95,19 @@ describe('BookingManagementService', () => {
     });
 
     it('parses pipe-separated full quote metadata', () => {
-      expect(parseDuffelCancellationQuoteId('can_quo_123|balance|15.00|USD')).toEqual({
+      expect(parseSupplierCancellationQuoteId('can_quo_123|balance|15.00|USD')).toEqual({
         quoteId: 'can_quo_123',
         refundTo: 'balance',
         nonRefundableAncillaryAmount: '15.00',
         nonRefundableAncillaryCurrency: 'USD',
       });
+    });
+
+    it('maintains backward-compatible alias parity with parseDuffelCancellationQuoteId', () => {
+      expect(parseDuffelCancellationQuoteId).toBe(parseSupplierCancellationQuoteId);
+      expect(parseDuffelCancellationQuoteId('can_quo_123|balance|15.00|USD')).toEqual(
+        parseSupplierCancellationQuoteId('can_quo_123|balance|15.00|USD'),
+      );
     });
   });
 
@@ -119,7 +132,7 @@ describe('BookingManagementService', () => {
         ],
       },
       payment: { id: 'p-1', status: 'SUCCEEDED', stripePaymentIntentId: 'pi-1' },
-      bookingIntent: { id: 'bi-1', duffelOfferId: 'off-1' },
+      bookingIntent: { id: 'bi-1', supplierOfferId: 'off-1' },
       activeDisruptionRevision: null,
       itineraryRevisions: [],
       ...overrides,
@@ -333,7 +346,7 @@ describe('BookingManagementService', () => {
       status: BookingStatus.CONFIRMED,
       failureReason: null,
       pnrReference: 'PNRXYZ',
-      duffelOrderId: 'ord_123',
+      supplierOrderId: 'ord_123',
       totalAmount: { toString: () => '500.00' },
       currency: 'GBP',
       departureAt: new Date('2026-09-15T08:00:00Z'),
@@ -355,14 +368,14 @@ describe('BookingManagementService', () => {
       },
       bookingIntent: {
         id: 'intent-1',
-        duffelOfferId: 'off_test_123',
+        supplierOfferId: 'off_test_123',
         passengers: [{ id: 'pass-1', givenName: 'Jane', familyName: 'Doe' }],
       },
       cancellationDeadline: new Date('2026-09-10T00:00:00Z'),
       cancellationRefundable: true,
       airlineRefundAmount: { toString: () => '400.00' },
       customerRefundAmount: { toString: () => '400.00' },
-      duffelCancellationQuoteId: 'can_quo_789|balance|25.00|GBP',
+      supplierCancellationQuoteId: 'can_quo_789|balance|25.00|GBP',
       createdAt: new Date('2026-08-01T10:00:00Z'),
       updatedAt: new Date('2026-08-02T10:00:00Z'),
       disruptionStatus: null,
@@ -385,6 +398,88 @@ describe('BookingManagementService', () => {
       await expect(service.getBookingDetail('booking-1', 'user-1')).rejects.toBeInstanceOf(
         ForbiddenException,
       );
+    });
+
+    it.each([
+      { label: 'null', snapshot: null },
+      { label: 'string', snapshot: 'legacy snapshot' },
+      { label: 'number', snapshot: 42 },
+      { label: 'boolean', snapshot: false },
+      { label: 'array', snapshot: [{ supplierSegmentId: 'seg_1' }] },
+      { label: 'missing segments', snapshot: { description: 'legacy snapshot' } },
+      { label: 'null segments', snapshot: { segments: null } },
+      { label: 'string segments', snapshot: { segments: 'legacy segments' } },
+      { label: 'number segments', snapshot: { segments: 42 } },
+      { label: 'boolean segments', snapshot: { segments: false } },
+      { label: 'object segments', snapshot: { segments: { supplierSegmentId: 'seg_1' } } },
+    ])('preserves $label snapshots in booking detail and list responses', async ({ snapshot }): Promise<void> => {
+      const booking = mockDetailBooking({ flightSnapshot: snapshot });
+      prisma.booking.findUnique.mockResolvedValue(booking);
+      prisma.booking.findMany.mockResolvedValue([booking]);
+
+      const detail = await service.getBookingDetail('booking-1', 'user-1');
+      const list = await service.listBookings('user-1', 'upcoming', 1, 20);
+
+      expect(detail.flightSnapshot).toBe(snapshot);
+      expect(list.bookings[0].flightSnapshot).toBe(snapshot);
+    });
+
+    it('preserves legacy snapshot identity in the original itinerary', async (): Promise<void> => {
+      process.env.FEATURE_FLAG_DISRUPTION_SURFACING = 'false';
+
+      const legacySnapshot = {
+        segments: [
+          {
+            airline: { name: 'Northwind Air', iataCode: 'NW' },
+            flightNumber: 'NW42',
+            departureAirport: {
+              iataCode: 'SGN',
+              name: 'Tan Son Nhat International Airport',
+              city: 'Ho Chi Minh City',
+            },
+            arrivalAirport: {
+              iataCode: 'HAN',
+              name: 'Noi Bai International Airport',
+              city: 'Hanoi',
+            },
+            departureAt: '2026-10-10T08:00:00+07:00',
+            arrivalAt: '2026-10-10T10:00:00+07:00',
+            duration: 'PT2H',
+            duffelSegmentId: 'seg_legacy_42',
+            sliceOrder: 0,
+            segmentOrder: 0,
+            globalOrder: 0,
+          },
+        ],
+      };
+      const storedSnapshot = {
+        segments: legacySnapshot.segments.map((segment) => ({
+          ...segment,
+          airline: { ...segment.airline },
+          departureAirport: { ...segment.departureAirport },
+          arrivalAirport: { ...segment.arrivalAirport },
+        })),
+      };
+      const testModule = await Test.createTestingModule({
+        providers: [
+          BookingManagementService,
+          { provide: PrismaService, useValue: prisma },
+          { provide: BookingLifecycleService, useValue: bookingLifecycleService },
+          { provide: EventEmitter2, useValue: eventEmitter },
+        ],
+      }).compile();
+      prisma.booking.findUnique.mockResolvedValue(
+        mockDetailBooking({ flightSnapshot: storedSnapshot }),
+      );
+
+      const injectedService = testModule.get(BookingManagementService);
+      const result = await injectedService.getBookingDetail('booking-1', 'user-1');
+
+      expect(result.flightSnapshot).toEqual(storedSnapshot);
+      expect(result.currentItinerary.source).toBe('ORIGINAL');
+      expect(result.currentItinerary.segments).toEqual(storedSnapshot.segments);
+      expect(result.currentItinerary.segments[0].duffelSegmentId).toBe('seg_legacy_42');
+      await testModule.close();
     });
 
     it('correctly maps ancillary summaries (seats, baggage) with passenger names', async () => {
@@ -495,7 +590,7 @@ describe('BookingManagementService', () => {
                 arrivalAt: new Date('2026-09-15T12:30:00Z'),
                 durationMinutes: 480,
                 aircraftType: '777',
-                duffelSegmentId: 'seg_rev_1',
+                supplierSegmentId: 'seg_rev_1',
                 sliceOrder: 0,
                 segmentOrder: 0,
                 globalOrder: 1,
@@ -546,7 +641,7 @@ describe('BookingManagementService', () => {
 
     it('parses Duffel cancellation quote ID correctly in booking detail', async () => {
       const booking = mockDetailBooking({
-        duffelCancellationQuoteId: 'can_quo_999|card|0.00|USD',
+        supplierCancellationQuoteId: 'can_quo_999|card|0.00|USD',
       });
       prisma.booking.findUnique.mockResolvedValue(booking);
 

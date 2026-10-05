@@ -1868,4 +1868,60 @@ describe('booking-management server domain module', () => {
       });
     });
   });
+
+  describe('Feature 029 browser identity boundary baseline', (): void => {
+    it('omits Duffel and supplier identity fields while preserving booking display fields', async (): Promise<void> => {
+      const providerIdentityBooking = {
+        ...mockUpstreamBookingDetail,
+        duffelOfferId: 'off_provider_offer_secret',
+        supplierOfferId: 'supplier_offer_secret',
+        currentItinerary: {
+          ...mockUpstreamBookingDetail.currentItinerary,
+          segments: [
+            {
+              ...mockUpstreamSegment,
+              supplierSegmentId: 'supplier_segment_secret',
+            },
+          ],
+        },
+      };
+      globalThis.fetch = async (): Promise<Response> =>
+        new Response(JSON.stringify(providerIdentityBooking), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+      const outcome = await getBookingDetail('booking-uuid-001');
+
+      assert.equal(outcome.ok, true);
+      if (outcome.ok) {
+        assert.equal(outcome.data.id, 'booking-uuid-001');
+        assert.equal(outcome.data.status, 'CONFIRMED');
+        assert.equal(outcome.data.totalAmount, '499.00');
+        assert.equal(outcome.data.currency, 'USD');
+        assert.equal(outcome.data.passengers[0].firstName, 'Ada');
+        assert.equal(outcome.data.itinerary.segments[0].flightNumber, 'HZ789');
+      }
+
+      const serialized = JSON.stringify(outcome);
+      for (const identityKey of [
+        'duffelOrderId',
+        'duffelOfferId',
+        'duffelSegmentId',
+        'supplierOfferId',
+        'supplierSegmentId',
+      ]) {
+        assert.equal(serialized.includes(identityKey), false);
+      }
+      for (const identityValue of [
+        'ord_secret_provider_123',
+        'off_provider_offer_secret',
+        'seg_secret_provider_id',
+        'supplier_offer_secret',
+        'supplier_segment_secret',
+      ]) {
+        assert.equal(serialized.includes(identityValue), false);
+      }
+    });
+  });
 });

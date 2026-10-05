@@ -1,6 +1,4 @@
-import { CacheService } from '@/cache/cache.service';
 import { DuffelError } from '@duffel/api';
-import { DuffelService } from '@/duffel/duffel.service';
 import { DuffelRateBudgetService } from '@/supplier/core/duffel-rate-budget.service';
 import type { BudgetReservationResult } from '@/supplier/core/duffel-rate-budget.service';
 import { DUFFEL_SDK, DUFFEL_SDK_CONFIGURATION } from '@/supplier/core/duffel-core.module';
@@ -35,7 +33,7 @@ describe('Duffel order request parity', () => {
     }
   });
 
-  it('posts a manual order with mapped passengers, services, metadata, and idempotency', async () => {
+  it('posts a manual order with mapped passengers, services, metadata, and idempotency', async (): Promise<void> => {
     const reserveAttempt = jest
       .fn<Promise<BudgetReservationResult>, [extraConstraint?: { key: string; limit: number }]>()
       .mockResolvedValue({ ok: true });
@@ -55,32 +53,37 @@ describe('Duffel order request parity', () => {
 
     moduleRef = await Test.createTestingModule({
       providers: [
-        DuffelService,
-        { provide: CacheService, useValue: {} },
+        DuffelOrderAdapter,
         { provide: DuffelRateBudgetService, useValue: { reserveAttempt } },
         { provide: DUFFEL_SDK, useValue: { offers: { get: getOffer } } },
+        {
+          provide: DUFFEL_SDK_CONFIGURATION,
+          useValue: { token: 'duffel-test-token', basePath: 'http://127.0.0.1:4010' },
+        },
       ],
     }).compile();
 
-    const service = moduleRef.get(DuffelService);
+    const adapter = moduleRef.get(DuffelOrderAdapter);
+    await adapter.getOfferById('off_1');
     await expect(
-      service.createOrder(
-        'off_1',
-        [
+      adapter.createOrder({
+        selected_offers: ['off_1'],
+        passengers: [
           {
-            type: 'adult',
-            gender: 'female',
-            givenName: 'Amina',
-            familyName: 'Nguyen',
-            dateOfBirth: '1990-01-02T00:00:00Z',
-            phoneNumber: '+84901234567',
+            id: 'pas_adult_1',
+            given_name: 'Amina',
+            family_name: 'Nguyen',
+            born_on: '1990-01-02',
+            gender: 'f',
+            title: 'ms',
+            phone_number: '+84901234567',
             email: 'amina@example.com',
           },
         ],
-        [{ id: 'aseat_1', quantity: 1 }],
-        { paymentId: 'pay_1' },
-        'attempt-1',
-      ),
+        services: [{ id: 'aseat_1', quantity: 1 }],
+        metadata: { paymentId: 'pay_1' },
+        idempotencyKey: 'attempt-1',
+      }),
     ).resolves.toEqual(order);
 
     expect(getOffer).toHaveBeenCalledWith('off_1');

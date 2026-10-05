@@ -35,7 +35,7 @@ interface DbSegment {
   sliceOrder: number;
   segmentOrder: number;
   globalOrder: number;
-  duffelSegmentId: string | null;
+  supplierSegmentId: string | null;
   marketingCarrierIata: string;
   operatingCarrierIata: string | null;
   airlineName: string;
@@ -61,7 +61,7 @@ function mapDbSegmentToNormalized(dbSeg: DbSegment): NormalizedSegment {
     sliceOrder: dbSeg.sliceOrder,
     segmentOrder: dbSeg.segmentOrder,
     globalOrder: dbSeg.globalOrder,
-    duffelSegmentId: dbSeg.duffelSegmentId,
+    supplierSegmentId: dbSeg.supplierSegmentId,
     marketingCarrierIata: dbSeg.marketingCarrierIata,
     operatingCarrierIata: dbSeg.operatingCarrierIata,
     airlineName: dbSeg.airlineName,
@@ -151,10 +151,10 @@ export class SupplierSyncService {
     if (!token) {
       const booking = await this.prisma.booking.findUnique({
         where: { id: bookingId },
-        select: { status: true, duffelOrderId: true },
+        select: { status: true, supplierOrderId: true },
       });
 
-      if (!booking || booking.status !== 'CONFIRMED' || !booking.duffelOrderId) {
+      if (!booking || booking.status !== 'CONFIRMED' || !booking.supplierOrderId) {
         this.logger.warn(
           `Failed to acquire lock for booking ${bookingId} (permanently ineligible: status=${booking?.status}). Correlation: ${correlationId}`,
         );
@@ -180,7 +180,7 @@ export class SupplierSyncService {
         },
       });
 
-      if (!booking || booking.status !== 'CONFIRMED' || !booking.duffelOrderId) {
+      if (!booking || booking.status !== 'CONFIRMED' || !booking.supplierOrderId) {
         this.logger.warn(
           `Booking ${bookingId} is not eligible for synchronization. Status: ${booking?.status}. Correlation: ${correlationId}`,
         );
@@ -189,9 +189,9 @@ export class SupplierSyncService {
       }
 
       // 3. Fetch Full Duffel Order outside the transaction
-      const order = await this.duffelRecoveryService.retrieveCompleteOrder(booking.duffelOrderId);
+      const order = await this.duffelRecoveryService.retrieveCompleteOrder(booking.supplierOrderId);
       if (!isRecord(order)) {
-        throw new Error(`Duffel order not found for orderId ${booking.duffelOrderId}`);
+        throw new Error(`Duffel order not found for orderId ${booking.supplierOrderId}`);
       }
 
       // Check if order is cancelled on Duffel
@@ -226,7 +226,7 @@ export class SupplierSyncService {
         await this.prisma.booking.updateMany({
           where: { id: bookingId, syncLockToken: token },
           data: {
-            lastDuffelSyncedAt: now,
+            lastSupplierSyncedAt: now,
             syncLockedAt: null,
             syncLockToken: null,
           },
@@ -247,7 +247,7 @@ export class SupplierSyncService {
               // Lock the booking row immediately to serialize concurrent syncs and cancellations
               const dbBooking = await tx.booking.update({
                 where: { id: bookingId },
-                data: { lastDuffelSyncedAt: now },
+                data: { lastSupplierSyncedAt: now },
                 include: {
                   itineraryRevisions: {
                     orderBy: { version: 'desc' },
@@ -289,7 +289,7 @@ export class SupplierSyncService {
                   await tx.booking.update({
                     where: { id: bookingId },
                     data: {
-                      lastDuffelSyncedAt: new Date(),
+                      lastSupplierSyncedAt: new Date(),
                       syncLockedAt: null,
                       syncLockToken: null,
                     },
@@ -337,7 +337,7 @@ export class SupplierSyncService {
 
               const timingFields = calculateTimingFields(normalizedSegments);
               const bookingData: Prisma.BookingUpdateManyMutationInput = {
-                lastDuffelSyncedAt: now,
+                lastSupplierSyncedAt: now,
                 syncLockedAt: null,
                 syncLockToken: null,
                 currentDepartureAt: timingFields.currentDepartureAt,
@@ -410,7 +410,7 @@ export class SupplierSyncService {
                     sliceOrder: seg.sliceOrder,
                     segmentOrder: seg.segmentOrder,
                     globalOrder: seg.globalOrder,
-                    duffelSegmentId: seg.duffelSegmentId,
+                    supplierSegmentId: seg.supplierSegmentId,
                     marketingCarrierIata: seg.marketingCarrierIata,
                     operatingCarrierIata: seg.operatingCarrierIata,
                     airlineName: seg.airlineName,
@@ -580,7 +580,7 @@ export class SupplierSyncService {
             data: {
               syncLockedAt: null,
               syncLockToken: null,
-              nextDuffelSyncAt: backoffTime,
+              nextSupplierSyncAt: backoffTime,
             },
           });
         } catch (releaseErr: unknown) {

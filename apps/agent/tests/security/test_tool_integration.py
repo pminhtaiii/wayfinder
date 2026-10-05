@@ -268,6 +268,8 @@ async def test_blocked_real_search_leaves_snapshot_repository_unchanged(
             ],
         }
     )
+    # User approved on 2026-10-03: pre-seeded graph/Redis snapshots use supplierOfferId; mocked
+    # NestJS search responses below retain the legacy duffelOfferId wire field.
     existing_snapshot = {
         "schemaVersion": 1,
         "snapshotVersion": 4,
@@ -374,7 +376,7 @@ async def test_two_real_searches_fail_closed_without_partial_snapshot_commit(
             {
                 "offerIndex": 1,
                 "flightOfferId": "existing-flight",
-                "duffelOfferId": "existing-duffel",
+                "supplierOfferId": "existing-supplier",
                 "airline": "VN",
                 "origin": "HAN",
                 "destination": "NRT",
@@ -517,7 +519,7 @@ async def test_two_real_searches_commit_latest_owner_snapshot_once(
             {
                 "offerIndex": 1,
                 "flightOfferId": "existing-flight-success",
-                "duffelOfferId": "existing-duffel-success",
+                "supplierOfferId": "existing-supplier-success",
                 "airline": "VN",
                 "origin": "HAN",
                 "destination": "NRT",
@@ -634,7 +636,7 @@ async def test_deferred_search_uses_committed_snapshot_version_on_next_graph_ite
             {
                 "offerIndex": 1,
                 "flightOfferId": "existing-iteration-flight",
-                "duffelOfferId": "existing-iteration-duffel",
+                "supplierOfferId": "existing-iteration-supplier",
                 "airline": "VN",
                 "origin": "HAN",
                 "destination": "NRT",
@@ -798,7 +800,7 @@ async def test_tampered_snapshot_is_rejected_before_handoff() -> None:
             {
                 "offerIndex": 1,
                 "flightOfferId": "offer-tampered",
-                "duffelOfferId": "duffel-tampered",
+                "supplierOfferId": "supplier-tampered",
                 "airline": "Synthetic Air",
                 "origin": "HAN",
                 "destination": "NRT",

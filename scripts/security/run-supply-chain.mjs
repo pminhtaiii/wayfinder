@@ -23,6 +23,12 @@ const REPORT_VERSION = '1.0.0';
 const PIP_AUDIT_VERSION = '2.7.3';
 const DEFAULT_OUTPUT = 'artifacts/security/supply-chain.json';
 const PIP_MAX_ADVISORY_AGE_HOURS = 24;
+const VERIFIED_BRACES_ADVISORY = 'GHSA-VFJ7-8CJW-P6XM';
+const VERIFIED_BRACES_PACKAGE = 'braces@3.0.3';
+const VERIFIED_BRACES_PATCH_PATH = 'patches/braces@3.0.3.patch';
+const VERIFIED_BRACES_PATCH_SHA256 =
+  '795ff4ec62054830af82791060bccad7e6b551a7399488cbbd5dcb6017931861';
+const VERIFIED_BRACES_PATCH_ERROR = `[Supply Chain Exception Error] ${VERIFIED_BRACES_ADVISORY} requires the registered, SHA-256-pinned reviewed braces patch`;
 
 function emptyCounts() {
   return {
@@ -408,11 +414,94 @@ export function loadDependencyAdvisoryRegister(rootDir, options = {}) {
   };
 }
 
+function readTopLevelYamlSection(content, name) {
+  const lines = content.split(/\r?\n/);
+  const headers = lines.flatMap((line, index) =>
+    new RegExp(`^${name}:\\s*$`).test(line) ? [index] : [],
+  );
+  if (headers.length !== 1) return [];
+  const header = headers[0];
+
+  let end = header + 1;
+  while (end < lines.length) {
+    const line = lines[end];
+    if (line.trim() !== '' && !/^\s/.test(line) && !line.startsWith('#')) break;
+    end += 1;
+  }
+  return lines.slice(header + 1, end);
+}
+
+function workspacePatchRegistrationMatches(content) {
+  const section = readTopLevelYamlSection(content, 'patchedDependencies');
+  const matches = section
+    .map((line) => line.match(/^\s{2}(['"]?)braces@3\.0\.3\1\s*:\s*(.*?)\s*$/))
+    .filter(Boolean);
+  return matches.length === 1 && matches[0][2] === VERIFIED_BRACES_PATCH_PATH;
+}
+
+function workspaceAuditIgnoreMatches(content) {
+  const section = readTopLevelYamlSection(content, 'auditConfig');
+  const ignoreHeaders = section.flatMap((line, index) =>
+    /^\s{2}ignoreGhas:\s*$/.test(line) ? [index] : [],
+  );
+  if (ignoreHeaders.length !== 1) return false;
+  for (const line of section.slice(ignoreHeaders[0] + 1)) {
+    const indentation = line.length - line.trimStart().length;
+    if (line.trim() && indentation <= 2) return false;
+    if (/^\s{4}-\s*['"]?GHSA-vfj7-8cjw-p6xm['"]?\s*(?:#.*)?$/i.test(line)) return true;
+  }
+  return false;
+}
+
+function lockPatchRegistrationMatches(content) {
+  const section = readTopLevelYamlSection(content, 'patchedDependencies');
+  const entryIndexes = section.flatMap((line, index) =>
+    /^\s{2}braces@3\.0\.3:\s*$/.test(line) ? [index] : [],
+  );
+  if (entryIndexes.length !== 1) return false;
+  const entry = section.slice(entryIndexes[0] + 1, entryIndexes[0] + 3);
+  return (
+    entry[0] === `    hash: ${VERIFIED_BRACES_PATCH_SHA256}` &&
+    entry[1] === `    path: ${VERIFIED_BRACES_PATCH_PATH}`
+  );
+}
+
+function verifyReviewedBracesPatch(rootDir) {
+  try {
+    const manifest = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8'));
+    const workspace = readFileSync(join(rootDir, 'pnpm-workspace.yaml'), 'utf8');
+    const lock = readFileSync(join(rootDir, 'pnpm-lock.yaml'), 'utf8');
+    const patch = readFileSync(join(rootDir, VERIFIED_BRACES_PATCH_PATH));
+    const manifestIgnoreList = manifest.pnpm?.auditConfig?.ignoreGhas;
+    const manifestPatch = manifest.pnpm?.patchedDependencies?.[VERIFIED_BRACES_PACKAGE];
+    const patchHash = createHash('sha256').update(patch).digest('hex');
+
+    return (
+      Array.isArray(manifestIgnoreList) &&
+      manifestIgnoreList.some((id) => String(id).toUpperCase() === VERIFIED_BRACES_ADVISORY) &&
+      manifestPatch === VERIFIED_BRACES_PATCH_PATH &&
+      workspaceAuditIgnoreMatches(workspace) &&
+      workspacePatchRegistrationMatches(workspace) &&
+      lockPatchRegistrationMatches(lock) &&
+      patchHash === VERIFIED_BRACES_PATCH_SHA256
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function loadIgnoredGhas(rootDir, options = {}) {
   const register = loadDependencyAdvisoryRegister(rootDir, options);
   const errors = [...register.errors];
   const ignored = new Set();
   const configuredGhas = new Set();
+  const bracesPatchVerified =
+    register.catalogedGhas.has(VERIFIED_BRACES_ADVISORY) &&
+    verifyReviewedBracesPatch(resolve(rootDir || defaultRepoRoot));
+
+  if (register.catalogedGhas.has(VERIFIED_BRACES_ADVISORY) && !bracesPatchVerified) {
+    errors.push(VERIFIED_BRACES_PATCH_ERROR);
+  }
 
   const explicit = options.ignoreGhas || options.ignoreGhsas || options.ignoredGhas;
   if (explicit) {
@@ -466,6 +555,7 @@ export function loadIgnoredGhas(rootDir, options = {}) {
   }
 
   for (const id of configuredGhas) {
+    if (id === VERIFIED_BRACES_ADVISORY && !bracesPatchVerified) continue;
     ignored.add(id);
     if (!register.catalogedGhas.has(id)) {
       errors.push(
@@ -480,6 +570,7 @@ export function loadIgnoredGhas(rootDir, options = {}) {
   ignored.policyExpiresAt = register.policyExpiresAt;
   ignored.policyVersion = register.policyVersion;
   ignored.catalogedGhas = register.catalogedGhas;
+  ignored.verifiedBracesPatch = bracesPatchVerified;
 
   return ignored;
 }
@@ -561,6 +652,10 @@ export function normalisePnpmAudit(raw, options = {}) {
     rawIgnored instanceof Set
       ? new Set([...rawIgnored].map((id) => String(id).trim().toUpperCase()))
       : new Set(Array.from(rawIgnored || []).map((id) => String(id).trim().toUpperCase()));
+  if (ignoredGhas.has(VERIFIED_BRACES_ADVISORY)) {
+    const policyIgnored = loadIgnoredGhas(options.rootDir || defaultRepoRoot, options);
+    if (!policyIgnored.verifiedBracesPatch) ignoredGhas.delete(VERIFIED_BRACES_ADVISORY);
+  }
 
   const findings = [];
   const ignoredFindings = [];
@@ -1077,7 +1172,13 @@ export function runSupplyChainScan(options = {}) {
     currentDate: timestamp,
     now: nowFn,
   });
-  const ignoredGhas = options.ignoredGhas || ignoredInfo;
+  const ignoredGhas = new Set(
+    options.ignoredGhas
+      ? typeof options.ignoredGhas === 'string'
+        ? [options.ignoredGhas]
+        : Array.from(options.ignoredGhas)
+      : ignoredInfo,
+  );
   if (options.ignoredGhas && options.ignoredGhas !== ignoredInfo) {
     const rawExplicit = options.ignoredGhas;
     const explicitList =
@@ -1096,6 +1197,11 @@ export function runSupplyChainScan(options = {}) {
           );
         }
       }
+    }
+  }
+  if (!ignoredInfo.verifiedBracesPatch) {
+    for (const id of ignoredGhas) {
+      if (String(id).trim().toUpperCase() === VERIFIED_BRACES_ADVISORY) ignoredGhas.delete(id);
     }
   }
 

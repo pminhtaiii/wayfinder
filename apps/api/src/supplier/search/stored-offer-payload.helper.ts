@@ -6,7 +6,7 @@
 export function complementStoredOfferPayload(
   rawOffer: unknown,
   flightOffer?: {
-    duffelOfferId?: string | null;
+    supplierOfferId?: string | null;
     price?: unknown;
     currency?: string | null;
     departureDate?: Date | string | null;
@@ -23,8 +23,8 @@ export function complementStoredOfferPayload(
     return rawOffer;
   }
 
-  if (!obj.id && flightOffer.duffelOfferId) {
-    obj.id = flightOffer.duffelOfferId;
+  if (!obj.id && flightOffer.supplierOfferId) {
+    obj.id = flightOffer.supplierOfferId;
   }
 
   if (

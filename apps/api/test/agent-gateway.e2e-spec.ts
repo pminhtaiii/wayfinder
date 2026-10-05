@@ -517,7 +517,7 @@ describe('Agent Gateway (E2E)', () => {
       const flightOffer = await prisma.flightOffer.create({
         data: {
           searchHash: 'search_hash_123',
-          duffelOfferId: 'off_123',
+          supplierOfferId: 'off_123',
           rawOffer: {},
           origin: 'HAN',
           destination: 'NRT',
@@ -532,7 +532,7 @@ describe('Agent Gateway (E2E)', () => {
         data: {
           userId: user.id,
           flightOfferId: flightOffer.id,
-          duffelOfferId: 'off_123',
+          supplierOfferId: 'off_123',
           status: 'CONFIRMED',
           originalPrice: 1250.0,
           confirmedPrice: 1250.0,
@@ -1246,7 +1246,7 @@ describe('Agent Gateway (E2E)', () => {
       for (const result of results) {
         expect(persistedOffers.find((offer) => offer.id === result.flightOfferId)).toMatchObject({
           id: result.flightOfferId,
-          duffelOfferId: result.duffelOfferId,
+          supplierOfferId: result.duffelOfferId,
           rawOffer: { id: result.duffelOfferId },
         });
       }
@@ -1348,7 +1348,7 @@ describe('Agent Gateway (E2E)', () => {
       const offerA = await prisma.flightOffer.create({
         data: {
           searchHash: 'search_hash_a',
-          duffelOfferId: 'off_a',
+          supplierOfferId: 'off_a',
           rawOffer: {},
           origin: 'HAN',
           destination: 'NRT',
@@ -1364,7 +1364,7 @@ describe('Agent Gateway (E2E)', () => {
         data: {
           userId: userA.id,
           flightOfferId: offerA.id,
-          duffelOfferId: 'off_a',
+          supplierOfferId: 'off_a',
           status: 'CONFIRMED',
           originalPrice: 1250.0,
           confirmedPrice: 1250.0,
@@ -1437,7 +1437,7 @@ describe('Agent Gateway (E2E)', () => {
       const offerB = await prisma.flightOffer.create({
         data: {
           searchHash: 'search_hash_b',
-          duffelOfferId: 'off_b',
+          supplierOfferId: 'off_b',
           rawOffer: {},
           origin: 'SGN',
           destination: 'SIN',
@@ -1453,7 +1453,7 @@ describe('Agent Gateway (E2E)', () => {
         data: {
           userId: userB.id,
           flightOfferId: offerB.id,
-          duffelOfferId: 'off_b',
+          supplierOfferId: 'off_b',
           status: 'CONFIRMED',
           originalPrice: 500.0,
           confirmedPrice: 500.0,

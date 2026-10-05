@@ -39,6 +39,9 @@
     "seed": "npx tsx apps/api/prisma/seed.ts"
   },
   "pnpm": {
+    "patchedDependencies": {
+      "braces@3.0.3": "patches/braces@3.0.3.patch"
+    },
     "overrides": {
       "fast-uri": "^3.1.8"
     },
@@ -133,6 +136,7 @@
         "GHSA-rr7j-v2q5-chgv",
         "GHSA-v2hh-gcrm-f6hx",
         "GHSA-v52c-386h-88mc",
+        "GHSA-vfj7-8cjw-p6xm",
         "GHSA-vmf3-w455-68vh",
         "GHSA-w5hq-g745-h8pq",
         "GHSA-w5vr-8v7q-w6rv",

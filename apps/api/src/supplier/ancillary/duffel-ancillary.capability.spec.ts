@@ -365,7 +365,7 @@ describe('DuffelAncillaryService capability', () => {
     await module.close();
   });
 
-  it('allows an admitted sibling request when the other per-call reservation is denied', async () => {
+  it('makes no supplier calls when the second catalog reservation is denied', async () => {
     const { module, service, cache, sdk } = await createHarness();
     cache.checkAndIncrement
       .mockResolvedValueOnce({ allowed: true, current: 1 })
@@ -376,7 +376,8 @@ describe('DuffelAncillaryService capability', () => {
       response: { code: 'RATE_LIMIT_EXCEEDED' },
     });
     expect(cache.checkAndIncrement).toHaveBeenCalledTimes(2);
-    expect(sdk.seatMaps.get).toHaveBeenCalledTimes(1);
+    // Human-approved 2026-10-02: retain legacy all-or-nothing catalog admission before SDK calls.
+    expect(sdk.seatMaps.get).not.toHaveBeenCalled();
     expect(sdk.offers.get).not.toHaveBeenCalled();
     await module.close();
   });

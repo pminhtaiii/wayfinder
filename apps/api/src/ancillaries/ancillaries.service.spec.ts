@@ -1,3 +1,4 @@
+// Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
 import { Duffel } from '@duffel/api';
 import { CacheService } from '@/cache/cache.service';
 import { AuditService } from '@/audit/audit.service';
@@ -151,7 +152,7 @@ const createFixture = (services: BaggageFixture[] = baggageFixtures): CommitFixt
     id: 'intent-1',
     userId: 'user-1',
     status: 'PENDING',
-    duffelOfferId: 'off_123',
+    supplierOfferId: 'off_123',
     confirmedPrice: '420.00',
     currency: 'USD',
     ancillaryVersion: 0,
@@ -164,14 +165,14 @@ const createFixture = (services: BaggageFixture[] = baggageFixtures): CommitFixt
         id: 'p1',
         givenName: 'Alex',
         type: 'ADULT',
-        duffelPassengerId: 'pas_1',
+        supplierPassengerId: 'pas_1',
         position: 0,
       },
       {
         id: 'p2',
         givenName: 'Blair',
         type: 'ADULT',
-        duffelPassengerId: 'pas_2',
+        supplierPassengerId: 'pas_2',
         position: 1,
       },
     ],

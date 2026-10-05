@@ -1,4 +1,5 @@
 import { DuffelOffer, DuffelPassenger, DuffelSlice } from '@/duffel/duffel.types';
+// User approved 2026-10-04: additive supplier-boundary regression; existing normalization assertions remain unchanged.
 import {
   generateDeterministicUUID as legacyGenerateDeterministicUUID,
   normalizeOffer as legacyNormalizeOffer,
@@ -7,6 +8,7 @@ import {
   FlightOfferNormalizer,
   generateDeterministicUUID,
   normalizeOffer,
+  normalizeStoredOfferFacts,
   normalizeStoredOffer,
 } from './flight-offer.normalizer';
 import {
@@ -432,6 +434,484 @@ describe('FlightOfferNormalizer (T014)', () => {
   }
 
   describe('c. Legacy stored offer normalization (normalizeStoredOffer)', () => {
+    it('maps the partial lifecycle offer into the historical flight snapshot JSON', () => {
+      const rawOffer = {
+        total_duration: 'PT8H',
+        slices: [
+          {
+            duration: 'PT8H',
+            segments: [
+              {
+                id: 'seg_1',
+                departing_at: '2026-09-18T10:00:00Z',
+                arriving_at: '2026-09-18T18:00:00Z',
+                duration: 'PT8H',
+                marketing_carrier_flight_number: 'DL100',
+                operating_carrier: { name: 'Delta Air Lines', iata_code: 'DL' },
+                origin: { iata_code: 'JFK', name: 'John F Kennedy Intl', city_name: 'New York' },
+                destination: { iata_code: 'LHR', name: 'London Heathrow', city_name: 'London' },
+                passengers: [{ cabin_class: 'economy' }],
+              },
+            ],
+          },
+        ],
+      };
+
+      expect(normalizer.normalizeStoredFlightSnapshot(rawOffer)).toEqual({
+        segments: [
+          {
+            airline: { name: 'Delta Air Lines', iataCode: 'DL' },
+            flightNumber: 'DL100',
+            departureAirport: {
+              iataCode: 'JFK',
+              name: 'John F Kennedy Intl',
+              city: 'New York',
+              terminal: undefined,
+            },
+            arrivalAirport: {
+              iataCode: 'LHR',
+              name: 'London Heathrow',
+              city: 'London',
+              terminal: undefined,
+            },
+            departureAt: '2026-09-18T10:00:00Z',
+            arrivalAt: '2026-09-18T18:00:00Z',
+            duration: 'PT8H',
+            aircraftType: undefined,
+            supplierSegmentId: 'seg_1',
+            sliceOrder: 0,
+            segmentOrder: 0,
+            globalOrder: 0,
+          },
+        ],
+        totalDuration: 'PT8H',
+        stops: 0,
+        cabinClass: 'economy',
+      });
+    });
+
+    it('retains legacy aliases, cabin precedence, skipped entries, and source ordering', () => {
+      const rawOffer = {
+        total_duration: 'PT7H',
+        totalDuration: 'PT6H',
+        cabinClass: 'top camel',
+        cabin_class: 'top snake',
+        slices: [
+          {
+            duration: 'PT2H30M',
+            segments: [
+              null,
+              {
+                id: 'seg_snake',
+                departing_at: '2026-09-18T10:00:00Z',
+                arriving_at: '2026-09-18T11:00:00Z',
+                duration: 'PT1H',
+                marketing_carrier_flight_number: 'DL101',
+                operating_carrier: { name: 'Operating snake', iata_code: 'OS' },
+                origin_terminal: 'A',
+                destination_terminal: 'B',
+                origin: { iata_code: 'JFK', name: 'Kennedy', city_name: 'New York' },
+                destination: { iata_code: 'LHR', name: 'Heathrow', city_name: 'London' },
+                aircraft: { name: 'A320' },
+                passengers: [{ cabin_class: 'passenger snake' }],
+              },
+              {
+                supplierSegmentId: 'seg_camel',
+                departureAt: '2026-09-18T12:00:00Z',
+                arrivalAt: '2026-09-18T13:00:00Z',
+                duration: 'PT1H',
+                marketingCarrierFlightNumber: 'MC202',
+                marketingCarrier: { name: 'Marketing camel', iataCode: 'MC' },
+                originTerminal: 'C',
+                destinationTerminal: 'D',
+                origin: { iataCode: 'LHR', name: 'Heathrow', cityName: 'London' },
+                destination: { iataCode: 'CDG', name: 'Charles de Gaulle', cityName: 'Paris' },
+                aircraftType: 'A321',
+                cabinClass: 'segment camel',
+              },
+              {
+                duffelSegmentId: 'seg_city_object',
+                departing_at: '2026-09-18T14:00:00Z',
+                arriving_at: '2026-09-18T15:00:00Z',
+                duration: 'PT1H',
+                flight_number: 'AF303',
+                marketing_carrier: { name: 'Marketing snake', iata_code: 'MS' },
+                origin: { iata_code: 'CDG', name: 'Charles de Gaulle', city: { name: 'Paris' } },
+                destination: { iataCode: 'FRA', name: 'Frankfurt', city: { name: 'Frankfurt' } },
+                passengers: [{ cabinClass: 'passenger camel' }],
+              },
+              {
+                departing_at: '2026-09-18T16:00:00Z',
+                arriving_at: '2026-09-18T17:00:00Z',
+                duration: 'PT1H',
+                flightNumber: 'LH404',
+                operatingCarrier: { name: 'Operating camel', iataCode: 'OC' },
+                origin: { iataCode: 'FRA', name: 'Frankfurt', city: 'Frankfurt' },
+                destination: { iataCode: 'MUC', name: 'Munich', city: 'Munich' },
+              },
+              {
+                departing_at: '2026-09-18T18:00:00Z',
+                arriving_at: '2026-09-18T19:00:00Z',
+                duration: 'PT1H',
+                flightNumber: 'IB505',
+                airline: { name: 'Airline fallback', iata_code: 'AF' },
+                origin: { iataCode: 'MUC', name: 'Munich', city: 'Munich' },
+                destination: { iataCode: 'MAD', name: 'Madrid', city: 'Madrid' },
+              },
+            ],
+          },
+          {
+            duration: 'PT4H',
+            segments: [
+              {
+                id: 'seg_camel_fallback',
+                departing_at: '2026-09-19T10:00:00Z',
+                arriving_at: '2026-09-19T11:00:00Z',
+                duration: 'PT1H',
+                marketingCarrierFlightNumber: 'ZZ505',
+                airline: { name: 'Airline camel', iataCode: 'ZZ' },
+                origin: { iata_code: 'MUC', name: 'Munich', city_name: 'Munich' },
+                destination: { iata_code: 'ZRH', name: 'Zurich', city_name: 'Zurich' },
+              },
+            ],
+          },
+        ],
+      };
+      const rawBefore = JSON.stringify(rawOffer);
+
+      const snapshot = normalizer.normalizeStoredFlightSnapshot(rawOffer);
+
+      expect(snapshot).not.toBeNull();
+      expect(snapshot).toMatchObject({
+        totalDuration: 'PT7H',
+        stops: 5,
+        cabinClass: 'passenger camel',
+        segments: [
+          {
+            airline: { name: 'Operating snake', iataCode: 'OS' },
+            flightNumber: 'DL101',
+            departureAirport: { iataCode: 'JFK', name: 'Kennedy', city: 'New York', terminal: 'A' },
+            arrivalAirport: { iataCode: 'LHR', name: 'Heathrow', city: 'London', terminal: 'B' },
+            departureAt: '2026-09-18T10:00:00Z',
+            arrivalAt: '2026-09-18T11:00:00Z',
+            aircraftType: 'A320',
+            supplierSegmentId: 'seg_snake',
+            sliceOrder: 0,
+            segmentOrder: 1,
+            globalOrder: 0,
+          },
+          {
+            airline: { name: 'Marketing camel', iataCode: 'MC' },
+            flightNumber: 'MC202',
+            departureAirport: { iataCode: 'LHR', city: 'London', terminal: 'C' },
+            arrivalAirport: { iataCode: 'CDG', city: 'Paris', terminal: 'D' },
+            aircraftType: 'A321',
+            supplierSegmentId: 'seg_camel',
+            sliceOrder: 0,
+            segmentOrder: 2,
+            globalOrder: 1,
+          },
+          {
+            airline: { name: 'Marketing snake', iataCode: 'MS' },
+            flightNumber: 'AF303',
+            departureAirport: { iataCode: 'CDG', city: 'Paris' },
+            arrivalAirport: { iataCode: 'FRA', city: 'Frankfurt' },
+            supplierSegmentId: 'seg_city_object',
+            sliceOrder: 0,
+            segmentOrder: 3,
+            globalOrder: 2,
+          },
+          {
+            airline: { name: 'Operating camel', iataCode: 'OC' },
+            flightNumber: 'LH404',
+            departureAirport: { iataCode: 'FRA', city: 'Frankfurt' },
+            arrivalAirport: { iataCode: 'MUC', city: 'Munich' },
+            sliceOrder: 0,
+            segmentOrder: 4,
+            globalOrder: 3,
+          },
+          {
+            airline: { name: 'Airline fallback', iataCode: 'AF' },
+            flightNumber: 'IB505',
+            departureAirport: { iataCode: 'MUC', city: 'Munich' },
+            arrivalAirport: { iataCode: 'MAD', city: 'Madrid' },
+            sliceOrder: 0,
+            segmentOrder: 5,
+            globalOrder: 4,
+          },
+          {
+            airline: { name: 'Airline camel', iataCode: 'ZZ' },
+            flightNumber: 'ZZ505',
+            departureAirport: { iataCode: 'MUC' },
+            arrivalAirport: { iataCode: 'ZRH' },
+            sliceOrder: 1,
+            segmentOrder: 0,
+            globalOrder: 5,
+          },
+        ],
+      });
+      expect(JSON.stringify(rawOffer)).toBe(rawBefore);
+    });
+
+    it('sums slice durations only for PT0H and preserves sparse, empty, and null distinctions', () => {
+      const sparseOffer = { slices: [{ segments: [{ id: 'seg_sparse' }] }] };
+      const emptySegmentsOffer = { slices: [{ segments: [null] }] };
+
+      expect(
+        normalizer.normalizeStoredFlightSnapshot({
+          totalDuration: 'PT0H',
+          slices: [
+            { duration: 'PT1H30M', segments: [{ duration: '' }] },
+            { duration: 'PT2H', segments: [{ duration: '' }] },
+          ],
+        }),
+      ).toMatchObject({
+        totalDuration: 'PT3H30M',
+        segments: [
+          { duration: '', sliceOrder: 0, segmentOrder: 0, globalOrder: 0 },
+          { duration: '', sliceOrder: 1, segmentOrder: 0, globalOrder: 1 },
+        ],
+      });
+      expect(
+        normalizer.normalizeStoredFlightSnapshot({
+          totalDuration: 'PT5H',
+          cabinClass: 'business',
+          cabin_class: 'economy',
+          slices: [{ segments: [{ duration: 'PT1H' }] }],
+        }),
+      ).toMatchObject({ totalDuration: 'PT5H', cabinClass: 'business' });
+      expect(normalizer.normalizeStoredFlightSnapshot(sparseOffer)).toMatchObject({
+        segments: [
+          {
+            departureAirport: { iataCode: '', name: '', city: '', terminal: undefined },
+            arrivalAirport: { iataCode: '', name: '', city: '', terminal: undefined },
+            departureAt: '',
+            arrivalAt: '',
+            duration: '',
+          },
+        ],
+        totalDuration: 'PT0H',
+      });
+      expect(normalizer.normalizeStoredFlightSnapshot(emptySegmentsOffer)).toEqual({
+        segments: [],
+        totalDuration: 'PT0H',
+        stops: 0,
+        cabinClass: 'economy',
+      });
+      expect(normalizer.normalizeStoredFlightSnapshot({})).toBeNull();
+      expect(normalizer.normalizeStoredFlightSnapshot({ slices: [] })).toBeNull();
+    });
+
+    it('normalizes route and arrival facts from partial stored evidence', () => {
+      const partialSnapshot = {
+        slices: [{
+          segments: [{
+            origin: { countryCode: 'GB' },
+            destination: { iata_country_code: 'US' },
+            arrivalDate: '2026-09-10T12:00:00',
+          }],
+        }],
+      };
+
+      expect(normalizeStoredOfferFacts(partialSnapshot)).toEqual({
+        travelScope: 'INTERNATIONAL',
+        tripCompletionDate: '2026-09-10',
+        offerExpiresAt: null,
+      });
+    });
+
+    it.each([
+      ['2026-08-20T00:00:00Z', '2026-08-20T00:00:00Z'],
+      ['2026-08-20T00:00:00.123+05:30', '2026-08-20T00:00:00.123+05:30'],
+      ['2026-08-20T00:00:00+05', '2026-08-20T00:00:00+05'],
+      ['2026-08-20T00:00:00', '2026-08-20T00:00:00'],
+      ['2026-08-20', null],
+      ['August 20, 2026', null],
+      ['2026-02-30T00:00:00Z', null],
+      ['invalid', null],
+    ])('uses the same stored expiry validation for %s', (expiry, expected) => {
+      for (const expiryFields of [{ expires_at: expiry }, { expiresAt: expiry }]) {
+        const storedOffer = {
+          ...createSampleStoredOffer(),
+          expires_at: null,
+          ...expiryFields,
+        };
+
+        expect(normalizeStoredOffer(storedOffer)?.offerExpiresAt).toBe(expected);
+        expect(normalizeStoredOfferFacts(storedOffer).offerExpiresAt).toBe(expected);
+      }
+    });
+
+    it('ignores the camel expiry alias when creation requests primary-only facts', () => {
+      const camelOnlyRaw = { expiresAt: '2026-08-20T00:00:00Z' };
+
+      expect(normalizeStoredOfferFacts(camelOnlyRaw, 'primary-only')).toEqual({
+        travelScope: null,
+        tripCompletionDate: null,
+        offerExpiresAt: null,
+      });
+    });
+
+    it('preserves partial fact aliases and latest valid arrival date prefix', () => {
+      const partialSnapshot = {
+        expires_at: null,
+        expiresAt: '2026-08-20T00:00:00Z',
+        slices: [{
+          segments: [
+            {
+              origin: { iata_country_code: 'GB' },
+              destination: { countryCode: 'JP' },
+              arriving_at: '2026-08-01T15:00:00Z',
+            },
+            {
+              origin: { countryCode: 'JP' },
+              destination: { iata_country_code: 'GB' },
+              arrivalDate: '2026-08-10T15:00:00Z',
+            },
+            {
+              origin: { countryCode: 'GB' },
+              destination: { countryCode: 'JP' },
+              arrivingAt: '2026-08-15 legacy timestamp',
+            },
+            {
+              origin: { countryCode: 'GB' },
+              destination: { countryCode: 'JP' },
+              arriving_at: '2026-02-30T15:00:00Z',
+            },
+          ],
+        }],
+      };
+
+      expect(normalizeStoredOfferFacts(partialSnapshot)).toEqual({
+        travelScope: 'INTERNATIONAL',
+        tripCompletionDate: '2026-08-15',
+        offerExpiresAt: '2026-08-20T00:00:00Z',
+      });
+    });
+
+    it('keeps array-backed missing route facts domestic but absent slices null', () => {
+      expect(normalizeStoredOfferFacts({
+        slices: [{
+          segments: [{
+            origin: { iata_code: 'SGN', countryCode: 'VN' },
+            destination: { iata_code: 'NRT' },
+            arrivalDate: '2026-08-22T15:00:00Z',
+          }],
+        }],
+      })).toEqual({
+        travelScope: 'DOMESTIC',
+        tripCompletionDate: '2026-08-22',
+        offerExpiresAt: null,
+      });
+
+      expect(normalizeStoredOfferFacts({ slices: [] })).toEqual({
+        travelScope: 'DOMESTIC',
+        tripCompletionDate: null,
+        offerExpiresAt: null,
+      });
+      expect(normalizeStoredOfferFacts({})).toEqual({
+        travelScope: null,
+        tripCompletionDate: null,
+        offerExpiresAt: null,
+      });
+    });
+
+    it('normalizes legacy country and arrival aliases into international return-trip facts', () => {
+      const storedSnapshot = {
+        id: 'off_legacy_round_trip',
+        total_amount: '100.00',
+        total_currency: 'USD',
+        passengers: [{ id: 'pas_adult_1', type: 'adult' }],
+        slices: [
+          {
+            segments: [
+              {
+                origin: { iata_code: 'SGN', countryCode: 'VN' },
+                destination: { iata_code: 'NRT', countryCode: 'JP' },
+                departing_at: '2026-08-01T08:00:00Z',
+                arrivalDate: '2026-08-01T15:00:00Z',
+              },
+            ],
+          },
+          {
+            segments: [
+              {
+                origin: { iata_code: 'NRT', countryCode: 'JP' },
+                destination: { iata_code: 'SGN', countryCode: 'VN' },
+                departing_at: '2026-08-10T08:00:00Z',
+                arrivingAt: '2026-08-10T15:00:00Z',
+              },
+            ],
+          },
+        ],
+      };
+
+      const result = normalizeStoredOffer(storedSnapshot);
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          travelScope: 'INTERNATIONAL',
+          tripCompletionDate: '2026-08-10',
+        }),
+      );
+    });
+
+    it('normalizes the legacy stored expiry alias', () => {
+      const storedSnapshot = {
+        id: 'off_legacy_expiry',
+        total_amount: '100.00',
+        total_currency: 'USD',
+        expiresAt: '2026-08-20T00:00:00Z',
+        passengers: [{ id: 'pas_adult_1', type: 'adult' }],
+        slices: [
+          {
+            segments: [
+              {
+                origin: { iata_code: 'SGN' },
+                destination: { iata_code: 'NRT' },
+                departing_at: '2026-08-01T08:00:00Z',
+                arriving_at: '2026-08-01T15:00:00Z',
+              },
+            ],
+          },
+        ],
+      };
+
+      expect(normalizeStoredOffer(storedSnapshot)?.offerExpiresAt).toBe(
+        '2026-08-20T00:00:00Z',
+      );
+    });
+
+    it('completes partial stored offers from neutral row metadata', () => {
+      const rawOffer = {
+        ...createSampleDuffelOffer(),
+        id: undefined,
+        total_amount: undefined,
+        total_currency: undefined,
+        passengers: undefined,
+      };
+
+      const result = normalizeStoredOffer(rawOffer, {
+        supplierOfferId: 'off_metadata',
+        totalAmount: '220.00',
+        currency: 'USD',
+        adults: 1,
+        children: 0,
+        infants: 0,
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          supplierOfferId: 'off_metadata',
+          totalAmount: '220.00',
+          currency: 'USD',
+          passengersWereProvided: false,
+          passengers: [{ supplierPassengerId: 'pas_stored_1', type: 'ADULT' }],
+        }),
+      );
+      expect(result?.rawSupplierPayload).toBe(rawOffer);
+    });
+
     it('normalizes airport codes across outbound and return segments without changing the snapshot', () => {
       const storedSnapshot = createSampleStoredOffer();
       storedSnapshot.slices.push(createSampleRoundTripDuffelOffer().slices[1]);

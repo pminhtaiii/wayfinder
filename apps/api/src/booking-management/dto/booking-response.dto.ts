@@ -1,5 +1,6 @@
 import { BookingFailureReason, BookingStatus, Prisma } from '@prisma/client';
 import { CurrentItineraryDto, BookingDisruptionDto } from '@shared/disruption-types';
+import type { FlightSnapshotDto } from '@shared/booking-types';
 
 export class BookingListItemResponseDto {
   id!: string;
@@ -9,7 +10,8 @@ export class BookingListItemResponseDto {
   totalAmount!: string;
   currency!: string;
   departureAt!: string | null;
-  flightSnapshot!: Prisma.JsonValue | null;
+  /** Legacy wire flight snapshot projection; neutral supplierSegmentId mapped to duffelSegmentId */
+  flightSnapshot!: FlightSnapshotDto | Prisma.JsonValue | null;
   currentItinerary!: CurrentItineraryDto;
   disruption!: BookingDisruptionDto;
   createdAt!: string;

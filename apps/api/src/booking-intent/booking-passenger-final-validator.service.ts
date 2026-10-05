@@ -1,4 +1,5 @@
 import {
+  Inject,
   HttpException,
   HttpStatus,
   Injectable,
@@ -12,6 +13,7 @@ import {
   BookingReadinessObservabilityContext,
 } from './booking-readiness.observability';
 import { BookingReadinessOperation } from '@/common/observability/booking-readiness-observability.types';
+import { FLIGHT_SEARCH_PORT, FlightSearchPort } from '@/supplier/search/flight-search.port';
 import {
   BookingReadinessMetricsService,
   BOOKING_READINESS_METRIC_COUNTERS,
@@ -51,7 +53,7 @@ export type BookingIntentPassengerRecord = {
   passportNumber?: string | null;
   passportExpiry?: string | null;
   travelerProfileId?: string | null;
-  duffelPassengerId?: string | null;
+  supplierPassengerId?: string | null;
   title?: string | null;
   email?: string | null;
   phoneCountryCode?: string | null;
@@ -120,15 +122,12 @@ function formatDateOnly(value: Date | string): string | null {
   return null;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 @Injectable()
 export class BookingPassengerFinalValidatorService {
   constructor(
     private readonly encryptionService: EncryptionService,
     private readonly observability: BookingReadinessObservability,
+    @Inject(FLIGHT_SEARCH_PORT) private readonly flightSearchPort: FlightSearchPort,
     @Optional() private readonly metricsService?: BookingReadinessMetricsService,
   ) {}
 
@@ -180,16 +179,20 @@ export class BookingPassengerFinalValidatorService {
       // Step 1: Authenticate & decrypt bound ciphertext fields first (Decrypt-then-validate)
       const decryptedPassengers = this.decryptPassengerSnapshots(intent, passengers);
 
-      // Step 2: Check offer expiry
-      this.assertOfferNotExpired(intent, now);
+      // Step 2: Normalize supplier facts only after ciphertext authentication.
+      const offerFacts = this.flightSearchPort.normalizeStoredOfferFacts(
+        intent.rawOfferSnapshot,
+      );
 
-      // Step 3: Determine scope & trip completion date from rawOfferSnapshot if not provided
-      const offerAnalysis = this.analyzeOfferSnapshot(intent.rawOfferSnapshot);
-      if (!options?.scope && offerAnalysis.scope) {
-        derivedScope = offerAnalysis.scope;
+      // Step 3: Check persisted and normalized stored expiry independently.
+      this.assertOfferNotExpired(intent, offerFacts.offerExpiresAt, now);
+
+      // Step 4: Use supplier-normalized scope and trip completion date when not provided.
+      if (!options?.scope && offerFacts.travelScope) {
+        derivedScope = offerFacts.travelScope;
       }
-      if (!derivedTripCompletionDate && offerAnalysis.tripCompletionDate) {
-        derivedTripCompletionDate = offerAnalysis.tripCompletionDate;
+      if (!derivedTripCompletionDate && offerFacts.tripCompletionDate) {
+        derivedTripCompletionDate = offerFacts.tripCompletionDate;
       }
 
       // If any passenger has passport data populated, elevate scope to INTERNATIONAL if not explicitly domestic
@@ -315,7 +318,11 @@ export class BookingPassengerFinalValidatorService {
     return decryptedList;
   }
 
-  private assertOfferNotExpired(intent: BookingIntentForValidation, now: Date): void {
+  private assertOfferNotExpired(
+    intent: BookingIntentForValidation,
+    normalizedOfferExpiresAt: string | null,
+    now: Date,
+  ): void {
     if (intent.offerExpiresAt) {
       const expiresAt = new Date(intent.offerExpiresAt);
       if (!Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() <= now.getTime()) {
@@ -329,78 +336,18 @@ export class BookingPassengerFinalValidatorService {
       }
     }
 
-    const rawOffer = intent.rawOfferSnapshot;
-    if (isRecord(rawOffer)) {
-      const expiresAtRaw = rawOffer.expires_at ?? rawOffer.expiresAt;
-      if (typeof expiresAtRaw === 'string') {
-        const expiresAt = new Date(expiresAtRaw);
-        if (!Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() <= now.getTime()) {
-          throw new HttpException(
-            {
-              code: 'OFFER_EXPIRED',
-              message: 'Flight offer has expired',
-            },
-            HttpStatus.CONFLICT,
-          );
-        }
+    if (normalizedOfferExpiresAt) {
+      const expiresAt = new Date(normalizedOfferExpiresAt);
+      if (!Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() <= now.getTime()) {
+        throw new HttpException(
+          {
+            code: 'OFFER_EXPIRED',
+            message: 'Flight offer has expired',
+          },
+          HttpStatus.CONFLICT,
+        );
       }
     }
-  }
-
-  private analyzeOfferSnapshot(rawOffer: unknown): {
-    scope: 'DOMESTIC' | 'INTERNATIONAL' | null;
-    tripCompletionDate: string | null;
-  } {
-    if (!isRecord(rawOffer) || !Array.isArray(rawOffer.slices)) {
-      return { scope: null, tripCompletionDate: null };
-    }
-
-    let isInternational = false;
-    let latestArrival: string | null = null;
-
-    for (const slice of rawOffer.slices) {
-      if (!isRecord(slice) || !Array.isArray(slice.segments)) {
-        continue;
-      }
-      for (const segment of slice.segments) {
-        if (!isRecord(segment)) continue;
-
-        let originCountry: string | null = null;
-        let destCountry: string | null = null;
-
-        if (isRecord(segment.origin)) {
-          originCountry =
-            (segment.origin.iata_country_code as string) ??
-            (segment.origin.countryCode as string) ??
-            null;
-        }
-        if (isRecord(segment.destination)) {
-          destCountry =
-            (segment.destination.iata_country_code as string) ??
-            (segment.destination.countryCode as string) ??
-            null;
-        }
-
-        if (originCountry && destCountry && originCountry !== destCountry) {
-          isInternational = true;
-        }
-
-        const arrivalRaw = segment.arriving_at ?? segment.arrivalDate ?? segment.arrivingAt;
-        if (typeof arrivalRaw === 'string') {
-          const dateOnly = arrivalRaw.slice(0, 10);
-          if (isValidDateOnly(dateOnly)) {
-            if (!latestArrival || dateOnly > latestArrival) {
-              latestArrival = dateOnly;
-            }
-          }
-        }
-      }
-    }
-
-    return {
-      scope: isInternational ? 'INTERNATIONAL' : 'DOMESTIC',
-      tripCompletionDate: latestArrival,
-    };
   }
 
   private validateAndBuildDuffelPassengers(
@@ -505,8 +452,8 @@ export class BookingPassengerFinalValidatorService {
         identity_documents: identityDocuments,
       };
 
-      if (record.duffelPassengerId) {
-        duffelDto.id = record.duffelPassengerId;
+      if (record.supplierPassengerId) {
+        duffelDto.id = record.supplierPassengerId;
       }
 
       duffelPassengers.push(duffelDto);

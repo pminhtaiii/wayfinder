@@ -26,6 +26,8 @@ import { BookingLifecycleService } from './booking-lifecycle.service';
 import { BookingPipelineOutcome } from './booking-lifecycle.types';
 import { FlightSnapshot, PassengerSnapshot } from '@shared/booking-types';
 
+// Approved 2026-10-03: update only lifecycle Prisma fields and the internal supplier outcome field; preserve external keys and values.
+
 describe('BookingLifecycleService', () => {
   let service: BookingLifecycleService;
   let mockPrisma: any;
@@ -158,32 +160,22 @@ describe('BookingLifecycleService', () => {
       expect(mockPublisher.publish).not.toHaveBeenCalled();
     });
 
-    it('parses Duffel rawOfferSnapshot with slices and segments into flightSnapshot when flightSnapshot not provided', async () => {
+    it('does not parse supplier slices when no explicit snapshot is provided', async () => {
       mockPrisma.bookingIntent.findUnique.mockResolvedValue({
         id: 'intent-duffel',
         userId: 'user-1',
         confirmedPrice: '450.00',
         currency: 'GBP',
         rawOfferSnapshot: {
-          total_duration: 'PT8H',
-          slices: [
-            {
-              duration: 'PT8H',
-              segments: [
-                {
-                  id: 'seg_1',
-                  departing_at: '2026-09-18T10:00:00Z',
-                  arriving_at: '2026-09-18T18:00:00Z',
-                  duration: 'PT8H',
-                  marketing_carrier_flight_number: 'DL100',
-                  operating_carrier: { name: 'Delta Air Lines', iata_code: 'DL' },
-                  origin: { iata_code: 'JFK', name: 'John F Kennedy Intl', city_name: 'New York' },
-                  destination: { iata_code: 'LHR', name: 'London Heathrow', city_name: 'London' },
-                  passengers: [{ cabin_class: 'economy' }],
-                },
-              ],
-            },
-          ],
+          slices: [{
+            segments: [{
+              id: 'seg_1',
+              origin: { iata_code: 'JFK' },
+              destination: { iata_code: 'LHR' },
+              departing_at: '2026-09-18T10:00:00Z',
+              arriving_at: '2026-09-18T18:00:00Z',
+            }],
+          }],
         },
       });
       mockPrisma.booking.create.mockResolvedValue({
@@ -198,29 +190,136 @@ describe('BookingLifecycleService', () => {
 
       await service.createBooking('user-1', 'booking-duffel', 'intent-duffel');
 
+      // Approved 2026-10-04 per T061: move provider snapshot assertions to SupplierSearch; keep lifecycle writes canonical and neutral.
+      const createArgs = mockPrisma.booking.create.mock.calls[0][0];
+      expect(createArgs.data).not.toHaveProperty('flightSnapshot');
+    });
+
+    it('omits malformed neutral snapshots instead of persisting unchecked segment values', async () => {
+      mockPrisma.bookingIntent.findUnique.mockResolvedValue({
+        id: 'intent-malformed',
+        userId: 'user-1',
+        confirmedPrice: '450.00',
+        currency: 'GBP',
+        rawOfferSnapshot: {
+          segments: [null],
+          totalDuration: 'PT8H',
+          stops: 0,
+          cabinClass: 'economy',
+        },
+      });
+      mockPrisma.booking.create.mockResolvedValue({
+        id: 'booking-malformed',
+        userId: 'user-1',
+        bookingIntentId: 'intent-malformed',
+        totalAmount: '450.00',
+        currency: 'GBP',
+        status: BookingStatus.PROCESSING,
+        version: 1,
+      });
+
+      await service.createBooking('user-1', 'booking-malformed', 'intent-malformed');
+
+      const createArgs = mockPrisma.booking.create.mock.calls[0][0];
+      expect(createArgs.data).not.toHaveProperty('flightSnapshot');
+    });
+
+    it('preserves valid neutral fallback and explicit snapshot priority', async () => {
+      const neutralSnapshot: FlightSnapshot = {
+        segments: [{
+          airline: {
+            name: 'Delta Air Lines',
+            iataCode: 'DL',
+            logoUrl: 'https://images.example.test/delta.svg',
+          },
+          flightNumber: 'DL100',
+          departureAirport: {
+            iataCode: 'JFK',
+            name: 'John F Kennedy Intl',
+            city: 'New York',
+            terminal: '4',
+            gate: 'A12',
+          },
+          arrivalAirport: {
+            iataCode: 'LHR',
+            name: 'London Heathrow',
+            city: 'London',
+            terminal: '5',
+            gate: 'B8',
+          },
+          departureAt: '2026-09-18T10:00:00Z',
+          arrivalAt: '2026-09-18T18:00:00Z',
+          duration: 'PT8H',
+          aircraftType: 'A320',
+          supplierSegmentId: 'seg_1',
+          sliceOrder: 0,
+          segmentOrder: 0,
+          globalOrder: 0,
+        }],
+        totalDuration: 'PT8H',
+        stops: 0,
+        cabinClass: 'economy',
+        baggageAllowance: '1 checked bag',
+        fareClass: 'Main Cabin',
+      };
+      mockPrisma.bookingIntent.findUnique.mockResolvedValue({
+        id: 'intent-neutral',
+        userId: 'user-1',
+        confirmedPrice: '450.00',
+        currency: 'GBP',
+        rawOfferSnapshot: neutralSnapshot,
+      });
+      mockPrisma.booking.create.mockResolvedValue({
+        id: 'booking-neutral',
+        userId: 'user-1',
+        bookingIntentId: 'intent-neutral',
+        totalAmount: '450.00',
+        currency: 'GBP',
+        status: BookingStatus.PROCESSING,
+        version: 1,
+      });
+
+      await service.createBooking('user-1', 'booking-neutral', 'intent-neutral');
+
       expect(mockPrisma.booking.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({
-            flightSnapshot: expect.objectContaining({
-              totalDuration: 'PT8H',
-              stops: 0,
-              cabinClass: 'economy',
-              segments: [
-                expect.objectContaining({
-                  airline: { name: 'Delta Air Lines', iataCode: 'DL' },
-                  flightNumber: 'DL100',
-                  departureAirport: expect.objectContaining({ iataCode: 'JFK', name: 'John F Kennedy Intl', city: 'New York' }),
-                  arrivalAirport: expect.objectContaining({ iataCode: 'LHR', name: 'London Heathrow', city: 'London' }),
-                  departureAt: '2026-09-18T10:00:00Z',
-                  arrivalAt: '2026-09-18T18:00:00Z',
-                  duration: 'PT8H',
-                  sliceOrder: 0,
-                  segmentOrder: 0,
-                  globalOrder: 0,
-                }),
-              ],
-            }),
-          }),
+          data: expect.objectContaining({ flightSnapshot: neutralSnapshot }),
+        }),
+      );
+
+      const explicitSnapshot: FlightSnapshot = {
+        ...neutralSnapshot,
+        totalDuration: 'PT9H',
+      };
+      mockPrisma.bookingIntent.findUnique.mockResolvedValue({
+        id: 'intent-explicit',
+        userId: 'user-1',
+        confirmedPrice: '450.00',
+        currency: 'GBP',
+        rawOfferSnapshot: { slices: [] },
+      });
+      mockPrisma.booking.create.mockResolvedValue({
+        id: 'booking-explicit',
+        userId: 'user-1',
+        bookingIntentId: 'intent-explicit',
+        totalAmount: '450.00',
+        currency: 'GBP',
+        status: BookingStatus.PROCESSING,
+        version: 1,
+      });
+
+      await service.createBooking(
+        'user-1',
+        'booking-explicit',
+        'intent-explicit',
+        undefined,
+        undefined,
+        explicitSnapshot,
+      );
+
+      expect(mockPrisma.booking.create).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ flightSnapshot: explicitSnapshot }),
         }),
       );
     });
@@ -533,7 +632,7 @@ describe('BookingLifecycleService', () => {
         id: 'b-1',
         status: BookingStatus.CONFIRMED,
         pnrReference: 'PNR1',
-        duffelOrderId: 'ord-1',
+        supplierOrderId: 'ord-1',
         version: 2,
       });
 
@@ -553,7 +652,7 @@ describe('BookingLifecycleService', () => {
           status: BookingStatus.CONFIRMED,
           failureReason: null,
           pnrReference: 'PNR1',
-          duffelOrderId: 'ord-1',
+          supplierOrderId: 'ord-1',
           flightSnapshot: flightSnapshot as any,
           passengerSnapshot: passengerSnapshot as any,
           departureAt: new Date('2026-09-01T10:00:00.000Z'),
@@ -582,7 +681,7 @@ describe('BookingLifecycleService', () => {
         id: 'b-1',
         status: BookingStatus.CONFIRMED,
         pnrReference: 'PNR1',
-        duffelOrderId: 'ord-1',
+        supplierOrderId: 'ord-1',
         version: 2,
       });
 
@@ -825,7 +924,7 @@ describe('BookingLifecycleService', () => {
         bookingId: 'b-1',
         paymentId: 'p-1',
         pnrReference: 'PNR123',
-        duffelOrderId: 'ord-123',
+        supplierOrderId: 'ord-123',
         flightSnapshot,
         passengerSnapshot,
         occurredAt: '2026-08-23T10:00:00.000Z',

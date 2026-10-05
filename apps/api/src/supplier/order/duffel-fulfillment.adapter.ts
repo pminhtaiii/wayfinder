@@ -23,7 +23,6 @@ import { DuffelCancellationService } from './duffel-cancellation.service';
 import { DuffelOrderAdapter } from './duffel-order.adapter';
 import { DuffelRecoveryService } from './duffel-recovery.service';
 import { OrderSnapshotNormalizer } from './order-snapshot.normalizer';
-import { isDuffelCancellationConfirmed } from '@/duffel/cancellation-confirmation';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -422,15 +421,7 @@ export class DuffelFulfillmentAdapter implements FulfillmentGatewayPort {
     try {
       await control.beforeInvoke();
 
-      const cancellation = asRecord(await this.cancellationService.cancelOrder(orderId));
-      const status = cancellation ? readString(cancellation, 'status') : undefined;
-      const confirmed = isDuffelCancellationConfirmed(cancellation);
-
-      return {
-        success: confirmed,
-        orderId,
-        status: confirmed ? 'CANCELLED' : status,
-      };
+      return await this.cancellationService.cancelOrder(orderId);
     } finally {
       release();
     }

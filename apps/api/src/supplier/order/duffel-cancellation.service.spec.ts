@@ -136,12 +136,11 @@ describe('DuffelCancellationService', () => {
       },
     });
 
+    // User-approved 2026-10-04: the cancellation service now returns its existing typed outcome for a confirmed replay; replay lookup/accounting assertions remain unchanged.
     await expect(service.cancelOrder('ord_replayed')).resolves.toEqual({
-      id: 'ord_replayed',
-      order_id: 'ord_replayed',
+      success: true,
+      orderId: 'ord_replayed',
       status: 'CANCELLED',
-      cancelled_at: null,
-      cancellation_id: 'oc_existing',
     });
 
     expect(reserveAttempt).toHaveBeenCalledTimes(3);
@@ -150,7 +149,8 @@ describe('DuffelCancellationService', () => {
     expect(getOrder).toHaveBeenCalledWith('ord_replayed');
   });
 
-  it('returns an unconfirmed cancellation response without treating it as success', async () => {
+  // User-approved 2026-10-04: assert the existing CancelOrderOutcome at this service boundary while keeping the provider-shaped fixture and budget assertions.
+  it('returns a typed unconfirmed outcome without treating pending cancellation as success', async () => {
     const pendingCancellation = {
       id: 'oc_pending',
       order_id: 'ord_pending',
@@ -162,9 +162,70 @@ describe('DuffelCancellationService', () => {
     createCancellation.mockResolvedValue({ data: { id: 'oc_pending' } });
     confirmCancellation.mockResolvedValue({ data: pendingCancellation });
 
-    await expect(service.cancelOrder('ord_pending')).resolves.toEqual(pendingCancellation);
+    await expect(service.cancelOrder('ord_pending')).resolves.toEqual({
+      success: false,
+      orderId: 'ord_pending',
+      status: 'pending',
+    });
 
     expect(reserveAttempt).toHaveBeenCalledTimes(2);
+    expect(getOrder).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      name: 'a non-empty confirmation timestamp',
+      response: { id: 'oc_confirmed', confirmed_at: '2026-10-02T10:00:00.000Z' },
+      expected: { success: true, orderId: 'ord_123', status: 'CANCELLED' },
+    },
+    {
+      name: 'a confirmed status',
+      response: { id: 'oc_confirmed', status: 'CONFIRMED', confirmed_at: null },
+      expected: { success: true, orderId: 'ord_123', status: 'CANCELLED' },
+    },
+    {
+      name: 'a timestamp-first pending status',
+      response: {
+        id: 'oc_pending_with_timestamp',
+        status: 'PENDING',
+        confirmed_at: '2026-10-02T10:00:00.000Z',
+      },
+      expected: { success: true, orderId: 'ord_123', status: 'CANCELLED' },
+    },
+    {
+      name: 'a missing timestamp and status',
+      response: { id: 'oc_unconfirmed' },
+      expected: { success: false, orderId: 'ord_123', status: undefined },
+    },
+    {
+      name: 'a blank timestamp',
+      response: { id: 'oc_unconfirmed', confirmed_at: '   ' },
+      expected: { success: false, orderId: 'ord_123', status: undefined },
+    },
+    {
+      name: 'a null timestamp',
+      response: { id: 'oc_unconfirmed', confirmed_at: null },
+      expected: { success: false, orderId: 'ord_123', status: undefined },
+    },
+    {
+      name: 'explicit success false with otherwise confirming evidence',
+      response: {
+        id: 'oc_negative',
+        success: false,
+        status: 'CONFIRMED',
+        confirmed_at: '2026-10-02T10:00:00.000Z',
+      },
+      expected: { success: false, orderId: 'ord_123', status: 'CONFIRMED' },
+    },
+  ])('normalizes $name to the cancellation outcome contract', async ({ response, expected }) => {
+    createCancellation.mockResolvedValue({ data: { id: 'oc_matrix_quote' } });
+    confirmCancellation.mockResolvedValue({ data: response });
+
+    await expect(service.cancelOrder('ord_123')).resolves.toEqual(expected);
+
+    expect(reserveAttempt).toHaveBeenCalledTimes(2);
+    expect(createCancellation).toHaveBeenCalledWith({ order_id: 'ord_123' });
+    expect(confirmCancellation).toHaveBeenCalledWith('oc_matrix_quote');
     expect(getOrder).not.toHaveBeenCalled();
   });
 

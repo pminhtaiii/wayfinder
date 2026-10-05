@@ -104,8 +104,8 @@
 - [x] T039 [US3] Rewire order consumers and Nest imports in `apps/api/src/cancellation/cancellation.service.ts`, `apps/api/src/booking-lifecycle/booking-recovery.service.ts`, `apps/api/src/disruption/sync/supplier-sync.service.ts`, `apps/api/src/payment-fulfillment/payment-fulfillment.module.ts`, and `apps/api/src/app.module.ts`; update module-wiring tests.
 - [x] T040 [US3] Preserve order-created idempotency checkpoint, payment hold, PROCESSING booking, and order evidence on unconfirmed cancellation in both `executeConfirmPayment` and `handleBackgroundError` of `apps/api/src/payment-fulfillment/payment-fulfillment.saga.ts`; do not finalize the key or void/fail until cancellation is confirmed.
 - [x] T041 [US3] Defer stale recovery on unconfirmed cancellation via existing `CacheService` key `booking:recovery:defer:{bookingId}` with TTL to budget retry time or bounded backoff, then cancel/confirm before void/fail in `apps/api/src/booking-lifecycle/booking-recovery.service.ts`; missing key causes safe recheck and duplicate remote effects remain blocked.
-- [ ] T042 [US3] Delete `apps/api/src/duffel/duffel.service.ts`, `apps/api/src/duffel/duffel.module.ts`, `apps/api/src/duffel/duffel.service.spec.ts`, and moved duplicate normalizer/cleanup files after equivalent capability tests and all consumers use the new modules.
-- [ ] T043 [US3] Run order/saga/recovery/privacy and API compile checkpoint in `specs/029-duffel-provider-narrowing/quickstart.md`.
+- [x] T042 [US3] Delete `apps/api/src/duffel/duffel.service.ts`, `apps/api/src/duffel/duffel.module.ts`, `apps/api/src/duffel/duffel.service.spec.ts`, and moved duplicate normalizer/cleanup files after equivalent capability tests and all consumers use the new modules.
+- [x] T043 [US3] Run order/saga/recovery/privacy and API compile checkpoint in `specs/029-duffel-provider-narrowing/quickstart.md`.
 
 **Checkpoint**: The monolith is gone, and money-path replay/compensation is recoverable under budget denial.
 
@@ -119,20 +119,22 @@
 
 ### Tests for User Story 4
 
-- [ ] T044 [P] [US4] Pin current API JSON keys and `sel_v1_` signed payload bytes in `apps/api/src/agent-gateway/selection-attestation.service.spec.ts`, `apps/api/src/agent-gateway/attested-flight-search/attested-flight-search.service.spec.ts`, and `packages/shared/src/types/flight-search.types.spec.ts`.
-- [ ] T045 [P] [US4] Add legacy/new booking snapshot and strict stale-agent-snapshot behavior in `apps/api/src/disruption/domain/itinerary-normalizer.spec.ts`, `apps/api/src/booking-management/booking-management.service.spec.ts`, and `apps/agent/tests/test_trusted_search_snapshot.py`.
-- [ ] T046 [P] [US4] Extend web provider-ID stripping and checkout-injection tests in `apps/web/lib/server/flight-search.spec.ts`, `apps/web/lib/server/booking-management.spec.ts`, and `apps/web/tests/handoff-checkout-proxy.unit.ts`.
+Approved Slice 6.1 scope: T045 pins legacy reads and strict stale-agent state; neutral segment/new-write coverage remains T051. T046 pins both root identity names and nested legacy rejection; nested supplierOfferId rejection remains T049. See [Slice 6.1 verification](./slice-6-1-verification.md).
+
+- [X] T044 [P] [US4] Pin current API JSON keys and `sel_v1_` signed payload bytes in `apps/api/src/agent-gateway/selection-attestation.service.spec.ts`, `apps/api/src/agent-gateway/attested-flight-search/attested-flight-search.service.spec.ts`, and `packages/shared/src/types/flight-search.types.spec.ts`.
+- [X] T045 [P] [US4] Add legacy/new booking snapshot and strict stale-agent-snapshot behavior in `apps/api/src/disruption/domain/itinerary-normalizer.spec.ts`, `apps/api/src/booking-management/booking-management.service.spec.ts`, and `apps/agent/tests/test_trusted_search_snapshot.py`.
+- [X] T046 [P] [US4] Extend web provider-ID stripping and checkout-injection tests in `apps/web/lib/server/flight-search.spec.ts`, `apps/web/lib/server/booking-management.spec.ts`, and `apps/web/tests/handoff-checkout-proxy.unit.ts`.
 
 ### Implementation for User Story 4
 
-- [ ] T047 [US4] Rename internal domain/shared offer/order/passenger/segment/quote/sync/hash fields to supplier/flight vocabulary in `packages/shared/src/booking-types.ts`, `packages/shared/src/disruption-types.ts`, `packages/shared/src/types/ancillary.types.ts`, and corresponding `apps/api/src/` consumer types.
-- [ ] T048 [US4] Add explicit current-wire compatibility mappings in `apps/api/src/flights/dto/search-flight.dto.ts`, `apps/api/src/booking-management/dto/booking-response.dto.ts`, `apps/api/src/agent-gateway/dto/attested-flight-search.dto.ts`, and `apps/api/src/agent-gateway/selection-attestation.service.ts`; keep HMAC object serialization unchanged.
-- [ ] T049 [US4] Update web local names/schema boundaries and reject both old/new injected supplier keys in `apps/web/lib/server/flight-search.ts`, `apps/web/lib/server/booking-management.ts`, `apps/web/lib/handoffCheckoutPayload.ts`, and `apps/web/lib/checkout.ts`.
-- [ ] T050 [US4] Update agent local names and legacy wire aliases in `apps/agent/src/agent/trusted_search_snapshot/models.py`, `apps/agent/src/agent/tools/search_flights.py`, `apps/agent/src/agent/graph/nodes.py`, and `apps/agent/src/agent/guardrails/schemas/tools.py`; reject stale strict snapshots to fresh search.
-- [ ] T051 [US4] Add legacy `duffelSegmentId` JSON read and neutral new-write projection in `apps/api/src/supplier/order/order-snapshot.normalizer.ts`; preserve old persisted `duffel_order_created`/`DUFFEL_COST` readers while changing internal vocabulary in `apps/api/src/payment-fulfillment/payment-fulfillment.saga.ts` and `apps/api/src/booking-lifecycle/booking-recovery.service.ts`.
-- [ ] T052 [US4] Rename non-webhook Prisma fields and indexes without `@map` in `apps/api/prisma/schema.prisma`; add forward physical rename SQL in `apps/api/prisma/migrations/20260929000000_supplier_identifiers/migration.sql` without editing prior migrations.
-- [ ] T053 [US4] Regenerate Prisma client and update renamed field references across `apps/api/src/booking-intent/`, `apps/api/src/ancillaries/`, `apps/api/src/cancellation/`, `apps/api/src/disruption/`, `apps/api/src/agent-gateway/`, `apps/api/src/chat-handoff/`, and `apps/api/src/payment-fulfillment/`; keep `DuffelWebhookEvent` concrete.
-- [ ] T054 [US4] Validate clean and previous-schema migration, physical indexes, preserved rows, shared/API typecheck, and cross-service contract cases using `specs/029-duffel-provider-narrowing/quickstart.md`.
+- [x] T047 [US4] Rename internal domain/shared offer/order/passenger/segment/quote/sync/hash fields to supplier/flight vocabulary in `packages/shared/src/booking-types.ts`, `packages/shared/src/disruption-types.ts`, `packages/shared/src/types/ancillary.types.ts`, and corresponding `apps/api/src/` consumer types.
+- [x] T048 [US4] Add explicit current-wire compatibility mappings in `apps/api/src/flights/dto/search-flight.dto.ts`, `apps/api/src/booking-management/dto/booking-response.dto.ts`, `apps/api/src/agent-gateway/dto/attested-flight-search.dto.ts`, and `apps/api/src/agent-gateway/selection-attestation.service.ts`; keep HMAC object serialization unchanged.
+- [X] T049 [US4] Update web local names/schema boundaries and reject both old/new injected supplier keys in `apps/web/lib/server/flight-search.ts`, `apps/web/lib/server/booking-management.ts`, `apps/web/lib/handoffCheckoutPayload.ts`, and `apps/web/lib/checkout.ts`.
+- [x] T050 [US4] Update agent local names and legacy wire aliases in `apps/agent/src/agent/trusted_search_snapshot/models.py`, `apps/agent/src/agent/tools/search_flights.py`, `apps/agent/src/agent/graph/nodes.py`, and `apps/agent/src/agent/guardrails/schemas/tools.py`; reject stale strict snapshots to fresh search.
+- [x] T051 [US4] Add legacy `duffelSegmentId` JSON read and neutral new-write projection in `apps/api/src/supplier/order/order-snapshot.normalizer.ts`; preserve old persisted `duffel_order_created`/`DUFFEL_COST` readers while changing internal vocabulary in `apps/api/src/payment-fulfillment/payment-fulfillment.saga.ts` and `apps/api/src/booking-lifecycle/booking-recovery.service.ts`.
+- [x] T052 [US4] Rename non-webhook Prisma fields and indexes without `@map` in `apps/api/prisma/schema.prisma`; add forward physical rename SQL in `apps/api/prisma/migrations/20260929000000_supplier_identifiers/migration.sql` without editing prior migrations.
+- [x] T053 [US4] Regenerate Prisma client and update renamed field references across `apps/api/src/booking-intent/`, `apps/api/src/ancillaries/`, `apps/api/src/cancellation/`, `apps/api/src/disruption/`, `apps/api/src/agent-gateway/`, `apps/api/src/chat-handoff/`, and `apps/api/src/payment-fulfillment/`; keep `DuffelWebhookEvent` concrete.
+- [x] T054 [US4] Validate clean and previous-schema migration, physical indexes, preserved rows, shared/API typecheck, and cross-service contract cases using `specs/029-duffel-provider-narrowing/quickstart.md`.
 
 **Checkpoint**: Neutral internal vocabulary and real columns, with explicit compatibility edges.
 
@@ -140,9 +142,9 @@
 
 ## Phase 7: Polish and cross-cutting audit
 
-- [ ] T055 Run full pre-PR API/shared/web/agent gates and E2E scenarios from `context/testing.md` and `specs/029-duffel-provider-narrowing/quickstart.md`; record pass/fail evidence in `specs/029-duffel-provider-narrowing/verification.md`.
-- [ ] T056 Audit remaining `DuffelService`, `DuffelModule`, private SDK, `@duffel/api`, and provider-named identifier hits in `apps/api/src/`, `packages/shared/src/`, `apps/web/`, `apps/agent/src/`, and `apps/api/prisma/schema.prisma`; document only SDK/webhook/wire/history exceptions in `specs/029-duffel-provider-narrowing/verification.md`.
-- [ ] T057 Update implemented architecture and status in `context/architecture.md` and `context/progress-checker.md`; update `context/library-docs.md` and other directly affected context files if their Duffel guidance is stale.
+- [x] T055 Run full pre-PR API/shared/web/agent gates and E2E scenarios from `context/testing.md` and `specs/029-duffel-provider-narrowing/quickstart.md`; record pass/fail evidence in `specs/029-duffel-provider-narrowing/verification.md`.
+- [x] T056 Audit remaining `DuffelService`, `DuffelModule`, private SDK, `@duffel/api`, and provider-named identifier hits in `apps/api/src/`, `packages/shared/src/`, `apps/web/`, `apps/agent/src/`, and `apps/api/prisma/schema.prisma`; document only SDK/webhook/wire/history exceptions in `specs/029-duffel-provider-narrowing/verification.md`.
+- [x] T057 Update implemented architecture and status in `context/architecture.md` and `context/progress-checker.md`; update `context/library-docs.md` and other directly affected context files if their Duffel guidance is stale.
 
 ## Dependencies and execution order
 
@@ -163,3 +165,30 @@ US1 is the MVP search/detail/readiness slice. US2 and US3 share the old monolith
 ## Implementation strategy
 
 Complete setup and foundation, ship the US1 search boundary checkpoint first, then ancillary and order extraction. Stop at each checkpoint until focused tests and API compile pass. Delete the monolith before neutral renaming. Finish with the physical migration, byte-compatible external contracts, full security/CI gates, and context documentation sync. No second supplier, new public endpoint, or speculative port is part of this work.
+
+## Phase 8: Convergence (Phase 5 checkpoint)
+
+- [x] T058 Remove `@Global()` from `apps/api/src/supplier/core/duffel-core.module.ts` so SDK/configuration/budget providers resolve only through explicit supplier capability-module imports, and add a negative Nest composition test in `apps/api/src/supplier/core/duffel-core.module.spec.ts` per the Structure Decision in `specs/029-duffel-provider-narrowing/plan.md` and the Nest module dependencies in `specs/029-duffel-provider-narrowing/contracts/supplier-boundaries.md` (`contradicts`).
+
+Dependency: T058 gates T043 and must finish before US4 tasks T044–T054.
+
+## Phase 9: Convergence (Phase 7 boundary census and gate failures)
+
+These append-only tasks address current-source findings verified during T056 and the repeated T055 performance failure. The user approved the bounded design, legitimate fixture adaptations, and diagnosis/fix of the performance blocker. Preserve existing behavioral/security assertions and timing limits; complete focused TDD, typecheck, and lint before each implementation commit.
+
+- [x] T059 Normalize travel scope/completion/expiry facts in `apps/api/src/supplier/search/flight-offer.normalizer.ts` and `flight-search.port.ts`; remove raw passenger binding fallback and neutralize internal passenger IDs through `apps/api/src/booking-intent/booking-intent.service.ts`, `passenger-source-resolver.service.ts`, and `passenger-snapshot.service.ts`, preserving identity order, wire aliases, and ciphertext contexts (FR-003, FR-009).
+- [x] T060 Inject the existing exported search port into `apps/api/src/booking-intent/booking-passenger-final-validator.service.ts` and consume supplier-normalized travel/expiry facts instead of parsing raw evidence; preserve decrypt-first ordering, passport/trip-date/expiry safeguards and caller-option precedence (FR-003).
+- [x] T061 Move raw offer-to-booking snapshot conversion from `apps/api/src/booking-lifecycle/booking-lifecycle.service.ts` to the supplier search boundary; pass normalized snapshots from `apps/api/src/payment-fulfillment/payment-fulfillment.saga.ts` through the existing lifecycle argument, keeping BookingStateModule dependent only on Prisma and DomainEvents and retaining legacy snapshot compatibility (FR-003, FR-006, FR-010a).
+- [x] T062 Normalize cancellation outcomes and redacted-order passenger enrichment within `apps/api/src/supplier/order/`; remove those supplier-shape interpretations from `apps/api/src/booking-lifecycle/booking-recovery.service.ts`, preserving pending/budget/replay compensation safety and avoiding additional provider calls (FR-003, FR-006, FR-007a).
+- [x] T063 Remove raw supplier expiry/passenger-shape reads from `apps/api/src/chat-handoff/chat-handoff.service.ts`; consume normalized freshness and passenger-provenance facts through the existing search port, preserving stored-offer fallback, synthetic-passenger omission, HTTP keys and attestation bytes (FR-003, FR-004, FR-010a).
+- [x] T064 Make `apps/api/src/flights/flight-search-orchestrator.service.ts` accept and return only canonical offers; retire the live domain raw-offer parser and preserve equivalent supplier-boundary/ranking/scoring/top-20/currency/identity test coverage (FR-003, FR-004, FR-009).
+- [x] T065 Rename internal cancellation quote parse/serialize helpers and type in `apps/api/src/cancellation/cancellation.types.ts` and consumers to Supplier vocabulary, preserving persisted delimiter bytes and the explicit legacy wire DTO alias (FR-009, FR-010).
+- [x] T066 Diagnose and minimally correct the reproduced agent security performance gate failure, retaining all signatures, Unicode/encoded-attack handling and unchanged performance ceilings. Prefer a verified owned-process environment correction documented in `context/testing.md` when measurements exclude a scanner regression; change guardrail source only for a demonstrated defect. Verify focused and full guarded agent suites and Ruff checks before committing (T055 verified failure).
+
+Execution: T066 clears the current gate blocker first. T059 precedes T060/T061/T063 shared normalized facts; remaining fixes have serialized file ownership. Re-run final T055 gates and T056 census after all fixes, then T057 documentation, whole-feature convergence, independent Standards/Spec reviews, and exact-HEAD remote CI. Historical dashboard snapshot projection is a documented legacy-history read exception; no new live supplier-shape parsing is permitted.
+
+
+
+- [x] T067 Make the T093 API launcher in `apps/web/tests/playwright.config.ts` honor the caller's `DATABASE_URL` with its existing `test_db` default, so the API and opaque-box test use the same dedicated disposable database. Demonstrate current config-load RED and corrected GREEN without starting services; preserve every flow assertion, default port, timing limit, and CI behavior. Verify web typecheck/lint and T093 discovery before committing. This is a T055 environment-isolation fix verified from the current launcher/test code, covered by the user's session test-edit approval.
+
+Dependency: T067 precedes the final T093 real-flow gate; do not launch the old hardcoded configuration against a shared database. Confirm required ports are free and use only runner-owned services with the dedicated Phase 7 database.

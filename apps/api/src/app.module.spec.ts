@@ -14,7 +14,6 @@ import { BookingStateModule } from './booking-lifecycle/booking-state.module';
 import { BookingLifecycleModule } from './booking-lifecycle/booking-lifecycle.module';
 import { BookingRecoveryService } from './booking-lifecycle/booking-recovery.service';
 import { BookingManagementService } from './booking-management/booking-management.service';
-import { DuffelService } from './duffel/duffel.service';
 import { StripeService } from './common/stripe.service';
 import { CacheService } from './cache/cache.service';
 import { RefundTransactionService } from './refund/refund-transaction.service';
@@ -238,8 +237,6 @@ describe('AppModule Booking Domain Wiring (T007 / T024)', () => {
     })
       .overrideProvider(PrismaService)
       .useValue({})
-      .overrideProvider(DuffelService)
-      .useValue({})
       .overrideProvider(StripeService)
       .useValue({})
       .overrideProvider(CacheService)
@@ -275,4 +272,3 @@ describe('AppModule Booking Domain Wiring (T007 / T024)', () => {
     expect(exports).toContain(BookingStateModule);
   });
 });
-

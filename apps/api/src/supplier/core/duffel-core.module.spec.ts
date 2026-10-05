@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Module } from '@nestjs/common';
 import { Duffel } from '@duffel/api';
 import {
   DuffelCoreModule,
@@ -17,6 +17,14 @@ class ServiceConsumerA {
 class ServiceConsumerB {
   constructor(@Inject(DUFFEL_SDK) public readonly sdk: Duffel) {}
 }
+
+@Injectable()
+class UnrelatedSdkConsumer {
+  constructor(@Inject(DUFFEL_SDK) public readonly sdk: unknown) {}
+}
+
+@Module({ providers: [UnrelatedSdkConsumer] })
+class UnrelatedSdkModule {}
 
 describe('DuffelCoreModule', () => {
   const originalEnv = { ...process.env };
@@ -48,6 +56,16 @@ describe('DuffelCoreModule', () => {
       expect(consumerA.sdk).toBe(sdkInstance);
       expect(consumerB.sdk).toBe(sdkInstance);
       expect(consumerA.sdk).toBe(consumerB.sdk);
+    });
+
+    it('does not expose DUFFEL_SDK to an unrelated module in the same application', async (): Promise<void> => {
+      process.env.DUFFEL_ACCESS_TOKEN = 'test_duffel_token';
+
+      await expect(
+        Test.createTestingModule({
+          imports: [DuffelCoreModule, UnrelatedSdkModule],
+        }).compile(),
+      ).rejects.toThrow(/DUFFEL_SDK/);
     });
 
     it('exports the validated transport configuration used by the SDK', async () => {

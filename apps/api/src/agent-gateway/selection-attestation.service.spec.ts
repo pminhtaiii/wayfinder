@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SelectionAttestationService } from './selection-attestation.service';
 import { ConfigService } from '@nestjs/config';
@@ -25,6 +26,96 @@ describe('SelectionAttestationService', () => {
 
     service = module.get<SelectionAttestationService>(SelectionAttestationService);
     configService = module.get<ConfigService>(ConfigService);
+  });
+
+  describe('T044 selection-attestation wire bytes', () => {
+    it('pins sel_v1 JSON bytes, ordered legacy IDs, base64url payload, and HMAC', async (): Promise<void> => {
+      const issuedAt = '2026-09-30T12:00:00.000Z';
+      const expiresAt = '2026-09-30T12:15:00.000Z';
+      const offers = [
+        { flightOfferId: 'fo-1', duffelOfferId: 'off-1' },
+        { flightOfferId: 'fo-2', duffelOfferId: 'off-2' },
+      ];
+      const expectedJson =
+        '{"userId":"user-1","sessionId":"session-1","version":7,' +
+        '"issuedAt":"2026-09-30T12:00:00.000Z",' +
+        '"expiresAt":"2026-09-30T12:15:00.000Z",' +
+        '"offers":[{"flightOfferId":"fo-1","duffelOfferId":"off-1"},' +
+        '{"flightOfferId":"fo-2","duffelOfferId":"off-2"}]}';
+      const reversedJson = JSON.stringify({
+        userId: 'user-1',
+        sessionId: 'session-1',
+        version: 7,
+        issuedAt,
+        expiresAt,
+        offers: [...offers].reverse(),
+      });
+      const expectedToken =
+        'sel_v1_eyJ1c2VySWQiOiJ1c2VyLTEiLCJzZXNzaW9uSWQiOiJzZXNzaW9uLTEiLCJ2ZXJzaW9uIjo3LCJpc3N1ZWRBdCI6IjIwMjYtMDktMzBUMTI6MDA6MDAuMDAwWiIsImV4cGlyZXNBdCI6IjIwMjYtMDktMzBUMTI6MTU6MDAuMDAwWiIsIm9mZmVycyI6W3siZmxpZ2h0T2ZmZXJJZCI6ImZvLTEiLCJkdWZmZWxPZmZlcklkIjoib2ZmLTEifSx7ImZsaWdodE9mZmVySWQiOiJmby0yIiwiZHVmZmVsT2ZmZXJJZCI6Im9mZi0yIn1dfQ.' +
+        '3852a121985c83fc9dcb7f1380236c8b3b53d5cd5bc8eb76e4681b79892d3590';
+
+      expect(reversedJson).not.toBe(expectedJson);
+      const token = await service.signSelectionAttestation(
+        'user-1',
+        'session-1',
+        7,
+        expiresAt,
+        offers,
+        issuedAt,
+      );
+      const tokenBody = token.slice('sel_v1_'.length);
+      const separator = tokenBody.indexOf('.');
+      const encoded = tokenBody.slice(0, separator);
+      const signature = tokenBody.slice(separator + 1);
+
+      expect(token).toBe(expectedToken);
+      expect(Buffer.from(encoded, 'base64url').toString('utf8')).toBe(expectedJson);
+      // Approved by the user: derive this oracle key from the injected test fixture so the digest check has no hardcoded key.
+      const expectedHmacKey: unknown = configService.get<unknown>('ATTESTATION_SECRET');
+      if (typeof expectedHmacKey !== 'string') {
+        throw new Error('Expected ATTESTATION_SECRET test fixture to be configured');
+      }
+      expect(signature).toBe(
+        createHmac('sha256', expectedHmacKey)
+          .update(expectedJson, 'utf8')
+          .digest('hex'),
+      );
+    });
+
+    it('rejects a supplier-named identity substituted into the signed payload', async (): Promise<void> => {
+      const issuedAt = new Date(Date.now() - 5000).toISOString();
+      const expiresAt = new Date(Date.now() + 15 * 60000).toISOString();
+      const offers = [{ flightOfferId: 'fo-1', duffelOfferId: 'off-1' }];
+      const token = await service.signSelectionAttestation(
+        'user-1',
+        'session-1',
+        7,
+        expiresAt,
+        offers,
+        issuedAt,
+      );
+      const tokenBody = token.slice('sel_v1_'.length);
+      const separator = tokenBody.indexOf('.');
+      const encoded = tokenBody.slice(0, separator);
+      const signature = tokenBody.slice(separator + 1);
+      const decodedJson = Buffer.from(encoded, 'base64url').toString('utf8');
+      const supplierNamedJson = decodedJson.replace(
+        '"duffelOfferId":"off-1"',
+        '"supplierOfferId":"off-1"',
+      );
+      const substitutedAttestation = `sel_v1_${Buffer.from(supplierNamedJson, 'utf8').toString('base64url')}.${signature}`;
+
+      expect(supplierNamedJson).not.toBe(decodedJson);
+      await expect(
+        service.verifySelectionAttestation(
+          substitutedAttestation,
+          'user-1',
+          'session-1',
+          7,
+          offers,
+        ),
+      ).rejects.toThrow(new UnauthorizedException('Offers mismatch'));
+    });
   });
 
   describe('signSelectionAttestation & verifySelectionAttestation success roundtrip', () => {

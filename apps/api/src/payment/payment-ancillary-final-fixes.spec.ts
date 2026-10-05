@@ -20,8 +20,22 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CacheService } from '@/cache/cache.service';
 import { DUFFEL_SDK, DUFFEL_SDK_CONFIGURATION } from '@/supplier/core/duffel-core.module';
 import { SupplierOrderModule } from '@/supplier/order/supplier-order.module';
+import type { FlightSearchPort } from '@/supplier/search/flight-search.port';
 
 type DuffelSdkResponse = { data: unknown };
+
+// Approved 2026-10-04 per T061: these saga fixtures have no saved snapshot; retain their payment assertions.
+const flightSearchPort: FlightSearchPort = {
+  search: async () => ({ offers: [], searchHash: '', cached: false }),
+  getOfferById: async () => { throw new Error('Unexpected live offer lookup'); },
+  normalizeStoredOffer: () => null,
+  normalizeStoredOfferFacts: () => ({
+    travelScope: null,
+    tripCompletionDate: null,
+    offerExpiresAt: null,
+  }),
+  normalizeStoredFlightSnapshot: () => null,
+};
 
 describe('PaymentService - Final Fixes Spec', () => {
   let prisma: any;
@@ -247,6 +261,7 @@ describe('PaymentService - Final Fixes Spec', () => {
       bookingService as unknown as BookingLifecycleService,
       prisma as unknown as PrismaService,
       audit as unknown as AuditService,
+      flightSearchPort,
     );
   });
 
@@ -274,11 +289,11 @@ describe('PaymentService - Final Fixes Spec', () => {
 
       prisma.bookingIntent.findUnique.mockResolvedValue({
         id: 'intent-1',
-        duffelOfferId: 'offer-1',
+        supplierOfferId: 'offer-1',
         passengers: [
           {
             id: 'passenger-1',
-            duffelPassengerId: 'p-1',
+            supplierPassengerId: 'p-1',
             type: 'adult',
             givenName: 'John',
             familyName: 'Doe',

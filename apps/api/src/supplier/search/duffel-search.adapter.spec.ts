@@ -4,10 +4,16 @@ import {
   NotFoundException,
   GoneException,
 } from '@nestjs/common';
+import type { Type } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
 import { Duffel } from '@duffel/api';
-import { DuffelRateBudgetService } from '@/supplier/core/duffel-core.module';
+import { DUFFEL_SDK, DuffelRateBudgetService } from '@/supplier/core/duffel-core.module';
 import { DuffelSearchAdapter, DuffelTimeoutError } from './duffel-search.adapter';
 import { FlightSearchCriteria } from './flight-search.port';
+
+function isInjectionClass(value: unknown): value is Type<unknown> {
+  return typeof value === 'function';
+}
 
 describe('DuffelSearchAdapter', () => {
   let adapter: DuffelSearchAdapter;
@@ -43,6 +49,48 @@ describe('DuffelSearchAdapter', () => {
     } as unknown as DuffelRateBudgetService;
 
     adapter = new DuffelSearchAdapter(mockDuffel, mockBudgetService);
+  });
+
+  it('uses the injected SDK when a legacy provider also has an SDK client', async (): Promise<void> => {
+    const constructorParams: unknown = Reflect.getMetadata(
+      'design:paramtypes',
+      DuffelSearchAdapter,
+    );
+    const legacyProvider =
+      Array.isArray(constructorParams) && isInjectionClass(constructorParams[2])
+        ? constructorParams[2]
+        : Symbol('legacy provider');
+    const legacyOfferRequestsCreate = jest
+      .fn<Promise<{ data: unknown }>, [unknown]>()
+      .mockResolvedValue({ data: { id: 'legacy' } });
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        DuffelSearchAdapter,
+        { provide: DUFFEL_SDK, useValue: mockDuffel },
+        { provide: DuffelRateBudgetService, useValue: mockBudgetService },
+        {
+          provide: legacyProvider,
+          useValue: { duffel: { offerRequests: { create: legacyOfferRequestsCreate } } },
+        },
+      ],
+    }).compile();
+
+    try {
+      mockOfferRequestsCreate.mockResolvedValueOnce({ data: { id: 'injected' } });
+      const adapterWithLegacyProvider = moduleRef.get(DuffelSearchAdapter);
+
+      await adapterWithLegacyProvider.searchOffers({
+        origin: 'SFO',
+        destination: 'JFK',
+        departureDate: '2026-10-01',
+        adults: 1,
+      });
+
+      expect(mockOfferRequestsCreate).toHaveBeenCalledTimes(1);
+      expect(legacyOfferRequestsCreate).not.toHaveBeenCalled();
+    } finally {
+      await moduleRef.close();
+    }
   });
 
   describe('searchOffers', () => {

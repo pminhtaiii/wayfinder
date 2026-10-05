@@ -26,6 +26,8 @@ import { BookingEventPublisherService, TransactionEventContext } from '@/domain-
 import { ConfirmPaymentDto } from '@/payment/dto/confirm-payment.dto';
 import { enforceTransition } from '@/payment/payment-state-machine';
 import { FlightSnapshot, PassengerSnapshot } from '@shared/booking-types';
+import { FLIGHT_SEARCH_PORT } from '@/supplier/search/flight-search.port';
+import type { FlightSearchPort } from '@/supplier/search/flight-search.port';
 import {
   PAYMENT_GATEWAY_PORT,
   FULFILLMENT_GATEWAY_PORT,
@@ -57,7 +59,14 @@ function readOrderId(value: unknown): string | undefined {
 }
 
 function isCancellationConfirmed(outcome: CancelOrderOutcome): boolean {
-  return outcome.success && (outcome.status === undefined || outcome.status.toUpperCase() === 'CANCELLED');
+  if (!outcome.success) {
+    return false;
+  }
+  if (outcome.status === undefined) {
+    return true;
+  }
+  const upper = outcome.status.toUpperCase();
+  return upper === 'CANCELLED' || upper === 'CONFIRMED' || upper === 'CANCELED';
 }
 
 @Injectable()
@@ -75,6 +84,8 @@ export class PaymentFulfillmentSaga {
     private readonly bookingLifecycleService: BookingLifecycleService,
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    @Inject(FLIGHT_SEARCH_PORT)
+    private readonly flightSearchPort: FlightSearchPort,
     @Optional()
     private readonly bookingPassengerFinalValidator?: BookingPassengerFinalValidatorService,
     @Optional()
@@ -264,11 +275,16 @@ export class PaymentFulfillmentSaga {
         }
       }
 
+      const flightSnapshot = this.flightSearchPort.normalizeStoredFlightSnapshot(
+        payment.bookingIntent.rawOfferSnapshot,
+      );
       const canonicalBooking = await this.bookingLifecycleService.createBooking(
         userId,
         dto.bookingId,
         payment.bookingIntentId,
         payment.id,
+        undefined,
+        flightSnapshot ?? undefined,
       );
 
       if (canonicalBooking.userId !== userId) {
@@ -579,7 +595,7 @@ export class PaymentFulfillmentSaga {
               passportNumber: p.passportNumber ?? undefined,
               passportExpiry: p.passportExpiry ?? undefined,
               travelerProfileId: p.travelerProfileId ?? undefined,
-              duffelPassengerId: p.duffelPassengerId ?? undefined,
+              duffelPassengerId: p.supplierPassengerId ?? undefined,
               documentType: p.documentType ?? undefined,
               issuingCountry: p.issuingCountry ?? undefined,
             };
@@ -627,7 +643,7 @@ export class PaymentFulfillmentSaga {
         try {
           orderOutcome = await this.fulfillmentGateway.createOrder(
             {
-              offerId: bookingIntent.duffelOfferId,
+              offerId: bookingIntent.supplierOfferId,
               passengers: passengersToOrder,
               services: services.length > 0 ? services : undefined,
               metadata: {

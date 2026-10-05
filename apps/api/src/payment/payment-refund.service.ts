@@ -712,7 +712,7 @@ export class PaymentRefundService {
         cancellationRefundObligation: {
           select: {
             booking: {
-              select: { id: true, status: true, pnrReference: true, duffelOrderId: true },
+              select: { id: true, status: true, pnrReference: true, supplierOrderId: true },
             },
           },
         },
@@ -731,7 +731,14 @@ export class PaymentRefundService {
 
     return refunds.map(({ cancellationRefundObligation, ...refund }) => ({
       ...refund,
-      booking: cancellationRefundObligation?.booking ?? null,
+      booking: cancellationRefundObligation?.booking
+        ? {
+            id: cancellationRefundObligation.booking.id,
+            status: cancellationRefundObligation.booking.status,
+            pnrReference: cancellationRefundObligation.booking.pnrReference,
+            duffelOrderId: cancellationRefundObligation.booking.supplierOrderId,
+          }
+        : null,
     }));
   }
 

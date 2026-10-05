@@ -18,6 +18,7 @@ from agent.tools.registry import (
 )
 
 
+# User approved on 2026-10-03: handoff fixtures represent canonical state and use supplierOfferId.
 @pytest.fixture
 def mock_nestjs_client():
     client = AsyncMock(spec=NestJSClient)
@@ -171,7 +172,7 @@ async def test_create_handoff_token_success():
             "results": [
                 {
                     "flightOfferId": "off_sensitive_id",
-                    "duffelOfferId": "duffel_sensitive_id",
+                    "supplierOfferId": "supplier_sensitive_id",
                     "airline": "Vietnam Airlines",
                     "flightNumber": "VN310",
                     "origin": "HAN",
@@ -236,7 +237,7 @@ async def test_create_handoff_token_redacts_upstream_failure_details(caplog):
             "results": [
                 {
                     "flightOfferId": "off_sensitive_id",
-                    "duffelOfferId": "duffel_sensitive_id",
+                    "supplierOfferId": "supplier_sensitive_id",
                     "airline": "Vietnam Airlines",
                     "origin": "HAN",
                     "destination": "NRT",

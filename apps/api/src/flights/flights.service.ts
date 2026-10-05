@@ -35,6 +35,26 @@ type FlightSearchOptions = {
   caller?: 'user' | 'agent';
 };
 
+function isInputJsonValue(value: unknown): value is Prisma.InputJsonValue {
+  if (
+    value === null ||
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  ) {
+    return true;
+  }
+  if (Array.isArray(value)) {
+    return value.every(isInputJsonValue);
+  }
+  if (typeof value === 'object') {
+    return Object.entries(value).every(
+      ([key, val]) => typeof key === 'string' && (val === undefined || isInputJsonValue(val)),
+    );
+  }
+  return false;
+}
+
 function mapFlightSegment(segment: FlightSegment): FlightSegmentDto {
   const aircraftName = segment.aircraft || '';
   const aircraft = aircraftName.includes('Airbus')
@@ -289,28 +309,32 @@ export class FlightsService {
             },
           });
 
-          const flightOffersData = results.map((offerDto) => {
-            const matchingOffer = (offers || []).find(
-              (o) => o.id === offerDto.id || o.supplierOfferId === offerDto.duffelOfferId,
-            );
-            const rawPayload = matchingOffer ? matchingOffer.rawSupplierPayload : {};
+          const flightOffersData = orchestrated.results.map((res) => {
+            const offer = res.offer;
+            if (!offer) {
+              throw new ServiceUnavailableException('Missing offer in search results');
+            }
+            const rawPayload = offer.rawSupplierPayload;
+            const rawOffer: Prisma.InputJsonValue = isInputJsonValue(rawPayload)
+              ? rawPayload
+              : {};
             return {
-              id: offerDto.id,
+              id: res.scoredOffer.offer.id,
               searchHash: sha256,
-              duffelOfferId: offerDto.duffelOfferId,
-              rawOffer: (rawPayload as unknown as Prisma.InputJsonValue) ?? {},
+              supplierOfferId: offer.supplierOfferId,
+              rawOffer,
               origin,
               destination,
               departureDate: new Date(query.departureDate),
               returnDate: query.returnDate ? new Date(query.returnDate) : null,
               ...passengersInfo,
-              price: new Prisma.Decimal(offerDto.price),
-              currency: offerDto.currency,
+              price: new Prisma.Decimal(offer.price),
+              currency: offer.currency,
             };
           });
 
-          const offerRecoveriesData = results.map((offerDto) => ({
-            id: offerDto.id,
+          const offerRecoveriesData = orchestrated.results.map((res) => ({
+            id: res.scoredOffer.offer.id,
             searchHash: sha256,
           }));
 
@@ -461,7 +485,7 @@ export class FlightsService {
     // 3. Offer found: Retrieve live details from FlightSearchPort
     let liveOffer: FlightOffer;
     try {
-      liveOffer = await this.flightSearchPort.getOfferById(flightOffer.duffelOfferId);
+      liveOffer = await this.flightSearchPort.getOfferById(flightOffer.supplierOfferId);
     } catch (err: unknown) {
       const errorObj = err as {
         status?: number;
@@ -477,7 +501,7 @@ export class FlightsService {
 
       if (errStatus === 404 || errStatus === 410) {
         this.logger.warn(
-          `Flight offer ${flightOffer.duffelOfferId} expired on supplier side. Purging from DB.`,
+          `Flight offer ${flightOffer.supplierOfferId} expired on supplier side. Purging from DB.`,
         );
 
         // Delete the flight offer row
@@ -559,7 +583,7 @@ export class FlightsService {
       resourceId: id,
       metadata: {
         flightId: id,
-        duffelOfferId: flightOffer.duffelOfferId,
+        duffelOfferId: flightOffer.supplierOfferId,
         priceChanged,
         originalPrice,
         confirmedPrice,

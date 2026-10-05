@@ -490,6 +490,92 @@ describe('AttestedFlightSearchService', () => {
       });
     });
 
+    it('pins V2 signer offer order and the serialized result item keys', async (): Promise<void> => {
+      prismaService.chatSession.findFirst.mockResolvedValueOnce({
+        id: 'sess_123',
+        userId: 'user-1',
+        deletedAt: null,
+      });
+      prismaService.chatMessage.findFirst.mockResolvedValueOnce(null);
+
+      const firstOffer = {
+        id: 'fo_v2_first',
+        duffelOfferId: 'off_v2_first',
+        airline: 'Bamboo Airways',
+        flightNumber: 'QH201',
+        departureAirport: 'SGN',
+        arrivalAirport: 'HAN',
+        departureTime: '2026-09-01T06:00:00Z',
+        arrivalTime: '2026-09-01T08:00:00Z',
+        duration: 120,
+        stops: 0,
+        price: 200,
+        currency: 'USD',
+        fareClass: 'Economy',
+        baggageAllowance: '1 checked bag(s)',
+        matchResult: null,
+      };
+      const secondOffer = {
+        ...firstOffer,
+        id: 'fo_v2_second',
+        duffelOfferId: 'off_v2_second',
+        airline: 'Vietnam Airlines',
+        flightNumber: 'VN202',
+      };
+
+      flightsService.search.mockResolvedValueOnce({
+        mode: 'RANKED',
+        results: [firstOffer, secondOffer],
+        meta: {
+          totalResults: 2,
+          searchHash: 'hash_ordered_v2',
+          cached: false,
+          requestedCabinClass: 'economy',
+        },
+      });
+
+      const result = await service.searchFlightsV2('user-1', validV2Dto);
+
+      expect(result.results.map((offer) => offer.flightOfferId)).toEqual([
+        'fo_v2_first',
+        'fo_v2_second',
+      ]);
+      expect(selectionAttestationService.signSelectionAttestation).toHaveBeenCalledTimes(1);
+      expect(selectionAttestationService.signSelectionAttestation).toHaveBeenCalledWith(
+        'user-1',
+        'sess_123',
+        1,
+        result.snapshotExpiresAt,
+        [
+          { flightOfferId: 'fo_v2_first', duffelOfferId: 'off_v2_first' },
+          { flightOfferId: 'fo_v2_second', duffelOfferId: 'off_v2_second' },
+        ],
+      );
+
+      const [firstResult] = result.results;
+      expect(firstResult).toBeDefined();
+      if (firstResult) {
+        expect(Object.keys(firstResult).sort()).toEqual([
+          'airline',
+          'arrivalAirport',
+          'arrivalTime',
+          'baggageAllowance',
+          'currency',
+          'departureAirport',
+          'departureTime',
+          'duffelOfferId',
+          'duration',
+          'fareClass',
+          'flightNumber',
+          'flightOfferId',
+          'matchResult',
+          'offerExpiresAt',
+          'price',
+          'stops',
+        ]);
+      }
+    });
+
     it('slices canonical 20 offers down to first 5 in exact server-ranked order', async () => {
       prismaService.chatSession.findFirst.mockResolvedValueOnce({
         id: 'sess_123',

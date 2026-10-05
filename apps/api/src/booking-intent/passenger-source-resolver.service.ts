@@ -33,7 +33,7 @@ export type PassengerSourceRequest = {
   offerPassengerId: string;
   type: PassengerType;
   source: PassengerSource;
-  duffelPassengerId?: string | null;
+  supplierPassengerId?: string | null;
   position?: number;
 };
 
@@ -57,7 +57,7 @@ export type ResolvedPassenger = {
   travelerProfileId: string | null;
   profileRevision: number | null;
   sourceType: PassengerSource['type'];
-  duffelPassengerId: string | null;
+  supplierPassengerId: string | null;
   position?: number;
 };
 
@@ -178,7 +178,7 @@ export class PassengerSourceResolverService {
       travelerProfileId: profile.id,
       profileRevision: profile.revision,
       sourceType: 'traveler_profile',
-      duffelPassengerId: passenger.duffelPassengerId ?? null,
+      supplierPassengerId: passenger.supplierPassengerId ?? null,
       position: passenger.position,
     };
   }
@@ -207,7 +207,7 @@ export class PassengerSourceResolverService {
       travelerProfileId: null,
       profileRevision: null,
       sourceType: 'inline',
-      duffelPassengerId: passenger.duffelPassengerId ?? null,
+      supplierPassengerId: passenger.supplierPassengerId ?? null,
       position: passenger.position,
     };
   }

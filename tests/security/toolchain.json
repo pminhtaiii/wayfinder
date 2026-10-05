@@ -55,7 +55,7 @@
     },
     "pnpmAudit": {
       "name": "pnpm audit",
-      "cliVersion": "9.15.4",
+      "cliVersion": "10.34.5",
       "license": "MIT",
       "outputFormat": "json",
       "auditLevel": "moderate",

@@ -178,7 +178,7 @@ describe('Rollback Matrix & Database Row Integrity (E2E)', () => {
     validFlightOffer = await prisma.flightOffer.create({
       data: {
         searchHash: `search-${runMarker}`,
-        duffelOfferId: `off_${runMarker}`,
+        supplierOfferId: `off_${runMarker}`,
         origin: 'SGN',
         destination: 'HAN',
         departureDate: new Date(Date.now() + 86_400_000),
@@ -231,7 +231,7 @@ describe('Rollback Matrix & Database Row Integrity (E2E)', () => {
     const offers = [
       {
         flightOfferId: validFlightOffer.id,
-        duffelOfferId: validFlightOffer.duffelOfferId,
+        duffelOfferId: validFlightOffer.supplierOfferId,
       },
     ];
     return await attestationService.signSelectionAttestation(
@@ -264,9 +264,9 @@ describe('Rollback Matrix & Database Row Integrity (E2E)', () => {
       const rawTokenObj = await tokenService.generateToken(preIssuedRowId, idempotencyHash, 1);
       preIssuedRawToken = rawTokenObj.token;
 
-      const duffelOfferIdHash = crypto
+      const supplierOfferIdHash = crypto
         .createHash('sha256')
-        .update(validFlightOffer.duffelOfferId)
+        .update(validFlightOffer.supplierOfferId)
         .digest('hex');
 
       await prisma.chatHandoff.create({
@@ -277,7 +277,7 @@ describe('Rollback Matrix & Database Row Integrity (E2E)', () => {
           userId: validUser.id,
           chatSessionId: validSession.id,
           flightOfferId: validFlightOffer.id,
-          duffelOfferIdHash,
+          supplierOfferIdHash,
           snapshotVersion: 1,
           snapshotFingerprint: 'mock-fingerprint-preissued',
           selectionAttestationHash: attestation,
@@ -363,7 +363,7 @@ describe('Rollback Matrix & Database Row Integrity (E2E)', () => {
       // Mock live Duffel offer re-pricing to succeed
       const duffelGetSpy = jest.spyOn(duffel.offers, 'get').mockResolvedValue({
         data: {
-          id: validFlightOffer.duffelOfferId,
+          id: validFlightOffer.supplierOfferId,
           total_amount: '150.00',
           total_currency: 'USD',
           expires_at: new Date(Date.now() + 900_000).toISOString(),
@@ -485,9 +485,9 @@ describe('Rollback Matrix & Database Row Integrity (E2E)', () => {
       const handoffRowId = crypto.randomUUID();
       const idempotencyHash = tokenService.deriveIdempotencyHash(attestation, 1, 1);
       const rawTokenObj = await tokenService.generateToken(handoffRowId, idempotencyHash, 1);
-      const duffelOfferIdHash = crypto
+      const supplierOfferIdHash = crypto
         .createHash('sha256')
-        .update(validFlightOffer.duffelOfferId)
+        .update(validFlightOffer.supplierOfferId)
         .digest('hex');
 
       await prisma.chatHandoff.create({
@@ -498,7 +498,7 @@ describe('Rollback Matrix & Database Row Integrity (E2E)', () => {
           userId: validUser.id,
           chatSessionId: validSession.id,
           flightOfferId: validFlightOffer.id,
-          duffelOfferIdHash,
+          supplierOfferIdHash,
           snapshotVersion: 1,
           snapshotFingerprint: 'mock-fp-integrity-1',
           selectionAttestationHash: attestation,
@@ -513,7 +513,7 @@ describe('Rollback Matrix & Database Row Integrity (E2E)', () => {
         data: {
           userId: validUser.id,
           flightOfferId: validFlightOffer.id,
-          duffelOfferId: validFlightOffer.duffelOfferId,
+          supplierOfferId: validFlightOffer.supplierOfferId,
           originalPrice: new Prisma.Decimal(150),
           confirmedPrice: new Prisma.Decimal(150),
           currency: 'USD',

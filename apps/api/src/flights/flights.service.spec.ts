@@ -17,6 +17,8 @@ import { FlightSearchRequestDto } from './dto/search-flight.dto';
 import { generateDeterministicUUID } from './flight-offer-normalizer';
 import { Prisma } from '@prisma/client';
 
+// Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
+
 describe('FlightsService (T036)', () => {
   let service: FlightsService;
   let prisma: {
@@ -497,7 +499,7 @@ describe('FlightsService (T036)', () => {
           expect.objectContaining({
             id: 'uuid-offer-miss',
             searchHash,
-            duffelOfferId: 'off_miss',
+            supplierOfferId: 'off_miss',
             origin: 'HAN',
             destination: 'SGN',
           }),
@@ -581,7 +583,7 @@ describe('FlightsService (T036)', () => {
           expect.objectContaining({
             id: 'uuid-offer-hit',
             searchHash,
-            duffelOfferId: 'off_hit',
+            supplierOfferId: 'off_hit',
           }),
         ],
         skipDuplicates: true,
@@ -1239,7 +1241,7 @@ describe('FlightsService (T036)', () => {
         data: [
           expect.objectContaining({
             id: expectedDeterministicUuid,
-            duffelOfferId: 'off_multi_seg',
+            supplierOfferId: 'off_multi_seg',
             searchHash,
           }),
         ],
@@ -1407,8 +1409,8 @@ describe('FlightsService (T036)', () => {
       // Assert persistence received both deterministic UUIDs in transaction
       expect(prisma.flightOffer.createMany).toHaveBeenCalledWith({
         data: [
-          expect.objectContaining({ id: uuidA, duffelOfferId: 'off_flight_a', searchHash }),
-          expect.objectContaining({ id: uuidB, duffelOfferId: 'off_flight_b', searchHash }),
+          expect.objectContaining({ id: uuidA, supplierOfferId: 'off_flight_a', searchHash }),
+          expect.objectContaining({ id: uuidB, supplierOfferId: 'off_flight_b', searchHash }),
         ],
         skipDuplicates: true,
       });
@@ -1430,11 +1432,11 @@ describe('FlightsService (T036)', () => {
     const createMockStoredFlightOffer = (
       id = offerId,
       price = '150.00',
-      duffelOfferId = 'off_stored_123',
+      supplierOfferId = 'off_stored_123',
     ) => ({
       id,
       searchHash: 'sha256_mock_hash',
-      duffelOfferId,
+      supplierOfferId,
       origin: 'HAN',
       destination: 'SGN',
       departureDate: new Date('2026-10-01T08:00:00.000Z'),

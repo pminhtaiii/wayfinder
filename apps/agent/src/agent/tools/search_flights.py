@@ -165,8 +165,12 @@ async def search_flights(
         snapshot_results = []
         for idx, flight in enumerate(results[:5], 1):
             flight_offer_id = flight.get("flightOfferId")
-            duffel_offer_id = flight.get("duffelOfferId") or flight_offer_id
-            if not flight_offer_id or not duffel_offer_id:
+            supplier_offer_id = flight.get("duffelOfferId")
+            if (
+                not flight_offer_id
+                or not isinstance(supplier_offer_id, str)
+                or not supplier_offer_id.strip()
+            ):
                 logger.error("Flight result missing required offer ID")
                 return _narration(
                     "I encountered an error preparing your search results. Please try again."
@@ -184,7 +188,7 @@ async def search_flights(
                 TrustedSearchResult(
                     offerIndex=idx,
                     flightOfferId=str(flight_offer_id),
-                    duffelOfferId=str(duffel_offer_id),
+                    supplierOfferId=str(supplier_offer_id),
                     airline=str(flight.get("airline") or ""),
                     origin=str(flight.get("departureAirport") or flight.get("origin") or origin),
                     destination=str(

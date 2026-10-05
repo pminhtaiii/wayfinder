@@ -63,7 +63,7 @@ export class ReconciliationService {
       },
       include: {
         payment: { select: { id: true, status: true, stripePaymentIntentId: true } },
-        bookingIntent: { select: { id: true, duffelOfferId: true } },
+        bookingIntent: { select: { id: true, supplierOfferId: true } },
       },
     });
 
@@ -86,14 +86,14 @@ export class ReconciliationService {
     const eligibleBookings = await this.prisma.booking.findMany({
       where: {
         status: 'CONFIRMED',
-        duffelOrderId: { not: null },
+        supplierOrderId: { not: null },
         nextUnflownDepartureAt: {
           gt: now,
           lte: seventyTwoHoursLater,
         },
         AND: [
           {
-            OR: [{ nextDuffelSyncAt: null }, { nextDuffelSyncAt: { lte: now } }],
+            OR: [{ nextSupplierSyncAt: null }, { nextSupplierSyncAt: { lte: now } }],
           },
           {
             OR: [{ syncLockedAt: null }, { syncLockedAt: { lt: fiveMinutesAgo } }],
@@ -102,7 +102,7 @@ export class ReconciliationService {
       },
       take: batchSize,
       orderBy: [
-        { lastDuffelSyncedAt: { sort: 'asc', nulls: 'first' } },
+        { lastSupplierSyncedAt: { sort: 'asc', nulls: 'first' } },
         { nextUnflownDepartureAt: 'asc' },
         { id: 'asc' },
       ],
@@ -178,7 +178,7 @@ export class ReconciliationService {
         await this.prisma.booking.updateMany({
           where: { id: booking.id },
           data: {
-            nextDuffelSyncAt: nextSyncAt,
+            nextSupplierSyncAt: nextSyncAt,
             syncLockedAt: null,
             syncLockToken: null,
           },
@@ -189,7 +189,7 @@ export class ReconciliationService {
             message: 'Reconciliation sync failed for booking.',
             bookingId: booking.id,
             error: err.message,
-            nextDuffelSyncAt: nextSyncAt.toISOString(),
+            nextSupplierSyncAt: nextSyncAt.toISOString(),
             metric: 'reconciliation_failure',
           }),
           err.stack,

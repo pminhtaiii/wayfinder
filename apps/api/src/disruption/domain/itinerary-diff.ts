@@ -3,7 +3,7 @@ import { matchSegments } from './segment-matcher';
 
 export interface SegmentDiff {
   globalOrder: number;
-  duffelSegmentId: string | null;
+  supplierSegmentId: string | null;
   departureAirportChanged: boolean;
   arrivalAirportChanged: boolean;
   departureLocalDateChanged: boolean;
@@ -66,7 +66,7 @@ export function computeItineraryDiff(
     const curr = m.currSegment;
     return {
       globalOrder: curr.globalOrder,
-      duffelSegmentId: curr.duffelSegmentId || prev.duffelSegmentId || null,
+      supplierSegmentId: curr.supplierSegmentId || prev.supplierSegmentId || null,
       departureAirportChanged: prev.departureAirportIata !== curr.departureAirportIata,
       arrivalAirportChanged: prev.arrivalAirportIata !== curr.arrivalAirportIata,
       departureLocalDateChanged: prev.departureLocalDate !== curr.departureLocalDate,

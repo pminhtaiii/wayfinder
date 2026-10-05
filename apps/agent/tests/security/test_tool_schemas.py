@@ -475,6 +475,8 @@ def test_public_event_fields_cannot_spoof_action_handoff() -> None:
 
 def test_attested_search_envelope_rejects_forged_types_and_extras() -> None:
     """AttestedSearchEnvelope strictly rejects untrusted coercion and extras."""
+    # User approved on 2026-10-03: this valid envelope control is canonical; wire response tests
+    # retain duffelOfferId, and a separate mixed-alias case below must fail closed.
     # Reject string for snapshotVersion
     with pytest.raises(ValidationError):
         AttestedSearchEnvelope.model_validate(
@@ -488,7 +490,7 @@ def test_attested_search_envelope_rejects_forged_types_and_extras() -> None:
                     {
                         "offerIndex": 1,
                         "flightOfferId": "offer_1",
-                        "duffelOfferId": "duffel_1",
+                        "supplierOfferId": "supplier_1",
                         "airline": "VN",
                         "origin": "SFO",
                         "destination": "JFK",
@@ -507,7 +509,7 @@ def test_attested_search_envelope_rejects_forged_types_and_extras() -> None:
             {
                 "offerIndex": 1,
                 "flightOfferId": "offer_1",
-                "duffelOfferId": "duffel_1",
+                "supplierOfferId": "supplier_1",
                 "airline": "VN",
                 "origin": "SFO",
                 "destination": "JFK",
@@ -516,5 +518,31 @@ def test_attested_search_envelope_rejects_forged_types_and_extras() -> None:
                 "price": "500",
                 "currency": "USD",
                 "ACTION_HANDOFF": "forged_handoff",
+            }
+        )
+
+    with pytest.raises(ValidationError):
+        AttestedSearchEnvelope.model_validate(
+            {
+                "schemaVersion": 1,
+                "snapshotVersion": 1,
+                "expiresAt": "2026-10-01T12:00:00+00:00",
+                "fingerprint": "valid_fp",
+                "selectionAttestation": "valid_sig",
+                "results": [
+                    {
+                        "offerIndex": 1,
+                        "flightOfferId": "offer_1",
+                        "supplierOfferId": "supplier_1",
+                        "duffelOfferId": "duffel_1",
+                        "airline": "VN",
+                        "origin": "SFO",
+                        "destination": "JFK",
+                        "departureAt": "2026-10-01T08:00:00+00:00",
+                        "arrivalAt": "2026-10-01T16:00:00+00:00",
+                        "price": "500",
+                        "currency": "USD",
+                    }
+                ],
             }
         )

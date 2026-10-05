@@ -286,7 +286,7 @@ describe('CancellationRefundObligation Migration & Backfill (E2E)', () => {
     return prisma.flightOffer.create({
       data: {
         searchHash: `search-${crypto.randomUUID()}`,
-        duffelOfferId: `off_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        supplierOfferId: `off_${Date.now()}_${Math.random().toString(36).slice(2)}`,
         rawOffer: {},
         origin: 'SGN',
         destination: 'HAN',
@@ -305,7 +305,7 @@ describe('CancellationRefundObligation Migration & Backfill (E2E)', () => {
       data: {
         userId,
         flightOfferId,
-        duffelOfferId: `off_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        supplierOfferId: `off_${Date.now()}_${Math.random().toString(36).slice(2)}`,
         status: 'CONFIRMED',
         originalPrice: new Prisma.Decimal(100.0),
         confirmedPrice: new Prisma.Decimal(100.0),
@@ -432,13 +432,13 @@ describe('CancellationRefundObligation Migration & Backfill (E2E)', () => {
 
       // Insert Flight Offer
       await prisma.$executeRawUnsafe(`
-        INSERT INTO "flight_offers" ("id", "searchHash", "duffelOfferId", "rawOffer", "origin", "destination", "departureDate", "adults", "children", "infants", "cabin_class", "price", "currency", "createdAt")
+        INSERT INTO "flight_offers" ("id", "searchHash", "supplierOfferId", "rawOffer", "origin", "destination", "departureDate", "adults", "children", "infants", "cabin_class", "price", "currency", "createdAt")
         VALUES ('${legacyOfferId}', 'search-legacy', 'off_legacy_${Date.now()}', '{}'::jsonb, 'SGN', 'HAN', '2027-08-01'::date, 1, 0, 0, 'economy', 150.00, 'USD', NOW());
       `);
 
       // Insert Booking Intent
       await prisma.$executeRawUnsafe(`
-        INSERT INTO "booking_intents" ("id", "userId", "flightOfferId", "duffelOfferId", "status", "originalPrice", "confirmedPrice", "currency", "priceChanged", "pricedAt", "origin", "destination", "departureDate", "cabinClass", "adults", "children", "infants", "rawOfferSnapshot", "intentExpiresAt", "paymentAttemptCount", "createdAt", "updatedAt")
+        INSERT INTO "booking_intents" ("id", "userId", "flightOfferId", "supplierOfferId", "status", "originalPrice", "confirmedPrice", "currency", "priceChanged", "pricedAt", "origin", "destination", "departureDate", "cabinClass", "adults", "children", "infants", "rawOfferSnapshot", "intentExpiresAt", "paymentAttemptCount", "createdAt", "updatedAt")
         VALUES ('${legacyIntentId}', '${testUser.id}', '${legacyOfferId}', 'off_legacy_${Date.now()}', 'CONFIRMED'::"BookingIntentStatus", 150.00, 150.00, 'USD', false, NOW(), 'SGN', 'HAN', '2027-08-01'::date, 'economy', 1, 0, 0, '{}'::jsonb, NOW() + INTERVAL '1 hour', 1, NOW(), NOW());
       `);
 

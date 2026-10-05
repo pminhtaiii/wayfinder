@@ -6,14 +6,23 @@ This file tracks the currently active in-flight feature, its checkpoints, and ex
 
 ## Feature 029 — Narrow the Duffel Supplier Boundary
 
-- **Status**: In Progress (Phase 5; T032–T041 complete locally; T042–T043 pending)
+- **Status**: Phases 0–6, 8, and 9 complete; T055–T057 work complete; local API validation partial (one database-backed suite not run); PR #370 merged; current PR #371 has recorded remote CI success; Phase 7 pending until PR #371 merges
 - **Branch**: `codex/029-duffel-provider-narrowing`
 - **Specification**: [specs/029-duffel-provider-narrowing/spec.md](../specs/029-duffel-provider-narrowing/spec.md)
 - **Implementation Plan**: [specs/029-duffel-provider-narrowing/plan.md](../specs/029-duffel-provider-narrowing/plan.md)
 - **Tasks**: [specs/029-duffel-provider-narrowing/tasks.md](../specs/029-duffel-provider-narrowing/tasks.md)
 
 ### Current Summary
-Phases 0–4 are complete locally. Phase 5 is complete locally through T041: fulfillment now lives in `SupplierOrderModule`, and cancellation, booking recovery, disruption sync, and payment fulfillment consume its exports. T040 preserves recoverable saga state when cancellation is unconfirmed; T041 defers unsafe stale recovery and requires explicit cancellation proof. Both independent task reviews had zero findings. Slice 4 validation passed 132 API suites/2,404 tests with the network guard, 59 broader transactional E2E tests, shared contracts (110), and static CI contracts (23). Scoped T040/T041 convergence and final Spec review passed with zero findings; final Standards review found a test annotation issue fixed in ed24a4c0 and independently rechecked with zero open findings and a nonblocking local helper duplication smell. Evidence is archived in the [Slice 4 verification record](../specs/029-duffel-provider-narrowing/slice-4-verification.md). T041 validation on 2026-10-02 passed the recovery suite (55/55), payment safety E2E (2/2), API TypeScript check, and API lint. Fixture corrections were explicitly approved on 2026-10-02 and documented beside the corrected cases. Earlier T039 validation and Slice 3 convergence/review findings are in the [slice verification record](../specs/029-duffel-provider-narrowing/slice-3-verification.md); they are separate from T041 results. T042–T043, neutral naming/schema (T044–T054), and final audit (T055–T057) remain pending; Feature 029 is not complete.
+Slice 6.2 (T047–T054: Neutral Names and Physical Schema) is complete and verified on remote CI. All 11 non-webhook columns and 5 dependent indexes physically renamed in place via forward migration `20260929000000_supplier_identifiers` with zero `@map` annotations. Dedicated disposable databases `feature029_slice62_fresh` and `feature029_slice62_upgrade` verified full migration chain and upgrade path with 16 preserved sentinels, 12 links, and null controls. All consumer modules across booking, payment, cancellation, disruption, and agent gateway migrated with zero type assertions. Public wire compatibility and signed `sel_v1_` HMAC bytes preserved. Local validation: API full unit suite 134 suites / 2,337 tests passed, 66/66 affected E2Es passed, contracts 111/111 passed, web compatibility 122/122 passed, typechecks and ESLint 0 errors. Standards and Spec code reviews completed and findings addressed.
+PR [#369](https://github.com/pminhtaiii/wayfinder/pull/369) (Part 1) merged into `development` (`09806abd`); PR #368 is closed without merging. Historical slice PR [#370](https://github.com/pminhtaiii/wayfinder/pull/370) (Part 2) replaced #368 and merged into `development`. PR #370’s final pushed HEAD `551c3890cd37f65ded2adf900244fc9ca0d76dd8` was verified by remote CI run [37188540602](https://github.com/pminhtaiii/wayfinder/actions/runs/37188540602), with all 12 jobs successful. See the [Slice 6.2 verification record](../specs/029-duffel-provider-narrowing/slice-6-2-verification.md#remote-ci-verification-pull-request-370) for PR history and job results.
+
+Phase 9 convergence (T059–T067) and Phase 7 Boundary Census (T056) are complete locally. All supplier boundary leakages identified during the census have been resolved: travel scope, completion, expiry, and passenger provenance facts are normalized at `SupplierSearchModule` and consumed via `FLIGHT_SEARCH_PORT` (T059, T060, T063); raw offer-to-booking snapshot conversion moved to the supplier search boundary leaving `BookingStateModule` dependent only on Prisma and DomainEvents (T061); cancellation outcomes and passenger enrichment normalized inside `SupplierOrderModule` removing vendor shapes from `BookingRecoveryService` (T062); `FlightSearchOrchestratorService` narrowed strictly to canonical `FlightOffer` objects, retiring the live domain raw-offer parser (T064); internal cancellation quote parse/serialize helpers and types renamed to Supplier vocabulary (`ParsedSupplierCancellationQuoteId`, `parseSupplierCancellationQuoteId`, `serializeSupplierCancellationQuoteId`) with wire aliases preserved (T065); the agent security performance gate failure was diagnosed and corrected via Windows owned-process timing mitigation (T066); and Playwright's API launcher honors `DATABASE_URL` override with `test_db` fallback (T067). Phase 7 Census (T056) verified zero unexplained runtime provider hits across production code, with `@duffel/api` restricted strictly to 4 supplier adapter files and non-webhook DB columns neutralized. Phase 7 final verification matrix (T055) and documentation sync (T057) are complete. PR [#371](https://github.com/pminhtaiii/wayfinder/pull/371) is open targeting `development`, verified on remote CI via run [37275073216](https://github.com/pminhtaiii/wayfinder/actions/runs/37275073216) (commit `2712cc50ad3cb3898b220fe6d8222dd99483bb3b`) with all checks passing green.
+
+Review follow-up: Prisma consumers and database fixtures use the renamed supplier fields, with explicit mappings preserving existing HTTP keys, signed selection payloads, and `DuffelWebhookEvent.duffelOrderId`. This application/schema alignment is covered by the Slice 6.2 verification above. Subsequent review fixes require validation on their own pushed HEAD; the recorded CI run does not cover later working-tree changes.
+
+T044–T046 pin signed bytes, legacy snapshots, strict agent state, and web provider-ID boundaries. Independent task reviews and scoped convergence passed at the Slice 6.1 checkpoint. Its local validation included guarded API 130 suites/2,331 tests, shared 111 tests, web 120 focused tests/build, and agent 1,291 non-Redis tests. See the [Slice 6.1 verification record](../specs/029-duffel-provider-narrowing/slice-6-1-verification.md) for approvals, mutations, environment retries, and exact commands. At that checkpoint T047–T057 remained pending; current slice status is recorded above. Feature 029 remains incomplete, and remote CI must match the final pushed HEAD of each new slice PR.
+
+Phases 0–5 are complete locally. T042 removed the legacy `DuffelService`/`DuffelModule` monolith. T058 removed global visibility from `DuffelCoreModule`, and its negative Nest composition regression proves an unrelated module cannot resolve `DUFFEL_SDK`. T043 passed the guarded API suite (130 suites/2,326 tests), all 16 affected database E2E suites (145 tests), order and ancillary capability checkpoints, shared/static contracts, TypeScript, and lint. The final local evidence and scoped convergence recheck are in the [Slice 5 verification record](../specs/029-duffel-provider-narrowing/slice-5-verification.md). This is the historical Slice 5 checkpoint; Slice 6.2 remote verification is recorded above. Phase 7 remains pending and Feature 029 is not complete. Historical T040/T041 evidence is in the [Slice 4 verification record](../specs/029-duffel-provider-narrowing/slice-4-verification.md); earlier T039 validation and Slice 3 findings are in the [Slice 3 verification record](../specs/029-duffel-provider-narrowing/slice-3-verification.md).
 
 ---
 
@@ -90,31 +99,49 @@ Exit gate:
 - [x] Rewire cancellation, booking recovery, sync, fulfillment modules, and AppModule to supplier order boundaries (T039; task review and local gates passed).
 - [x] Preserve saga retry checkpoint, payment hold, PROCESSING booking, and order evidence during unconfirmed compensation (T040; reviewed with zero findings).
 - [x] Defer stale recovery on missing/invalid order IDs, lookup failures, unconfirmed cancellation, and typed budget/rate denial; require explicit cancellation proof (T041; recovery 55/55, safety E2E 2/2, API typecheck and lint passed).
-- [ ] Delete the legacy Duffel monolith after equivalent tests and consumer migration (T042).
-- [ ] Run the order/saga/recovery/privacy and API compile checkpoint (T043).
+- [x] Delete the legacy Duffel monolith after equivalent tests and consumer migration (T042; commit `e1b4f48a`, independently reviewed).
+- [x] Run the order/saga/recovery/privacy and API compile checkpoint (T043; guarded API 130/2,326 and affected E2Es 16/145 passed; see Slice 5 verification).
+- [x] Remove `DuffelCoreModule` global visibility and verify the negative module-composition boundary (T058; review and scoped convergence recheck passed).
 
 Exit gate:
 ```text
-unconfirmed cancellations preserve processing/hold; order operations isolated
+unconfirmed cancellations preserve processing/hold; order operations isolated; SDK/configuration/budget providers are private to importing supplier capability modules; local checkpoint gates pass
 ```
 
 ### Phase 6 — Neutral Naming & Physical Schema (User Story 4; T044–T054)
-- [ ] Pin wire/HMAC, legacy snapshots, and provider-ID boundary tests (T044–T046).
-- [ ] Rename internal types and add explicit current-wire compatibility mappings (T047–T051).
-- [ ] Apply forward physical Prisma column/index renames and regenerate the client (T052–T053).
-- [ ] Validate fresh/existing migrations and cross-service compatibility (T054).
+- [x] Pin wire/HMAC, legacy snapshots, and provider-ID boundary tests (T044–T046), within the approved T049/T051 deferrals.
+- [x] Rename internal types and add explicit current-wire compatibility mappings (T047–T051).
+- [x] Apply forward physical Prisma column/index renames and regenerate the client (T052–T053).
+- [x] Validate fresh/existing migrations and cross-service compatibility (T054).
 
 Exit gate:
 ```text
-clean migration from scratch; zero orphan duffel database columns; wire compatibility preserved
+clean migration from scratch; zero orphan duffel database columns; wire compatibility preserved (verified on dedicated fresh/upgrade DBs; 66/66 E2Es pass; 134 suites / 2,337 unit tests pass)
 ```
 
-### Phase 7 — Final Verification & Audit (T055–T057)
-- [ ] Execute full API/shared/web/agent, E2E, security, and remote CI gates (T055).
-- [ ] Audit supplier boundary and provider-name compatibility exceptions (T056).
-- [ ] Synchronize implemented architecture, progress, and relevant library guidance (T057).
+### Phase 7 — Final Verification & Audit (T055–T057; pending PR #371 merge)
+- [x] Record API/shared/web/agent, E2E, security, and remote CI gate results (T055; local API result is partial, with remote CI evidence recorded separately).
+- [x] Audit supplier boundary and provider-name compatibility exceptions (T056).
+- [x] Synchronize implemented architecture, progress, and relevant library guidance (T057).
 
 Exit gate:
 ```text
 all local and remote gates pass; 0 regressions; PR merged to development
 ```
+
+### Phase 9 — Convergence (Phase 7 Boundary Census & Gate Remediation; T059–T067)
+- [x] Normalize travel scope, completion, and expiry facts in `flight-offer.normalizer.ts` and `flight-search.port.ts`; neutralize internal passenger IDs (T059).
+- [x] Inject search port into `booking-passenger-final-validator.service.ts` and consume normalized facts (T060).
+- [x] Relocate raw offer-to-booking snapshot conversion to supplier search boundary; keep `BookingStateModule` dependent only on Prisma and DomainEvents (T061).
+- [x] Normalize cancellation outcomes and redacted-order passenger enrichment within `SupplierOrderModule`; remove supplier shapes from `booking-recovery.service.ts` (T062).
+- [x] Consume normalized freshness and passenger-provenance facts in `chat-handoff.service.ts` (T063).
+- [x] Accept and return strictly canonical offers in `flight-search-orchestrator.service.ts`; retire live domain raw-offer parser (T064).
+- [x] Rename cancellation quote ID helpers and types to Supplier vocabulary with wire aliases preserved (T065).
+- [x] Resolve agent security performance gate failure with owned-process timing mitigation (T066).
+- [x] Honor `DATABASE_URL` override in Playwright API test launcher for isolated test DB execution (T067).
+
+Exit gate:
+```text
+boundary census clean (0 unexplained leaks); domain orchestrators consume canonical offers; agent security performance gate green; dedicated test db isolation verified
+```
+

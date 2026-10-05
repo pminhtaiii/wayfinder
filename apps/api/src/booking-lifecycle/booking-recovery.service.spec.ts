@@ -3,6 +3,8 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { BookingRecoveryService } from './booking-recovery.service';
 import { BookingWithRelations } from './booking-lifecycle.types';
 
+// Approved 2026-10-03: align these Prisma booking/passenger fixtures with neutral columns; keep event metadata keys unchanged.
+
 type InternalLockRecoveryService = {
   reconcileBookingWithLock: (bookingId: string) => Promise<void>;
 };
@@ -101,7 +103,7 @@ describe('BookingRecoveryService', () => {
             eventName: 'booking.confirmed',
           });
         }
-        return { id, status: BookingStatus.CONFIRMED, pnrReference: pnr, duffelOrderId: orderId };
+        return { id, status: BookingStatus.CONFIRMED, pnrReference: pnr, supplierOrderId: orderId };
       }),
       failBooking: jest.fn().mockImplementation(async (id, reason, flight, passenger, dep, tx, eventContext) => {
         if (eventContext?.events) {
@@ -191,7 +193,7 @@ describe('BookingRecoveryService', () => {
       ]);
     });
 
-    it('handles incomplete Stripe payment after timestamp confirmation: cancels Stripe intent and marks booking FAILED with CAPTURE_FAILED (Branch 2)', async () => {
+    it('handles incomplete Stripe payment after typed cancellation confirmation: cancels Stripe intent and marks booking FAILED with CAPTURE_FAILED (Branch 2)', async () => {
       const booking = {
         id: 'b-1',
         status: BookingStatus.PROCESSING,
@@ -210,7 +212,12 @@ describe('BookingRecoveryService', () => {
         if (where?.eventType === 'duffel_order_created') return { metadata: { id: 'ord_123' } };
         return null;
       });
-      mockDuffelService.cancellation.cancelOrder.mockResolvedValue({ confirmed_at: '2026-10-02T10:00:00.000Z' });
+      // User-approved 2026-10-04: consumer fixtures model SupplierOrder's existing CancelOrderOutcome; all prior state assertions remain.
+      mockDuffelService.cancellation.cancelOrder.mockResolvedValue({
+        success: true,
+        orderId: 'ord_123',
+        status: 'CANCELLED',
+      });
       mockStripeService.cancelPaymentIntent.mockResolvedValue({});
       mockPrisma.payment.updateMany.mockResolvedValue({ count: 1 });
 
@@ -265,16 +272,32 @@ describe('BookingRecoveryService', () => {
       } as unknown as BookingWithRelations;
 
       mockStripeService.retrievePaymentIntent.mockResolvedValue({ status: 'succeeded' });
-      mockPrisma.paymentEvent.findFirst.mockResolvedValue({
-        metadata: {
-          id: 'ord_123',
-          booking_reference: 'PNR999',
-          passengers: [{ given_name: 'REDACTED', family_name: 'REDACTED' }],
-        },
-      });
+      const redactedOrderEvidence = {
+        id: 'ord_123',
+        booking_reference: 'PNR999',
+        passengers: [
+          {
+            id: 'pas_1',
+            given_name: 'REDACTED',
+            family_name: 'REDACTED',
+            born_on: 'REDACTED',
+            email: 'REDACTED',
+            phone_number: 'REDACTED',
+          },
+        ],
+      };
+      mockPrisma.paymentEvent.findFirst.mockResolvedValue({ metadata: redactedOrderEvidence });
       mockPrisma.bookingIntent.findUnique.mockResolvedValue({
         id: 'intent-1',
-        passengers: [{ givenName: 'John', familyName: 'Doe', duffelPassengerId: 'pas_1' }],
+        // User-approved 2026-10-04: provide neutral date-of-birth data for the recovery mapper contract; existing recovery assertions remain.
+        passengers: [
+          {
+            givenName: 'John',
+            familyName: 'Doe',
+            dateOfBirth: new Date('1980-01-02T00:00:00.000Z'),
+            supplierPassengerId: 'pas_1',
+          },
+        ],
         user: { email: 'john@example.com' },
       });
       mockDuffelService.recovery.mapOrderToSnapshots.mockReturnValue({
@@ -291,8 +314,27 @@ describe('BookingRecoveryService', () => {
 
       expect(result.status).toBe(BookingStatus.CONFIRMED);
       expect(result.pnrReference).toBe('PNR999');
-      expect(result.duffelOrderId).toBe('ord_123');
+      expect(result.supplierOrderId).toBe('ord_123');
       expect(mockPrisma.$transaction).toHaveBeenCalled();
+      expect(mockDuffelService.recovery.mapOrderToSnapshots).toHaveBeenCalledWith(
+        redactedOrderEvidence,
+        [{ id: 'pas_1', firstName: 'John', lastName: 'Doe', dateOfBirth: '1980-01-02' }],
+        'john@example.com',
+      );
+      expect(redactedOrderEvidence).toStrictEqual({
+        id: 'ord_123',
+        booking_reference: 'PNR999',
+        passengers: [
+          {
+            id: 'pas_1',
+            given_name: 'REDACTED',
+            family_name: 'REDACTED',
+            born_on: 'REDACTED',
+            email: 'REDACTED',
+            phone_number: 'REDACTED',
+          },
+        ],
+      });
       expect(mockBookingLifecycleService.confirmBooking).toHaveBeenCalledWith(
         'b-1',
         'PNR999',
@@ -342,7 +384,7 @@ describe('BookingRecoveryService', () => {
             givenName: 'John',
             familyName: 'Doe',
             dateOfBirth: new Date('1980-01-01T00:00:00.000Z'),
-            duffelPassengerId: null,
+            supplierPassengerId: null,
           },
         ],
         user: { email: 'john@example.com' },
@@ -355,7 +397,7 @@ describe('BookingRecoveryService', () => {
       await expect(service.reconcileBookingIfStale(booking)).resolves.toMatchObject({
         status: BookingStatus.CONFIRMED,
         pnrReference: 'PNR999',
-        duffelOrderId: 'ord_123',
+        supplierOrderId: 'ord_123',
       });
       expect(mockDuffelService.recovery.mapOrderToSnapshots).toHaveBeenCalled();
       expect(mockBookingLifecycleService.confirmBooking).toHaveBeenCalledWith(
@@ -622,7 +664,12 @@ describe('BookingRecoveryService', () => {
         if (where?.eventType === 'duffel_order_created') return { metadata: { id: 'ord_123' } };
         return null;
       });
-      mockDuffelService.cancellation.cancelOrder.mockResolvedValue({ status: 'confirmed' });
+      // User-approved 2026-10-04: this consumer fixture now models the existing typed cancellation contract.
+      mockDuffelService.cancellation.cancelOrder.mockResolvedValue({
+        success: true,
+        orderId: 'ord_123',
+        status: 'CANCELLED',
+      });
 
       const result = await service.reconcileBookingIfStale(booking);
 
@@ -663,10 +710,8 @@ describe('BookingRecoveryService', () => {
       });
       mockPrisma.paymentEvent.create.mockResolvedValue({ id: BigInt(999) });
       // Human approval 2026-10-02: explicit CANCELLED evidence replaces the unverified error-text fixture.
-      mockDuffelService.cancellation.cancelOrder.mockResolvedValue({
-        id: 'ord_123',
-        status: 'CANCELLED',
-      });
+      // User-approved 2026-10-04: consumer fixture models SupplierOrder's existing CancelOrderOutcome; marker, cleanup, and booking assertions are retained.
+      mockDuffelService.cancellation.cancelOrder.mockResolvedValue({ success: true, orderId: 'ord_123' });
       mockStripeService.cancelPaymentIntent.mockResolvedValue({});
 
       const result = await service.reconcileBookingIfStale(booking);
@@ -777,7 +822,12 @@ describe('BookingRecoveryService', () => {
           return null;
         },
       );
-      mockDuffelService.cancellation.cancelOrder.mockResolvedValue({ id: 'oc_123', status: 'pending' });
+      // User-approved 2026-10-04: pending consumer fixture uses the existing typed contract; defer/hold assertions remain.
+      mockDuffelService.cancellation.cancelOrder.mockResolvedValue({
+        success: false,
+        orderId: 'ord_123',
+        status: 'pending',
+      });
 
       await service.handleReconciliationRequested({ bookingId: 'b-1' });
 
@@ -809,8 +859,10 @@ describe('BookingRecoveryService', () => {
       mockPrisma.paymentEvent.findFirst
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce({ metadata: { data: { id: 'ord_nested' } } });
+      // User-approved 2026-10-04: nested-ID consumer fixture models the typed false outcome; defer/hold assertions remain.
       mockDuffelService.cancellation.cancelOrder.mockResolvedValueOnce({
-        id: 'oc_nested',
+        success: false,
+        orderId: 'ord_nested',
         status: 'pending',
       });
 
@@ -843,8 +895,10 @@ describe('BookingRecoveryService', () => {
       mockPrisma.paymentEvent.findFirst
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce({ metadata: { id: 'ord-cache-deferral-failed' } });
+      // User-approved 2026-10-04: consumer fixture models SupplierOrder's typed pending result; failure-path assertions remain.
       mockDuffelService.cancellation.cancelOrder.mockResolvedValueOnce({
-        id: 'oc-cache-deferral-failed',
+        success: false,
+        orderId: 'ord-cache-deferral-failed',
         status: 'pending',
       });
       mockCacheService.set.mockRejectedValueOnce(new Error('cache unavailable'));
@@ -978,13 +1032,13 @@ describe('BookingRecoveryService', () => {
       { name: 'null', result: null },
       { name: 'undefined', result: undefined },
       { name: 'primitive', result: false },
-      { name: 'status-less object', result: { id: 'oc_123' } },
-      { name: 'empty timestamp', result: { confirmed_at: '' } },
-      { name: 'blank timestamp', result: { confirmed_at: '  ' } },
-      { name: 'null timestamp', result: { confirmed_at: null } },
+      { name: 'typed false outcome without status', result: { success: false, orderId: 'ord_123' } },
+      { name: 'typed false outcome with empty status', result: { success: false, orderId: 'ord_123', status: '' } },
+      { name: 'typed false outcome with blank status', result: { success: false, orderId: 'ord_123', status: '  ' } },
+      { name: 'typed false pending outcome', result: { success: false, orderId: 'ord_123', status: 'pending' } },
       {
-        name: 'explicitly negative with confirmation',
-        result: { success: false, status: 'confirmed', confirmed_at: '2026-10-02T10:00:00.000Z' },
+        name: 'typed false outcome with confirmed status',
+        result: { success: false, orderId: 'ord_123', status: 'CANCELLED' },
       },
     ])('keeps the Stripe hold when cancellation resolves to $name', async ({ result }) => {
       mockPrisma.booking.findUnique.mockResolvedValue({
@@ -1009,6 +1063,7 @@ describe('BookingRecoveryService', () => {
           return null;
         },
       );
+      // User-approved 2026-10-04: each consumer matrix value models the typed service result; every hold/defer assertion remains.
       mockDuffelService.cancellation.cancelOrder.mockResolvedValue(result);
 
       await service.handleReconciliationRequested({ bookingId: 'b-1' });
@@ -1138,7 +1193,12 @@ describe('BookingRecoveryService', () => {
         if (where?.eventType === 'duffel_order_created') return { metadata: { id: 'ord_123' } };
         return null;
       });
-      mockDuffelService.cancellation.cancelOrder.mockResolvedValue({ status: 'confirmed' });
+      // User-approved 2026-10-04: consumer fixture models SupplierOrder's typed confirmed outcome.
+      mockDuffelService.cancellation.cancelOrder.mockResolvedValue({
+        success: true,
+        orderId: 'ord_123',
+        status: 'CANCELLED',
+      });
       mockPrisma.payment.updateMany.mockResolvedValue({ count: 1 });
 
       const result = await service.reconcileBookingIfStale(booking);

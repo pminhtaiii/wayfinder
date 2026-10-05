@@ -23,12 +23,12 @@ async function run() {
   const lackingTimes: string[] = [];
 
   for (const booking of bookings) {
-    if (!booking.duffelOrderId) {
+    if (!booking.supplierOrderId) {
       missingOrderId.push(booking.id);
     } else {
-      const existing = duplicateMap.get(booking.duffelOrderId) || [];
+      const existing = duplicateMap.get(booking.supplierOrderId) || [];
       existing.push(booking.id);
-      duplicateMap.set(booking.duffelOrderId, existing);
+      duplicateMap.set(booking.supplierOrderId, existing);
     }
 
     if (!booking.flightSnapshot) {

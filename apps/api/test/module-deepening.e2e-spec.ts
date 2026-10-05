@@ -37,8 +37,6 @@ import { CancellationModule } from '@/cancellation/cancellation.module';
 import { DisruptionModule } from '@/disruption/disruption.module';
 import { RefundSettlementModule } from '@/refund-settlement/refund-settlement.module';
 import { StripeService } from '@/common/stripe.service';
-import { DuffelService } from '@/duffel/duffel.service';
-import { DuffelModule } from '@/duffel/duffel.module';
 import { SupplierOrderModule } from '@/supplier/order/supplier-order.module';
 import { DuffelCancellationService } from '@/supplier/order/duffel-cancellation.service';
 import { DuffelRecoveryService } from '@/supplier/order/duffel-recovery.service';
@@ -428,10 +426,15 @@ describe('Nest Composition Architecture Gate (US1 - T014)', () => {
 
       for (const consumerModule of consumerModules) {
         const imports: unknown = Reflect.getMetadata('imports', consumerModule);
-        const moduleImports = Array.isArray(imports) ? imports : [];
+        const moduleImports: unknown[] = Array.isArray(imports) ? imports : [];
 
         expect(moduleImports).toContain(SupplierOrderModule);
-        expect(moduleImports).not.toContain(DuffelModule);
+        expect(
+          moduleImports.some(
+            (moduleImport: unknown): boolean =>
+              typeof moduleImport === 'function' && moduleImport.name === 'DuffelModule',
+          ),
+        ).toBe(false);
       }
 
       const exports: unknown = Reflect.getMetadata('exports', SupplierOrderModule);
@@ -738,7 +741,12 @@ describe('Nest Composition Architecture Gate (US1 - T014)', () => {
       expect(paramTypes).toContain(StripeService);
       expect(paramTypes).toContain(DuffelCancellationService);
       expect(paramTypes).toContain(DuffelRecoveryService);
-      expect(paramTypes).not.toContain(DuffelService);
+      expect(
+        paramTypes.some(
+          (paramType: unknown): boolean =>
+            typeof paramType === 'function' && paramType.name === 'DuffelService',
+        ),
+      ).toBe(false);
 
       // Must NOT inject saga port tokens or adapter classes
       expect(paramTypes).not.toContain(StripePaymentAdapter);

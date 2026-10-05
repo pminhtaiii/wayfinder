@@ -313,7 +313,7 @@ export class BookingIntentService {
         throw new ConflictException({ code: 'CLAIM_LOST', message: 'Handoff claim was lost' });
       }
 
-      const liveOfferPromise = this.fetchLiveOffer(flightOffer.duffelOfferId, 25000);
+      const liveOfferPromise = this.fetchLiveOffer(flightOffer.supplierOfferId, 25000);
       const readinessPromise = canonicalPassengers
         ? this.bookingReadinessService!.evaluateAuthoritativeReadiness(
             flightOffer.rawOffer,
@@ -353,19 +353,14 @@ export class BookingIntentService {
         isNaN(parsedTtl) || !process.env.BOOKING_INTENT_TTL_MINUTES ? 30 : parsedTtl;
       const intentExpiresAt = new Date(now.getTime() + ttlMinutes * 60 * 1000);
 
-      const offerPassengersInput =
-        Array.isArray(liveOffer.passengers) && liveOffer.passengers.length > 0
-          ? liveOffer.passengers
-          : liveOffer.raw ?? liveOffer.passengers;
-
-      const duffelPassengerIds = this.extractDuffelPassengerIds(
-        offerPassengersInput,
+      const supplierPassengerIds = this.extractSupplierPassengerIds(
+        liveOffer.passengers,
         passengersForValidation,
       );
 
       const canonicalSnapshotPassengers = canonicalPassengers?.map((passenger, index) => ({
         ...passenger,
-        duffelPassengerId: duffelPassengerIds[index],
+        supplierPassengerId: supplierPassengerIds[index],
         position: index,
       }));
 
@@ -397,7 +392,7 @@ export class BookingIntentService {
               id: intentId,
               userId,
               flightOfferId: flightOffer.id,
-              duffelOfferId: flightOffer.duffelOfferId,
+              supplierOfferId: flightOffer.supplierOfferId,
               originalPrice: flightOffer.price,
               confirmedPrice: new Prisma.Decimal(confirmedPrice),
               currency: liveOffer.currency,
@@ -455,7 +450,7 @@ export class BookingIntentService {
                         ? this.encryptionService.encrypt(passenger.passportExpiry)
                         : null,
                       travelerProfileId: passenger.travelerProfileId || null,
-                      duffelPassengerId: duffelPassengerIds[index],
+                      supplierPassengerId: supplierPassengerIds[index],
                     },
                   }),
                 ),
@@ -1014,60 +1009,36 @@ export class BookingIntentService {
     }
   }
 
-  private extractDuffelPassengerIds(
-    passengersInput: unknown,
+  private extractSupplierPassengerIds(
+    supplierPassengers: readonly FlightOfferPassenger[],
     passengers: readonly { type: PassengerType }[],
   ): string[] {
-    let rawPassengers: unknown;
-    if (Array.isArray(passengersInput)) {
-      rawPassengers = passengersInput;
-    } else if (
-      passengersInput &&
-      typeof passengersInput === 'object' &&
-      Array.isArray((passengersInput as { passengers?: unknown }).passengers)
-    ) {
-      rawPassengers = (passengersInput as { passengers: unknown[] }).passengers;
-    } else {
-      throw new HttpException(
-        { code: 'UPSTREAM_UNAVAILABLE', message: 'Offer passenger identities are unavailable' },
-        HttpStatus.BAD_GATEWAY,
-      );
-    }
-
-    const supplierPassengers = (rawPassengers as unknown[]).map((passenger) => {
-      if (!passenger || typeof passenger !== 'object') {
+    const remaining = supplierPassengers.map((passenger) => {
+      if (
+        !passenger ||
+        typeof passenger !== 'object' ||
+        typeof passenger.supplierPassengerId !== 'string' ||
+        passenger.supplierPassengerId.length === 0 ||
+        (passenger.type !== 'ADULT' && passenger.type !== 'CHILD' && passenger.type !== 'INFANT')
+      ) {
         return null;
       }
-      const candidate = passenger as {
-        id?: unknown;
-        supplierPassengerId?: unknown;
-        type?: unknown;
-      };
-      const id =
-        typeof candidate.supplierPassengerId === 'string'
-          ? candidate.supplierPassengerId
-          : typeof candidate.id === 'string'
-          ? candidate.id
-          : null;
-      if (!id || typeof candidate.type !== 'string') {
-        return null;
-      }
-      return { id, type: candidate.type.toUpperCase() };
+      return { id: passenger.supplierPassengerId, type: passenger.type };
     });
 
-    if (supplierPassengers.some((passenger) => passenger === null)) {
+    if (remaining.some((passenger) => passenger === null)) {
       throw new HttpException(
         { code: 'UPSTREAM_UNAVAILABLE', message: 'Offer passenger identities are unavailable' },
         HttpStatus.BAD_GATEWAY,
       );
     }
 
-    const remaining = supplierPassengers.filter(
-      (passenger): passenger is { id: string; type: string } => passenger !== null,
-    );
+    const validSupplierPassengers = remaining.filter((passenger) => passenger !== null);
     const mappedPassengerIds: string[] = [];
     for (const passenger of passengers) {
-      const index = remaining.findIndex((supplier) => supplier.type === passenger.type);
+      const index = validSupplierPassengers.findIndex(
+        (supplier) => supplier.type === passenger.type,
+      );
       if (index < 0) {
         throw new HttpException(
           {
@@ -1077,7 +1048,7 @@ export class BookingIntentService {
           HttpStatus.BAD_GATEWAY,
         );
       }
-      mappedPassengerIds.push(remaining.splice(index, 1)[0].id);
+      mappedPassengerIds.push(validSupplierPassengers.splice(index, 1)[0].id);
     }
 
     return mappedPassengerIds;

@@ -536,7 +536,7 @@ describe('Flights Search (E2E)', () => {
           where: { searchHash },
         });
         expect(offers.length).toBe(1);
-        expect(offers[0].duffelOfferId).toBe('off_mock_123');
+        expect(offers[0].supplierOfferId).toBe('off_mock_123');
         expect(offers[0].id).toBe(offer.id);
 
         const recovery = await prisma.offerRecovery.findUnique({
@@ -635,7 +635,7 @@ describe('Flights Search (E2E)', () => {
           where: { searchHash },
         });
         expect(offers.length).toBe(1);
-        expect(offers[0].duffelOfferId).toBe('off_mock_123');
+        expect(offers[0].supplierOfferId).toBe('off_mock_123');
 
         const recoveries = await prisma.offerRecovery.findMany({
           where: { searchHash },

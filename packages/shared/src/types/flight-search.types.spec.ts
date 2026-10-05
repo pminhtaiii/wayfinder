@@ -1460,3 +1460,41 @@ describe('T002: RANKED nullability, active weights, explanation params, and prov
     );
   });
 });
+
+describe('T044 FlightSearchOfferView compatibility baseline', () => {
+  it('pins the RANKED offer JSON keys and rejects both provider identity spellings', (): void => {
+    const parsedOffer = FlightSearchOfferViewSchema.parse({
+      ...offer,
+      matchResult: null,
+    });
+
+    assert.equal(parsedOffer.matchResult, null);
+    assert.deepEqual(Object.keys(parsedOffer).sort(), [
+      'airline',
+      'arrivalAt',
+      'currency',
+      'departureAt',
+      'destination',
+      'duration',
+      'flightNumber',
+      'id',
+      'matchResult',
+      'origin',
+      'price',
+      'slices',
+      'stops',
+    ]);
+    assert.throws(() =>
+      FlightSearchOfferViewSchema.parse({
+        ...offer,
+        duffelOfferId: 'off_123456',
+      }),
+    );
+    assert.throws(() =>
+      FlightSearchOfferViewSchema.parse({
+        ...offer,
+        supplierOfferId: 'sup_999',
+      }),
+    );
+  });
+});

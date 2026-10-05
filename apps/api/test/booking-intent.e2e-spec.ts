@@ -129,7 +129,7 @@ describe('Booking Intent (E2E)', () => {
     return prisma.flightOffer.create({
       data: {
         searchHash: data.searchHash ?? `test-search-hash-${unique}`,
-        duffelOfferId: data.duffelOfferId ?? `off_duffel_${unique}`,
+        supplierOfferId: data.supplierOfferId ?? `off_duffel_${unique}`,
         rawOffer: {},
         origin: 'SGN',
         destination: 'HAN',
@@ -204,7 +204,7 @@ describe('Booking Intent (E2E)', () => {
         })
         .expect(201);
 
-      expect(duffelSpy).toHaveBeenCalledWith(offer.duffelOfferId);
+      expect(duffelSpy).toHaveBeenCalledWith(offer.supplierOfferId);
       duffelSpy.mockRestore();
 
       expect(res.body).toHaveProperty('intentId');
@@ -1276,7 +1276,7 @@ describe('Booking Intent (E2E)', () => {
           userId: userA.id,
           chatSessionId: session.id,
           flightOfferId: offer.id,
-          duffelOfferIdHash: 'hash',
+          supplierOfferIdHash: 'hash',
           snapshotVersion: 1,
           snapshotFingerprint: 'print',
           selectionAttestationHash: 'attest',
@@ -1356,7 +1356,7 @@ describe('Booking Intent (E2E)', () => {
           userId: userA.id,
           chatSessionId: session.id,
           flightOfferId: offer.id,
-          duffelOfferIdHash: 'hash',
+          supplierOfferIdHash: 'hash',
           snapshotVersion: 1,
           snapshotFingerprint: 'print',
           selectionAttestationHash: 'attest',
@@ -1416,7 +1416,7 @@ describe('Booking Intent (E2E)', () => {
           userId: userA.id,
           chatSessionId: session.id,
           flightOfferId: offer.id,
-          duffelOfferIdHash: 'hash',
+          supplierOfferIdHash: 'hash',
           snapshotVersion: 1,
           snapshotFingerprint: 'print',
           selectionAttestationHash: 'attest',
@@ -1484,7 +1484,7 @@ describe('Booking Intent (E2E)', () => {
           userId: userA.id,
           chatSessionId: session.id,
           flightOfferId: offer.id,
-          duffelOfferIdHash: 'hash',
+          supplierOfferIdHash: 'hash',
           snapshotVersion: 1,
           snapshotFingerprint: 'print',
           selectionAttestationHash: 'attest',
@@ -1545,7 +1545,7 @@ describe('Booking Intent (E2E)', () => {
           userId: userA.id,
           chatSessionId: session.id,
           flightOfferId: offer.id,
-          duffelOfferIdHash: 'hash',
+          supplierOfferIdHash: 'hash',
           snapshotVersion: 1,
           snapshotFingerprint: 'print',
           selectionAttestationHash: 'attest',

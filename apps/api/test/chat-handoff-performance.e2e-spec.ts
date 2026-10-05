@@ -244,7 +244,7 @@ describe('Chat handoff performance (E2E)', () => {
     const offer = await prisma.flightOffer.create({
       data: {
         searchHash: RUN_MARKER,
-        duffelOfferId: `${RUN_MARKER}-offer`,
+        supplierOfferId: `${RUN_MARKER}-offer`,
         rawOffer: {
           expires_at: new Date(Date.now() + 900_000).toISOString(),
           passengers: [{ id: 'pas_benchmark', type: 'adult' }],

@@ -89,7 +89,6 @@ type ServiceHarness = {
     evaluator: LooseMock;
     observability: LooseMock;
     configService: LooseMock;
-    duffelService: LooseMock;
     auditService: LooseMock;
     flightSearchPort: FlightSearchPort;
   };
@@ -335,7 +334,6 @@ function createServiceHarness(): ServiceHarness {
   const evaluator = createLooseMock();
   const observability = createLooseMock();
   const configService = createLooseMock();
-  const duffelService = createLooseMock();
   const auditService = createLooseMock();
   const flightSearchPort = {
     search: jest.fn(),
@@ -359,7 +357,6 @@ function createServiceHarness(): ServiceHarness {
     BookingReadinessEvaluator: evaluator,
     BookingReadinessObservability: observability,
     ConfigService: configService,
-    DuffelService: duffelService,
     AuditService: auditService,
     FlightSearchPort: flightSearchPort,
     [FLIGHT_SEARCH_PORT as symbol]: flightSearchPort,
@@ -378,7 +375,6 @@ function createServiceHarness(): ServiceHarness {
       evaluator,
       observability,
       configService,
-      duffelService,
       auditService,
       flightSearchPort: flightSearchPort as unknown as FlightSearchPort,
     },
@@ -963,7 +959,7 @@ describe('BookingReadinessService RED slice', () => {
         expect(getHttpCode(error)).toBe('OFFER_EXPIRED');
       });
 
-    expect(collectMockCallPayloads(mocks.duffelService)).toBe('[]');
+    expect(mocks.flightSearchPort.getOfferById).not.toHaveBeenCalled();
     expect(collectMockCallPayloads(mocks.auditService)).toBe('[]');
   });
 
@@ -990,7 +986,7 @@ describe('BookingReadinessService RED slice', () => {
     expect(mocks.prisma.bookingIntent.create).not.toHaveBeenCalled();
     expect(mocks.prisma.bookingIntentPassenger.create).not.toHaveBeenCalled();
     expect(mocks.profileService.updateProfile).not.toHaveBeenCalled();
-    expect(collectMockCallPayloads(mocks.duffelService)).toBe('[]');
+    expect(mocks.flightSearchPort.getOfferById).not.toHaveBeenCalled();
   });
 
   it('fails feature-disabled requests before reading offers, profiles, or airports', async () => {
@@ -1413,4 +1409,3 @@ describe('Raw-Reader Replacement Parity (T015)', () => {
     }
   });
 });
-

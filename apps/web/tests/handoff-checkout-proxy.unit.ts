@@ -41,6 +41,41 @@ test('rejects nested credential and provider fields from checkout client payload
   );
 });
 
+test('rejects provider identity keys at checkout roots and nested legacy Duffel identities', (): void => {
+  for (const identityKey of ['duffelOfferId', 'supplierOfferId']) {
+    assert.equal(
+      isSafeHandoffCheckoutPayload(
+        { passengers: [], [identityKey]: 'injected-provider-id' },
+        '/api/bookings/intents/readiness',
+      ),
+      false,
+    );
+    assert.equal(
+      isSafeHandoffCheckoutPayload(
+        { passengers: [], readinessScope: 'DOMESTIC', [identityKey]: 'injected-provider-id' },
+        '/api/bookings/intents',
+      ),
+      false,
+    );
+  }
+
+  assert.equal(
+    isSafeHandoffCheckoutPayload(
+      { passengers: [{ source: { duffelOfferId: 'injected-provider-id' } }] },
+      '/api/bookings/intents',
+    ),
+    false,
+  );
+  assert.equal(isSafeHandoffCheckoutPayload({ passengers: [] }, '/api/bookings/intents/readiness'), true);
+  assert.equal(
+    isSafeHandoffCheckoutPayload(
+      { passengers: [], readinessScope: 'DOMESTIC' },
+      '/api/bookings/intents',
+    ),
+    true,
+  );
+});
+
 test('trusts only configured same-origin checkout requests', () => {
   const spoofedRequest = new Request('https://attacker.example/api/checkout/handoff/intents', {
     headers: { Origin: 'https://attacker.example' },

@@ -7,7 +7,7 @@ import { CacheService } from '@/cache/cache.service';
 import { JwtService } from '@nestjs/jwt';
 import { Duffel } from '@duffel/api';
 import { DUFFEL_SDK } from '@/supplier/core/duffel-core.module';
-import { DuffelCleanupService } from '@/duffel/duffel-cleanup.service';
+import { FlightOfferCleanupService } from '@/supplier/search/flight-offer-cleanup.service';
 import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
 import { DuffelOfferRequest } from '@/duffel/duffel.types';
 
@@ -17,7 +17,7 @@ describe('Flights Analytics & Search History (E2E)', () => {
   let prisma: PrismaService;
   let cacheService: CacheService;
   let jwtService: JwtService;
-  let cleanupService: DuffelCleanupService;
+  let cleanupService: FlightOfferCleanupService;
   let jwtToken: string;
   let userId: string;
 
@@ -64,7 +64,7 @@ describe('Flights Analytics & Search History (E2E)', () => {
     prisma = moduleFixture.get<PrismaService>(PrismaService);
     cacheService = moduleFixture.get<CacheService>(CacheService);
     jwtService = moduleFixture.get<JwtService>(JwtService);
-    cleanupService = moduleFixture.get<DuffelCleanupService>(DuffelCleanupService);
+    cleanupService = moduleFixture.get<FlightOfferCleanupService>(FlightOfferCleanupService);
   });
 
   afterAll(async () => {
@@ -360,7 +360,7 @@ describe('Flights Analytics & Search History (E2E)', () => {
         data: {
           id: offerId,
           searchHash,
-          duffelOfferId: 'off_expired_test',
+          supplierOfferId: 'off_expired_test',
           rawOffer: {},
           origin: 'HAN',
           destination: 'SGN',

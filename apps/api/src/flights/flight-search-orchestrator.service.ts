@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CABIN_RANK, CabinClass } from '@/flight-match/flight-match.policy';
-import { DuffelOffer } from '@/duffel/duffel.types';
 import { FlightOffer } from '@/supplier/search/flight-search.port';
 import {
   FlightMatchInput,
@@ -11,11 +10,9 @@ import {
 import { ProfileService } from '@/profile/profile.service';
 import { FlightMatchScorerService } from '@/flight-match/flight-match-scorer.service';
 import { CategoryRankerService } from '@/flight-match/category-ranker.service';
-import { normalizeFlightOffers } from './flight-offer-normalizer';
 
 export interface OrchestratorParams {
-  readonly offers?: readonly FlightOffer[];
-  readonly rawOffers?: readonly DuffelOffer[];
+  readonly offers: readonly FlightOffer[];
   readonly query: {
     readonly origin: string;
     readonly destination: string;
@@ -32,11 +29,7 @@ export interface OrchestratorParams {
 }
 
 export interface OrchestratedFlightResult {
-  readonly offer?: FlightOffer;
-  /**
-   * Raw supplier offer payload retained for backward compatibility with tests and callers.
-   */
-  readonly rawOffer: DuffelOffer;
+  readonly offer: FlightOffer;
   readonly scoredOffer: ScoredOffer | RankedOffer;
 }
 
@@ -63,10 +56,14 @@ export interface OrchestratedSearchResponse {
   readonly rejectionCounts: Readonly<Record<string, number>>;
 }
 
+function isCabinClass(key: string): key is CabinClass {
+  return key in CABIN_RANK;
+}
+
 export function normalizeCabinClass(cabin: string | null | undefined): CabinClass | null {
   if (!cabin || typeof cabin !== 'string') return null;
   const key = cabin.trim().toLowerCase();
-  return key in CABIN_RANK ? (key as CabinClass) : null;
+  return isCabinClass(key) ? key : null;
 }
 
 export function hasEffectivePreferences(preferences: ScoringPreferences): boolean {
@@ -100,7 +97,7 @@ export function hasEffectivePreferences(preferences: ScoringPreferences): boolea
 
 @Injectable()
 export class FlightSearchOrchestratorService {
-  private readonly logger = new Logger(FlightSearchOrchestratorService.name);
+  readonly logger = new Logger(FlightSearchOrchestratorService.name);
 
   constructor(
     private readonly profileService: ProfileService,
@@ -109,35 +106,24 @@ export class FlightSearchOrchestratorService {
   ) {}
 
   async orchestrateSearch(params: OrchestratorParams): Promise<OrchestratedSearchResponse> {
-    let canonicalOffers: readonly FlightMatchInput[];
-    let droppedCount = 0;
-    let rejectionCounts: Readonly<Record<string, number>> = {};
-    let resolveRawOffer: (index: number, id?: string) => DuffelOffer;
-    let resolveFlightOffer: ((index: number, id?: string) => FlightOffer | undefined) | undefined;
+    const currency = params.offers[0]?.matchInput.currency;
+    const sameCurrencyOffers = params.offers.filter((o) => o.matchInput.currency === currency);
+    const canonicalOffers: readonly FlightMatchInput[] = sameCurrencyOffers.slice(0, 20).map((o) => o.matchInput);
+    const droppedCount = params.offers.length - sameCurrencyOffers.length;
+    const rejectionCounts: Readonly<Record<string, number>> =
+      droppedCount > 0 ? { MIXED_CURRENCY: droppedCount } : {};
 
-    if (params.offers) {
-      const currency = params.offers[0]?.matchInput.currency;
-      const sameCurrencyOffers = params.offers.filter((o) => o.matchInput.currency === currency);
-      canonicalOffers = sameCurrencyOffers.slice(0, 20).map((o) => o.matchInput);
-      droppedCount = params.offers.length - sameCurrencyOffers.length;
-      rejectionCounts = droppedCount > 0 ? { MIXED_CURRENCY: droppedCount } : {};
-      resolveRawOffer = (index: number, id?: string): DuffelOffer => {
-        const found = id ? params.offers!.find((o) => o.id === id) : params.offers![index];
-        const raw = found?.rawSupplierPayload;
-        // Cast to DuffelOffer for backward compatibility with callers and tests expecting legacy raw payload shapes
-        return typeof raw === 'object' && raw !== null ? (raw as DuffelOffer) : ({} as DuffelOffer);
-      };
-      resolveFlightOffer = (index: number, id?: string) => {
-        return id ? params.offers!.find((o) => o.id === id) : params.offers![index];
-      };
-    } else {
-      const rawOffers = params.rawOffers || [];
-      const normalized = normalizeFlightOffers(rawOffers);
-      canonicalOffers = normalized.normalizedOffers.slice(0, 20);
-      droppedCount = normalized.droppedCount;
-      rejectionCounts = normalized.rejectionCounts;
-      resolveRawOffer = (index: number) => rawOffers[index];
-    }
+    const resolveFlightOffer = (index: number, id?: string): FlightOffer => {
+      const found = id ? params.offers.find((o) => o.id === id) : params.offers[index];
+      if (found) {
+        return found;
+      }
+      const byIndex = params.offers[index];
+      if (byIndex) {
+        return byIndex;
+      }
+      throw new Error(`FlightOffer not found for id=${id ?? 'undefined'}, index=${index}`);
+    };
 
     if (droppedCount > 0) {
       this.logger.warn(
@@ -199,8 +185,7 @@ export class FlightSearchOrchestratorService {
     if (!hasPersonalization) {
       const rankedOffers = this.categoryRanker.rank([...canonicalOffers]);
       const results: OrchestratedFlightResult[] = rankedOffers.map((offer) => ({
-        offer: resolveFlightOffer?.(offer.originalIndex, offer.id),
-        rawOffer: resolveRawOffer(offer.originalIndex, offer.id),
+        offer: resolveFlightOffer(offer.originalIndex, offer.id),
         scoredOffer: {
           offer,
           matchResult: null,
@@ -227,8 +212,7 @@ export class FlightSearchOrchestratorService {
     const scoredOffers = this.scorer.scoreAll([...canonicalOffers], effectivePreferences);
 
     const results: OrchestratedFlightResult[] = scoredOffers.map((scoredOffer) => ({
-      offer: resolveFlightOffer?.(scoredOffer.offer.originalIndex, scoredOffer.offer.id),
-      rawOffer: resolveRawOffer(scoredOffer.offer.originalIndex, scoredOffer.offer.id),
+      offer: resolveFlightOffer(scoredOffer.offer.originalIndex, scoredOffer.offer.id),
       scoredOffer,
     }));
 

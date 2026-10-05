@@ -2,13 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { AppModule } from '@/app.module';
 import { PrismaService } from '@/prisma/prisma.service';
-import { DuffelCleanupService } from '@/duffel/duffel-cleanup.service';
+import { FlightOfferCleanupService } from '@/supplier/search/flight-offer-cleanup.service';
 
-describe('Duffel Cleanup Service (E2E)', () => {
+describe('Flight Offer Cleanup Service (E2E)', () => {
   jest.setTimeout(30000);
   let app: INestApplication;
   let prisma: PrismaService;
-  let cleanupService: DuffelCleanupService;
+  let cleanupService: FlightOfferCleanupService;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -19,7 +19,7 @@ describe('Duffel Cleanup Service (E2E)', () => {
     await app.init();
 
     prisma = moduleFixture.get<PrismaService>(PrismaService);
-    cleanupService = moduleFixture.get<DuffelCleanupService>(DuffelCleanupService);
+    cleanupService = moduleFixture.get<FlightOfferCleanupService>(FlightOfferCleanupService);
   });
 
   afterAll(async () => {
@@ -44,7 +44,7 @@ describe('Duffel Cleanup Service (E2E)', () => {
         {
           id: '11111111-1111-1111-1111-111111111111',
           searchHash: 'hash-active-offer',
-          duffelOfferId: 'off_active',
+          supplierOfferId: 'off_active',
           rawOffer: {},
           origin: 'SGN',
           destination: 'HAN',
@@ -59,7 +59,7 @@ describe('Duffel Cleanup Service (E2E)', () => {
         {
           id: '22222222-2222-2222-2222-222222222222',
           searchHash: 'hash-expired-offer',
-          duffelOfferId: 'off_expired',
+          supplierOfferId: 'off_expired',
           rawOffer: {},
           origin: 'SGN',
           destination: 'HAN',
@@ -118,7 +118,7 @@ describe('Duffel Cleanup Service (E2E)', () => {
         data: {
           id: '55555555-5555-5555-5555-555555555555',
           searchHash: 'hash-custom-expired-offer',
-          duffelOfferId: 'off_custom_expired',
+          supplierOfferId: 'off_custom_expired',
           rawOffer: {},
           origin: 'SGN',
           destination: 'HAN',

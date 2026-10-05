@@ -75,7 +75,10 @@ export class SelectionAttestationService {
       version,
       issuedAt: canonicalIssuedAt,
       expiresAt,
-      offers,
+      offers: offers.map((offer) => ({
+        flightOfferId: offer.flightOfferId,
+        duffelOfferId: offer.duffelOfferId,
+      })),
     };
     const payloadStr = JSON.stringify(payload);
     const signature = crypto

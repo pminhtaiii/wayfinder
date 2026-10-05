@@ -1,3 +1,4 @@
+// Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
 import 'reflect-metadata';
 import { PaymentService } from './payment.service';
 import { PaymentFulfillmentSaga } from '@/payment-fulfillment/payment-fulfillment.saga';
@@ -13,6 +14,20 @@ import { PaymentIdempotencyService } from '@/idempotency/payment-idempotency.ser
 import { AuditService } from '@/audit/audit.service';
 import { PaymentMethodService } from '@/payment/payment-method.service';
 import { AncillaryPaymentValidationService } from './ancillary-payment-validation.service';
+import type { FlightSearchPort } from '@/supplier/search/flight-search.port';
+
+// Approved 2026-10-04 per T061: these saga fixtures have no saved snapshot; retain their payment assertions.
+const flightSearchPort: FlightSearchPort = {
+  search: async () => ({ offers: [], searchHash: '', cached: false }),
+  getOfferById: async () => { throw new Error('Unexpected live offer lookup'); },
+  normalizeStoredOffer: () => null,
+  normalizeStoredOfferFacts: () => ({
+    travelScope: null,
+    tripCompletionDate: null,
+    offerExpiresAt: null,
+  }),
+  normalizeStoredFlightSnapshot: () => null,
+};
 
 describe('PaymentService - Ancillary Pipeline', () => {
   let service: PaymentService;
@@ -212,6 +227,7 @@ describe('PaymentService - Ancillary Pipeline', () => {
       mockBookingLifecycleService,
       mockPrisma as unknown as PrismaService,
       mockAudit as unknown as AuditService,
+      flightSearchPort,
     );
   });
 
@@ -733,7 +749,7 @@ describe('PaymentService - Ancillary Pipeline', () => {
         currency: 'usd',
         bookingIntent: {
           userId: 'user-123',
-          duffelOfferId: 'off_123',
+          supplierOfferId: 'off_123',
           passengers: [{ id: 'pas_1', type: 'adult' }],
         },
         ancillarySelectionId: 'anc-sel-123',
@@ -759,7 +775,7 @@ describe('PaymentService - Ancillary Pipeline', () => {
 
       mockPrisma.bookingIntent.findUnique.mockResolvedValueOnce({
         id: 'intent-123',
-        duffelOfferId: 'off_123',
+        supplierOfferId: 'off_123',
         passengers: [{ id: 'pas_1', type: 'adult' }],
         paymentAttemptCount: 1,
       });
@@ -898,7 +914,7 @@ describe('PaymentService - Ancillary Pipeline', () => {
         ancillarySelectionVersion: null,
         bookingIntent: {
           userId: 'user-123',
-          duffelOfferId: 'off_123',
+          supplierOfferId: 'off_base_123',
           passengers: [{ id: 'pas_1', type: 'adult' }],
         },
         ancillarySelection: null,
@@ -916,7 +932,7 @@ describe('PaymentService - Ancillary Pipeline', () => {
 
       mockPrisma.bookingIntent.findUnique.mockResolvedValueOnce({
         id: 'intent-base-123',
-        duffelOfferId: 'off_base_123',
+        supplierOfferId: 'off_base_123',
         passengers: [{ id: 'pas_1', type: 'adult' }],
         paymentAttemptCount: 1,
       });

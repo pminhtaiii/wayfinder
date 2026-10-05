@@ -10,7 +10,6 @@ import { DuffelSearchService } from './duffel-search.service';
 import { DuffelSearchAdapter } from './duffel-search.adapter';
 import { FlightOfferNormalizer } from './flight-offer.normalizer';
 import { FlightOfferCleanupService } from './flight-offer-cleanup.service';
-import { DuffelCleanupService } from '@/duffel/duffel-cleanup.service';
 
 describe('SupplierSearchModule & FlightOfferCleanupService (T020)', () => {
   const originalEnv = { ...process.env };
@@ -126,14 +125,6 @@ describe('SupplierSearchModule & FlightOfferCleanupService (T020)', () => {
       expect(cronOptions?.cronTime).toBe(CronExpression.EVERY_DAY_AT_MIDNIGHT);
     });
 
-    it('ensures DuffelCleanupService.handleCleanup has NO @Cron decorator to prevent duplicate cron jobs', () => {
-      const cronOptions = Reflect.getMetadata(
-        SCHEDULE_CRON_OPTIONS,
-        DuffelCleanupService.prototype.handleCleanup,
-      );
-
-      expect(cronOptions).toBeUndefined();
-    });
   });
 
   describe('FlightOfferCleanupService.handleCleanup()', () => {

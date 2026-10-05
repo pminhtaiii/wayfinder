@@ -51,6 +51,14 @@ function jobBlock(source, jobId) {
   return match[0];
 }
 
+function workflowJobBlocks(source) {
+  const headers = [...source.matchAll(/^\x20{2}([\w-]+):[ \t]*$/gm)];
+  return headers.map((header, index) => ({
+    jobId: header[1],
+    block: source.slice(header.index, headers[index + 1]?.index ?? source.length),
+  }));
+}
+
 function stepBlock(job, stepName) {
   const match = job.match(
     new RegExp(
@@ -758,7 +766,8 @@ test('security-sast and security-supply-chain jobs meet strict CI guidelines', (
   }
 
   assertContains(sast, /pnpm\/action-setup@[a-f0-9]{40}/, 'sast must use pinned pnpm setup');
-  assertContains(sast, /version:\s*9\.15\.4/, 'sast must use pnpm 9.15.4');
+  // Human-approved 2026-10-03: align security checks with existing pnpm 10.34.5 jobs.
+  assertContains(sast, /version:\s*10\.34\.5/, 'sast must use pnpm 10.34.5');
   assertContains(sast, /actions\/setup-node@[a-f0-9]{40}/, 'sast must use pinned setup-node');
   assertContains(sast, /pnpm install --frozen-lockfile/, 'sast must install frozen dependencies');
   assertContains(sast, /astral-sh\/setup-uv@[a-f0-9]{40}/, 'must use setup-uv');
@@ -768,13 +777,34 @@ test('security-sast and security-supply-chain jobs meet strict CI guidelines', (
   assertContains(sast, /^        if:\s+always\(\)\s*$/m, 'must upload always');
 
   assertContains(sc, /pnpm\/action-setup@[a-f0-9]{40}/, 'supply chain must use pinned pnpm setup');
-  assertContains(sc, /version:\s*9\.15\.4/, 'supply chain must use pnpm 9.15.4');
+  assertContains(sc, /version:\s*10\.34\.5/, 'supply chain must use pnpm 10.34.5');
   assertContains(sc, /actions\/setup-node@[a-f0-9]{40}/, 'supply chain must use pinned setup-node');
   assertContains(sc, /astral-sh\/setup-uv@[a-f0-9]{40}/, 'supply chain must use pinned setup-uv');
   assertContains(sc, /fetch-depth:\s+0/, 'Gitleaks history scan must fetch full history');
   assertContains(sc, /ba6dbb656933921c775ee5a2d1c13a91046e7952e9d919f9bac4cec61d628e7d/, 'must verify Gitleaks v8.18.4 checksum');
   assertContains(sc, /node scripts\/security\/run-supply-chain\.mjs --output artifacts\/security\/supply-chain\.json --strict/, 'must run run-supply-chain');
   assertContains(sc, /actions\/upload-artifact@[a-f0-9]{40}/, 'must upload artifacts always');
+  const dependencyJobs = workflowJobBlocks(source).filter(({ block }) =>
+    block.includes('pnpm install --frozen-lockfile'),
+  );
+
+  assert.ok(dependencyJobs.length > 0, 'expected Node dependency jobs');
+  for (const { jobId, block } of dependencyJobs) {
+    assert.match(block, /actions\/setup-node@[a-f0-9]{40}/, `${jobId} must set up Node`);
+    const setup = stepBlock(block, 'Set up pnpm 10.34.5');
+    assert.match(setup, /version:\s*10\.34\.5/, `${jobId} must use pnpm 10.34.5`);
+  }
+});
+
+test('local dependency patch changes route through API, web, and security checks', () => {
+  const detect = jobBlock(workflow(), 'detect-changes');
+
+  for (const service of ['api', 'web', 'security']) {
+    assert.ok(
+      filterBlock(detect, service).includes('patches/**'),
+      `${service} filter must include local dependency patches`,
+    );
+  }
 });
 
 test('ci-status processes security aggregates correctly', () => {

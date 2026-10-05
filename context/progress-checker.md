@@ -11,14 +11,16 @@ Do not mark a capability complete because it appears in architecture or planning
 Overall status:
 
 ```text
-FEATURES 001–028 100% COMPLETE / FEATURE 029 PHASES 0–4 COMPLETE LOCALLY / PHASE 5 IN PROGRESS (T032–T041 COMPLETE LOCALLY; T042–T043 PENDING) / PHASES 6–7 PENDING
+FEATURES 001–028 100% COMPLETE / FEATURE 029 PHASES 0–6, 8 & 9 COMPLETE / T055–T057 WORK COMPLETE / PHASE 7 PENDING PR #371 MERGE; RECORDED CI PASSED
 ```
 
-The system operates on branch `codex/029-duffel-provider-narrowing`. Features 001–028 and Feature 029 Phases 0–4 are complete locally. Phase 5 is complete locally through T041: supplier order module/fulfillment binding, order-consumer rewiring, safe saga compensation (T040), and stale recovery deferral (T041) are implemented. Both independent task reviews had zero findings. Current Slice 4 validation passed 132 API suites/2,404 tests with the network guard, 59 broader transactional E2E tests, shared contracts (110), and static CI contracts (23). Scoped T040/T041 convergence and final Spec review passed with zero findings. Final Standards review found a test annotation issue fixed in ed24a4c0 and independently rechecked with zero open findings and a nonblocking local helper duplication smell. Evidence is in the [Slice 4 verification record](../specs/029-duffel-provider-narrowing/slice-4-verification.md). Previous local checks through T039 remain recorded here: 132 API suites/2,384 tests, 481 focused order/consumer tests, module composition (29 tests), five consumer E2E suites (34 tests), four migrated transactional E2E suites (59 tests), API typecheck, and API/shared lint. The first broader API run exceeded an existing 10 ms p95 threshold under concurrent test load; the isolated retry passed without changing code or the threshold. Database checks used `feature029_slice2_test`; fixture corrections have explicit human approval comments. T041 validation on 2026-10-02 passed the recovery suite (55/55), payment safety E2E (2/2), API TypeScript check, and API lint. Slice 3 convergence and review findings remain recorded in the [slice verification record](../specs/029-duffel-provider-narrowing/slice-3-verification.md); remote CI is checked on the draft PR. T042–T043, neutral naming/schema (T044–T054), and final audit (T055–T057) remain pending.
+The system operates on branch `codex/029-duffel-provider-narrowing`. Features 001–028, Feature 029 Phases 0–6, Phase 8 convergence (T058), and Phase 9 convergence (T059–T067) are complete. Phase 7 boundary census (T056), gate matrix validation (T055), and documentation sync (T057) are complete with zero unexplained provider leaks across production code (all `@duffel/api` imports are strictly isolated to 4 supplier adapter files, with all non-webhook database columns neutralized). Slice 6.2 is verified on remote CI via PR [#370](https://github.com/pminhtaiii/wayfinder/pull/370), run [37188540602](https://github.com/pminhtaiii/wayfinder/actions/runs/37188540602), commit `551c3890cd37f65ded2adf900244fc9ca0d76dd8`. PR #368 is closed, Part 1 PR #369 and Part 2 PR #370 are merged into `development`, and PR [#371](https://github.com/pminhtaiii/wayfinder/pull/371) is open targeting `development` for the final convergence and verification slice (verified on remote CI via run [37275073216](https://github.com/pminhtaiii/wayfinder/actions/runs/37275073216), commit `2712cc50ad3cb3898b220fe6d8222dd99483bb3b`, all jobs green).
 
 ---
 
 ## Feature 029 — Narrow the Duffel Supplier Boundary (Active)
+
+Phases 0–6, Phase 8, and Phase 9 convergence are complete. T055–T057 work is complete; the local API run was partial (one database-backed suite not run), and Phase 7 remains pending until PR #371 merges. All supplier boundary leakages identified during the census have been resolved: travel scope, completion, expiry, and passenger provenance facts are normalized at `SupplierSearchModule` and consumed via `FLIGHT_SEARCH_PORT` (T059, T060, T063); raw offer-to-booking snapshot conversion moved to the supplier search boundary (T061); cancellation outcomes and passenger enrichment normalized inside `SupplierOrderModule` (T062); `FlightSearchOrchestratorService` accepts and returns strictly canonical `FlightOffer` objects (T064); internal cancellation quote helpers and types renamed to Supplier vocabulary (T065); the agent security performance gate blocker was cleared (T066); and Playwright's API launcher honors `DATABASE_URL` override (T067). Phase 7 boundary census (T056), gate matrix validation (T055), and documentation sync (T057) are complete with zero unexplained runtime hits. Feature 029 implementation is complete and verified on remote CI via PR [#371](https://github.com/pminhtaiii/wayfinder/pull/371) (run `37275073216`); final merge authorization remains.
 
 Detailed phase-by-phase execution, live task checklists, and exit gates are tracked in [active-feature.md](./active-feature.md).
 
@@ -27,13 +29,15 @@ Detailed phase-by-phase execution, live task checklists, and exit gates are trac
 - [x] Phase 2: Core Foundation & Shared Rate Budget (T005–T012)
 - [x] Phase 3: Search Capability Isolation (US1 Complete 🎯) (T013–T024)
 - [x] Phase 4: Ancillary Capability Isolation (US2) (T025–T031 complete locally)
-- [ ] Phase 5: Order Capability Isolation (US3) (T032–T043; complete locally through T041)
-- [ ] Phase 6: Neutral Naming & Physical Schema (US4) (T044–T054)
-- [ ] Phase 7: Final Verification & Audit (T055–T057)
+- [x] Phase 5: Order Capability Isolation (US3) (T032–T043; locally complete, including T058 convergence)
+- [x] Phase 6: Neutral Naming & Physical Schema (US4) (T044–T054 complete & CI verified on PR #370, run `37188540602`)
+- [x] Phase 8: Convergence — Non-Global Core Module (T058)
+- [x] Phase 9: Convergence — Boundary Census & Gate Remediation (T059–T067)
+- [ ] Phase 7: Final Verification & Audit (T055–T057 work complete; pending PR #371 merge)
 
 Exit gate:
 ```text
-all 8 phases pass required exit gates; see active-feature.md for live checkpoints
+all planned feature phases and convergence tasks pass required exit gates; see active-feature.md for live checkpoints
 ```
 
 ---

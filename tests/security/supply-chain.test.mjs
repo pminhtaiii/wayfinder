@@ -600,7 +600,8 @@ test('report.exceptions contains structured exception objects with valid expiry 
   try {
     const register = loadDependencyAdvisoryRegister(process.cwd());
     assert.equal(register.errors.length, 0);
-    assert.equal(register.exceptions.length, 98);
+    // Human-approved 2026-10-03: register includes the locally patched braces advisory.
+    assert.equal(register.exceptions.length, 102);
 
     const result = runSupplyChainScan({
       rootDir: process.cwd(),
@@ -624,7 +625,7 @@ test('report.exceptions contains structured exception objects with valid expiry 
     assert.equal(result.exitCode, 0, result.errors.join('; '));
     assert.equal(result.passed, true);
     assert.ok(Array.isArray(result.report.exceptions));
-    assert.equal(result.report.exceptions.length, 98);
+    assert.equal(result.report.exceptions.length, 102);
 
     for (const exc of result.report.exceptions) {
       assert.ok(/^GHSA-[A-Z0-9_-]+$/i.test(exc.id));
@@ -775,3 +776,193 @@ test('an uncataloged GHSA in options.ignoreGhas / package.json fails closed if n
   }
 });
 
+const bracesPatchRelativePath = 'patches/braces@3.0.3.patch';
+const bracesPatchAdvisory = 'GHSA-VFJ7-8CJW-P6XM';
+
+function copyBracesScannerFixture(rootDir) {
+  const sourceRoot = process.cwd();
+  for (const relativePath of [
+    'package.json',
+    'pnpm-workspace.yaml',
+    'pnpm-lock.yaml',
+    'docs/security/dependency-advisories.md',
+    bracesPatchRelativePath,
+  ]) {
+    const destination = join(rootDir, relativePath);
+    mkdirSync(join(destination, '..'), { recursive: true });
+    writeFileSync(destination, readFileSync(join(sourceRoot, relativePath)));
+  }
+}
+
+function replaceWorkspacePatchPath(content, replacement) {
+  return content.replace(
+    /(^patchedDependencies:\r?\n[\s\S]*?^\s{2}['"]?braces@3\.0\.3['"]?:\s*)[^\r\n]+/m,
+    `$1${replacement}`,
+  );
+}
+
+function replaceLockPatchHash(content) {
+  return content.replace(
+    /(^patchedDependencies:\r?\n[\s\S]*?^\s{2}['"]?braces@3\.0\.3['"]?:\r?\n\s{4}hash:\s*)[^\r\n]+/m,
+    // Human-approved 2026-10-03: pnpm 10 lock hashes use SHA-256 hex.
+    `$1${'0'.repeat(64)}`,
+  );
+}
+
+function removeLockPatchHash(content) {
+  return content.replace(
+    /(^patchedDependencies:\r?\n[\s\S]*?^\s{2}['"]?braces@3\.0\.3['"]?:\r?\n)\s{4}hash:[^\r\n]*\r?\n/m,
+    '$1',
+  );
+}
+
+function replaceLockPatchPath(content, replacement) {
+  return content.replace(
+    /(^patchedDependencies:\r?\n[\s\S]*?^\s{2}['"]?braces@3\.0\.3['"]?:\r?\n\s{4}hash:\s*[^\r\n]+\r?\n\s{4}path:\s*)[^\r\n]+/m,
+    `$1${replacement}`,
+  );
+}
+
+function removeLockPatchPath(content) {
+  return content.replace(
+    /(^patchedDependencies:\r?\n[\s\S]*?^\s{2}['"]?braces@3\.0\.3['"]?:\r?\n\s{4}hash:\s*[^\r\n]+\r?\n)\s{4}path:[^\r\n]*\r?\n/m,
+    '$1',
+  );
+}
+
+test('ignores the braces advisory only when its reviewed patch and registrations match', () => {
+  const valid = loadIgnoredGhas(process.cwd());
+  assert.ok(valid.has(bracesPatchAdvisory));
+  assert.deepEqual(valid.errors, []);
+
+  const mutations = [
+    ['missing patch', (rootDir) => rmSync(join(rootDir, bracesPatchRelativePath), { force: true })],
+    [
+      'modified patch',
+      (rootDir) => {
+        const patchPath = join(rootDir, bracesPatchRelativePath);
+        writeFileSync(patchPath, `${readFileSync(patchPath, 'utf8')}\n`, 'utf8');
+      },
+    ],
+    [
+      'manifest ignore list',
+      (rootDir) => {
+        const manifestPath = join(rootDir, 'package.json');
+        const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+        manifest.pnpm.auditConfig.ignoreGhas = manifest.pnpm.auditConfig.ignoreGhas.filter(
+          (id) => id.toUpperCase() !== bracesPatchAdvisory,
+        );
+        writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+      },
+    ],
+    [
+      'workspace ignore list',
+      (rootDir) => {
+        const workspacePath = join(rootDir, 'pnpm-workspace.yaml');
+        const workspace = readFileSync(workspacePath, 'utf8');
+        const changed = workspace.replace(
+          '    - GHSA-vfj7-8cjw-p6xm',
+          '    - GHSA-vfj7-8cjw-p6xm-removed',
+        );
+        assert.notEqual(changed, workspace, 'workspace advisory ignore must exist in fixture');
+        writeFileSync(workspacePath, changed, 'utf8');
+      },
+    ],
+    [
+      'manifest registration',
+      (rootDir) => {
+        const manifestPath = join(rootDir, 'package.json');
+        const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+        manifest.pnpm.patchedDependencies['braces@3.0.3'] = 'patches/unregistered.patch';
+        writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+      },
+    ],
+    [
+      'workspace registration',
+      (rootDir) => {
+        const workspacePath = join(rootDir, 'pnpm-workspace.yaml');
+        const workspace = readFileSync(workspacePath, 'utf8');
+        const changed = replaceWorkspacePatchPath(workspace, 'patches/unregistered.patch');
+        assert.notEqual(changed, workspace, 'workspace patch entry must exist in fixture');
+        writeFileSync(workspacePath, changed, 'utf8');
+      },
+    ],
+    [
+      'lock hash binding',
+      (rootDir) => {
+        const lockPath = join(rootDir, 'pnpm-lock.yaml');
+        const lock = readFileSync(lockPath, 'utf8');
+        const changed = replaceLockPatchHash(lock);
+        assert.notEqual(changed, lock, 'lock patch hash must exist in fixture');
+        writeFileSync(lockPath, changed, 'utf8');
+      },
+    ],
+    [
+      'missing lock hash',
+      (rootDir) => {
+        const lockPath = join(rootDir, 'pnpm-lock.yaml');
+        const lock = readFileSync(lockPath, 'utf8');
+        const changed = removeLockPatchHash(lock);
+        assert.notEqual(changed, lock, 'lock patch hash must exist in fixture');
+        writeFileSync(lockPath, changed, 'utf8');
+      },
+    ],
+    [
+      'lock path binding',
+      (rootDir) => {
+        const lockPath = join(rootDir, 'pnpm-lock.yaml');
+        const lock = readFileSync(lockPath, 'utf8');
+        const changed = replaceLockPatchPath(lock, 'patches/unregistered.patch');
+        assert.notEqual(changed, lock, 'lock patch path must exist in fixture');
+        writeFileSync(lockPath, changed, 'utf8');
+      },
+    ],
+    [
+      'missing lock path',
+      (rootDir) => {
+        const lockPath = join(rootDir, 'pnpm-lock.yaml');
+        const lock = readFileSync(lockPath, 'utf8');
+        const changed = removeLockPatchPath(lock);
+        assert.notEqual(changed, lock, 'lock patch path must exist in fixture');
+        writeFileSync(lockPath, changed, 'utf8');
+      },
+    ],
+  ];
+
+  for (const [label, mutate] of mutations) {
+    const tempDir = mkdtempSync(join(tmpdir(), 'supply-chain-braces-patch-'));
+    try {
+      copyBracesScannerFixture(tempDir);
+      mutate(tempDir);
+
+      const ignored = loadIgnoredGhas(tempDir);
+      assert.equal(ignored.has(bracesPatchAdvisory), false, `${label} must not be ignored`);
+      assert.ok(
+        ignored.errors.some((error) => error.includes('reviewed braces patch')),
+        `${label} must produce a fail-closed patch error`,
+      );
+      assert.ok(ignored.has('GHSA-2XP9-VWFH-VXW4'), 'other registered exceptions remain active');
+
+      const audit = normalisePnpmAudit(
+        JSON.stringify({
+          advisories: {
+            'braces@3.0.3': {
+              id: bracesPatchAdvisory,
+              module_name: 'braces',
+              severity: 'high',
+            },
+          },
+        }),
+        {
+          ignoredGhas: new Set([...ignored, bracesPatchAdvisory]),
+          rootDir: tempDir,
+        },
+      );
+      assert.equal(audit.findings.length, 1, `${label} must leave the advisory active`);
+      assert.equal(audit.counts.High, 1, `${label} must retain high severity`);
+      assert.equal(audit.ignoredFindings.length, 0, `${label} must not classify it as ignored`);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  }
+});

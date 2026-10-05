@@ -16,6 +16,8 @@ import { BookingDisruptionSyncedEvent } from '@/domain-events/booking.events';
 import { DisruptionStatus, Prisma } from '@prisma/client';
 import * as crypto from 'crypto';
 
+// Approved 2026-10-03: update only Prisma fixture/access columns; stored legacy flightSnapshot JSON remains unchanged.
+
 describe('SupplierSyncService unit/integration tests', () => {
   let prisma: PrismaService;
   let syncClaimService: SyncClaimService;
@@ -75,7 +77,7 @@ describe('SupplierSyncService unit/integration tests', () => {
     const intent = await prisma.bookingIntent.create({
       data: {
         userId,
-        duffelOfferId: `off_fake_${suffix}`,
+        supplierOfferId: `off_fake_${suffix}`,
         originalPrice: new Prisma.Decimal('100.00'),
         confirmedPrice: new Prisma.Decimal('100.00'),
         currency: 'USD',
@@ -97,7 +99,7 @@ describe('SupplierSyncService unit/integration tests', () => {
         totalAmount: new Prisma.Decimal('100.00'),
         currency: 'USD',
         status: 'CONFIRMED',
-        duffelOrderId: `ord_fake_${suffix}`,
+        supplierOrderId: `ord_fake_${suffix}`,
         flightSnapshot: {
           stops: 0,
           cabinClass: 'economy',
@@ -178,7 +180,7 @@ describe('SupplierSyncService unit/integration tests', () => {
   });
 
   describe('SupplierSyncService Core Synchronization', () => {
-    it('should return NO_CHANGE and update lastDuffelSyncedAt if itinerary is unchanged', async () => {
+    it('should return NO_CHANGE and update lastSupplierSyncedAt if itinerary is unchanged', async () => {
       mockDuffelRecoveryService.retrieveCompleteOrder.mockResolvedValue({
         id: `ord_fake_${suffix}`,
         cancelled_at: null,
@@ -213,7 +215,7 @@ describe('SupplierSyncService unit/integration tests', () => {
       expect(result.status).toBe('NO_CHANGE');
 
       const dbBooking = await prisma.booking.findUnique({ where: { id: bookingId } });
-      expect(dbBooking?.lastDuffelSyncedAt).toBeDefined();
+      expect(dbBooking?.lastSupplierSyncedAt).toBeDefined();
       expect(dbBooking?.syncLockedAt).toBeNull();
       expect(dbBooking?.syncLockToken).toBeNull();
     });
@@ -1050,7 +1052,7 @@ describe('SupplierSyncService unit/integration tests', () => {
 
       const bookingAfterErr = await prisma.booking.findUnique({ where: { id: bookingId } });
       expect(bookingAfterErr?.version).toBe(1);
-      expect(bookingAfterErr?.nextDuffelSyncAt).toBeDefined();
+      expect(bookingAfterErr?.nextSupplierSyncAt).toBeDefined();
 
       // 3. Skipped ineligible (e.g. CANCELLED booking)
       await prisma.booking.update({
@@ -1088,7 +1090,7 @@ describe('SupplierSyncService unit/integration tests', () => {
 
       const bookingAfterErr = await prisma.booking.findUnique({ where: { id: bookingId } });
       expect(bookingAfterErr?.version).toBe(1);
-      expect(bookingAfterErr?.nextDuffelSyncAt).toBeNull();
+      expect(bookingAfterErr?.nextSupplierSyncAt).toBeNull();
       expect(bookingAfterErr?.syncLockedAt).toBeNull();
       expect(bookingAfterErr?.syncLockToken).toBeNull();
 

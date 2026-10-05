@@ -341,7 +341,7 @@ When configuring loopback provider overrides (`DUFFEL_API_URL`, `STRIPE_API_URL`
   - Absent or empty environment variables (`DUFFEL_API_URL`, `STRIPE_API_URL`) must strictly preserve production SDK endpoints (`https://api.duffel.com`, `https://api.stripe.com`).
   - Mocks or loopback overrides must NEVER activate by default in production or development without explicit environment variable overrides.
 - **Fast-Fail URL Validation**:
-  - Services (`DuffelService`, `StripeService`) must validate override URLs immediately during constructor instantiation.
+  - The Duffel SDK configuration factory and Stripe client setup must validate override URLs before client creation.
   - Non-empty URLs must be syntactically valid via `new URL(url)` and restrict protocols strictly to `http:` or `https:`.
   - Malformed URLs or unsupported protocols (e.g., `ftp:`, `javascript:`, `file:`) must throw an error immediately, failing service startup fast.
   - Trailing slashes must be normalized cleanly before SDK initialization or manual endpoint path concatenation.

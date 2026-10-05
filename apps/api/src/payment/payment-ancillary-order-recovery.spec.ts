@@ -1,3 +1,4 @@
+// Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
 import { AuditService } from '@/audit/audit.service';
 import { BookingLifecycleService } from '@/booking-lifecycle/booking-lifecycle.service';
 import { PaymentIdempotencyService, SagaOwnership } from '@/idempotency/payment-idempotency.service';
@@ -12,6 +13,7 @@ import {
   PersistedOrderEvidence,
 } from '@/payment-fulfillment/ports';
 import { PrismaService } from '@/prisma/prisma.service';
+import type { FlightSearchPort } from '@/supplier/search/flight-search.port';
 
 const order = { id: 'order-1', booking_reference: 'PNR123' };
 const boundSelection = {
@@ -24,6 +26,19 @@ const boundSelection = {
     { serviceId: 'bag-1', quantity: 2 },
     { serviceId: 'bag-1', quantity: 2 },
   ],
+};
+
+// Approved 2026-10-04 per T061: these saga fixtures have no saved snapshot; retain their payment assertions.
+const flightSearchPort: FlightSearchPort = {
+  search: async () => ({ offers: [], searchHash: '', cached: false }),
+  getOfferById: async () => { throw new Error('Unexpected live offer lookup'); },
+  normalizeStoredOffer: () => null,
+  normalizeStoredOfferFacts: () => ({
+    travelScope: null,
+    tripCompletionDate: null,
+    offerExpiresAt: null,
+  }),
+  normalizeStoredFlightSnapshot: () => null,
 };
 
 type HarnessOptions = {
@@ -80,7 +95,7 @@ function buildHarness(options: HarnessOptions = {}) {
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       findUnique: jest.fn().mockResolvedValue({
         id: 'intent-1',
-        duffelOfferId: 'offer-1',
+        supplierOfferId: 'offer-1',
         currentAncillarySelectionId: 'selection-4',
         ancillaryVersion: 4,
         paymentAttemptCount: 1,
@@ -104,7 +119,7 @@ function buildHarness(options: HarnessOptions = {}) {
     bookingIntent: {
       findUnique: jest.fn().mockResolvedValue({
         id: 'intent-1',
-        duffelOfferId: 'offer-1',
+        supplierOfferId: 'offer-1',
         currentAncillarySelectionId: 'selection-4',
         ancillaryVersion: 4,
         paymentAttemptCount: 1,
@@ -267,6 +282,7 @@ function buildHarness(options: HarnessOptions = {}) {
     booking as unknown as BookingLifecycleService,
     prisma as unknown as PrismaService,
     audit as unknown as AuditService,
+    flightSearchPort,
   );
 
   return {

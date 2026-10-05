@@ -35,7 +35,7 @@ describe('Duffel Cleanup Service (E2E)', () => {
                 {
                     id: '11111111-1111-1111-1111-111111111111',
                     searchHash: 'hash-active-offer',
-                    duffelOfferId: 'off_active',
+                    supplierOfferId: 'off_active',
                     rawOffer: {},
                     origin: 'SGN',
                     destination: 'HAN',
@@ -50,7 +50,7 @@ describe('Duffel Cleanup Service (E2E)', () => {
                 {
                     id: '22222222-2222-2222-2222-222222222222',
                     searchHash: 'hash-expired-offer',
-                    duffelOfferId: 'off_expired',
+                    supplierOfferId: 'off_expired',
                     rawOffer: {},
                     origin: 'SGN',
                     destination: 'HAN',
@@ -100,7 +100,7 @@ describe('Duffel Cleanup Service (E2E)', () => {
                 data: {
                     id: '55555555-5555-5555-5555-555555555555',
                     searchHash: 'hash-custom-expired-offer',
-                    duffelOfferId: 'off_custom_expired',
+                    supplierOfferId: 'off_custom_expired',
                     rawOffer: {},
                     origin: 'SGN',
                     destination: 'HAN',

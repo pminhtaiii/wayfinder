@@ -14,7 +14,9 @@ import {
 import { CancellationService } from './cancellation.service';
 import {
   parseDuffelCancellationQuoteId,
+  parseSupplierCancellationQuoteId,
   serializeDuffelCancellationQuoteId,
+  serializeSupplierCancellationQuoteId,
 } from './cancellation.types';
 import {
   BookingCancellationPendingEvent,
@@ -22,6 +24,8 @@ import {
   BookingEventPublisherService,
 } from '@/domain-events';
 import { BookingLifecycleService } from '@/booking-lifecycle/booking-lifecycle.service';
+
+// Approved 2026-10-03: mechanical neutral Prisma fixture key adaptation per test-adaptations-api.md
 
 describe('CancellationService', () => {
   let service: CancellationService;
@@ -92,30 +96,30 @@ describe('CancellationService', () => {
     );
   });
 
-  describe('parseDuffelCancellationQuoteId and serializeDuffelCancellationQuoteId', () => {
+  describe('parseSupplierCancellationQuoteId and serializeSupplierCancellationQuoteId', () => {
     it('handles null, undefined, empty string, and PENDING_QUOTE', () => {
-      expect(parseDuffelCancellationQuoteId(null)).toEqual({
+      expect(parseSupplierCancellationQuoteId(null)).toEqual({
         quoteId: null,
         refundTo: null,
         nonRefundableAncillaryAmount: null,
         nonRefundableAncillaryCurrency: null,
       });
 
-      expect(parseDuffelCancellationQuoteId(undefined)).toEqual({
+      expect(parseSupplierCancellationQuoteId(undefined)).toEqual({
         quoteId: null,
         refundTo: null,
         nonRefundableAncillaryAmount: null,
         nonRefundableAncillaryCurrency: null,
       });
 
-      expect(parseDuffelCancellationQuoteId('')).toEqual({
+      expect(parseSupplierCancellationQuoteId('')).toEqual({
         quoteId: null,
         refundTo: null,
         nonRefundableAncillaryAmount: null,
         nonRefundableAncillaryCurrency: null,
       });
 
-      expect(parseDuffelCancellationQuoteId('PENDING_QUOTE')).toEqual({
+      expect(parseSupplierCancellationQuoteId('PENDING_QUOTE')).toEqual({
         quoteId: 'PENDING_QUOTE',
         refundTo: null,
         nonRefundableAncillaryAmount: null,
@@ -124,7 +128,7 @@ describe('CancellationService', () => {
     });
 
     it('parses legacy simple quoteId without delimiter', () => {
-      expect(parseDuffelCancellationQuoteId('can_quo_123')).toEqual({
+      expect(parseSupplierCancellationQuoteId('can_quo_123')).toEqual({
         quoteId: 'can_quo_123',
         refundTo: null,
         nonRefundableAncillaryAmount: null,
@@ -133,7 +137,7 @@ describe('CancellationService', () => {
     });
 
     it('parses serialized multi-part quoteId string', () => {
-      expect(parseDuffelCancellationQuoteId('can_quo_123|balance|15.00|USD')).toEqual({
+      expect(parseSupplierCancellationQuoteId('can_quo_123|balance|15.00|USD')).toEqual({
         quoteId: 'can_quo_123',
         refundTo: 'balance',
         nonRefundableAncillaryAmount: '15.00',
@@ -142,19 +146,35 @@ describe('CancellationService', () => {
     });
 
     it('serializes and round-trips quote metadata', () => {
-      const serialized = serializeDuffelCancellationQuoteId(
+      const serialized = serializeSupplierCancellationQuoteId(
         'can_quo_999',
         'airline_credits',
         '25.00',
         'GBP',
       );
       expect(serialized).toBe('can_quo_999|airline_credits|25.00|GBP');
-      expect(parseDuffelCancellationQuoteId(serialized)).toEqual({
+      expect(parseSupplierCancellationQuoteId(serialized)).toEqual({
         quoteId: 'can_quo_999',
         refundTo: 'airline_credits',
         nonRefundableAncillaryAmount: '25.00',
         nonRefundableAncillaryCurrency: 'GBP',
       });
+    });
+
+    it('maintains backward-compatible alias parity for parse and serialize helpers', () => {
+      expect(parseDuffelCancellationQuoteId).toBe(parseSupplierCancellationQuoteId);
+      expect(serializeDuffelCancellationQuoteId).toBe(serializeSupplierCancellationQuoteId);
+
+      const serializedViaAlias = serializeDuffelCancellationQuoteId(
+        'can_quo_alias',
+        'airline_credits',
+        '50.00',
+        'USD',
+      );
+      expect(serializedViaAlias).toBe('can_quo_alias|airline_credits|50.00|USD');
+      expect(parseDuffelCancellationQuoteId(serializedViaAlias)).toEqual(
+        parseSupplierCancellationQuoteId(serializedViaAlias),
+      );
     });
   });
 
@@ -167,7 +187,7 @@ describe('CancellationService', () => {
       cancellationDeadline: null,
       airlineRefundAmount: { toString: () => '100.00' },
       customerRefundAmount: { toString: () => '100.00' },
-      duffelCancellationQuoteId: 'quote-1',
+      supplierCancellationQuoteId: 'quote-1',
     };
 
     const refund = (overrides: Record<string, unknown>) => ({
@@ -429,13 +449,13 @@ describe('CancellationService', () => {
       await expect(service.getCancellationQuote('b-1', 'u-1')).rejects.toThrow(BadRequestException);
     });
 
-    it('throws BadRequestException if duffelOrderId is missing', async () => {
+    it('throws BadRequestException if supplierOrderId is missing', async () => {
       mockPrisma.booking.findUnique.mockResolvedValue({
         id: 'b-1',
         userId: 'u-1',
         status: BookingStatus.CONFIRMED,
         departureAt: new Date(Date.now() + 3600000),
-        duffelOrderId: null,
+        supplierOrderId: null,
       });
       await expect(service.getCancellationQuote('b-1', 'u-1')).rejects.toThrow(
         'No Duffel order associated with booking',
@@ -448,8 +468,8 @@ describe('CancellationService', () => {
         id: 'b-1',
         userId: 'u-1',
         status: BookingStatus.CONFIRMED,
-        duffelOrderId: 'ord-1',
-        duffelCancellationQuoteId: 'quote-cached',
+        supplierOrderId: 'ord-1',
+        supplierCancellationQuoteId: 'quote-cached',
         cancellationDeadline: futureDate,
         customerRefundAmount: '100.00',
         currency: 'GBP',
@@ -467,8 +487,8 @@ describe('CancellationService', () => {
         id: 'b-1',
         userId: 'u-1',
         status: BookingStatus.CONFIRMED,
-        duffelOrderId: 'ord-1',
-        duffelCancellationQuoteId: null,
+        supplierOrderId: 'ord-1',
+        supplierCancellationQuoteId: null,
         cancellationDeadline: null,
         currency: 'GBP',
       };
@@ -489,25 +509,25 @@ describe('CancellationService', () => {
           id: 'b-1',
           status: BookingStatus.CONFIRMED,
           OR: [
-            { duffelCancellationQuoteId: null },
+            { supplierCancellationQuoteId: null },
             {
               cancellationDeadline: { lte: expect.any(Date) },
-              duffelCancellationQuoteId: { not: 'PENDING_QUOTE' },
+              supplierCancellationQuoteId: { not: 'PENDING_QUOTE' },
             },
           ],
         },
         data: {
-          duffelCancellationQuoteId: 'PENDING_QUOTE',
+          supplierCancellationQuoteId: 'PENDING_QUOTE',
         },
       });
       expect(mockPrisma.booking.updateMany).toHaveBeenNthCalledWith(2, {
         where: {
           id: 'b-1',
           status: BookingStatus.CONFIRMED,
-          duffelCancellationQuoteId: 'PENDING_QUOTE',
+          supplierCancellationQuoteId: 'PENDING_QUOTE',
         },
         data: expect.objectContaining({
-          duffelCancellationQuoteId: 'quote-new|||',
+          supplierCancellationQuoteId: 'quote-new|||',
         }),
       });
     });
@@ -517,8 +537,8 @@ describe('CancellationService', () => {
         id: 'b-1',
         userId: 'u-1',
         status: BookingStatus.CONFIRMED,
-        duffelOrderId: 'ord-1',
-        duffelCancellationQuoteId: null,
+        supplierOrderId: 'ord-1',
+        supplierCancellationQuoteId: null,
         cancellationDeadline: null,
         currency: 'GBP',
       };
@@ -549,8 +569,8 @@ describe('CancellationService', () => {
         id: 'b-1',
         userId: 'u-1',
         status: BookingStatus.CONFIRMED,
-        duffelOrderId: 'ord-1',
-        duffelCancellationQuoteId: null,
+        supplierOrderId: 'ord-1',
+        supplierCancellationQuoteId: null,
         cancellationDeadline: null,
         currency: 'GBP',
       };
@@ -562,10 +582,10 @@ describe('CancellationService', () => {
       expect(mockPrisma.booking.updateMany).toHaveBeenNthCalledWith(2, {
         where: {
           id: 'b-1',
-          duffelCancellationQuoteId: 'PENDING_QUOTE',
+          supplierCancellationQuoteId: 'PENDING_QUOTE',
         },
         data: {
-          duffelCancellationQuoteId: null,
+          supplierCancellationQuoteId: null,
         },
       });
     });
@@ -575,16 +595,16 @@ describe('CancellationService', () => {
         id: 'b-1',
         userId: 'u-1',
         status: BookingStatus.CONFIRMED,
-        duffelOrderId: 'ord-1',
-        duffelCancellationQuoteId: null,
+        supplierOrderId: 'ord-1',
+        supplierCancellationQuoteId: null,
         cancellationDeadline: null,
         currency: 'GBP',
       };
       const futureDate = new Date(Date.now() + 3600000);
       const concurrentBooking = {
         id: 'b-1',
-        duffelOrderId: 'ord-1',
-        duffelCancellationQuoteId: 'quote-concurrent',
+        supplierOrderId: 'ord-1',
+        supplierCancellationQuoteId: 'quote-concurrent',
         cancellationDeadline: futureDate,
         customerRefundAmount: '100.00',
         currency: 'GBP',
@@ -604,15 +624,15 @@ describe('CancellationService', () => {
         id: 'b-1',
         userId: 'u-1',
         status: BookingStatus.CONFIRMED,
-        duffelOrderId: 'ord-1',
-        duffelCancellationQuoteId: null,
+        supplierOrderId: 'ord-1',
+        supplierCancellationQuoteId: null,
         cancellationDeadline: null,
         currency: 'GBP',
       };
       const cancelledBooking = {
         id: 'b-1',
         status: BookingStatus.CANCELLED_AND_REFUNDED,
-        duffelCancellationQuoteId: null,
+        supplierCancellationQuoteId: null,
       };
       mockPrisma.booking.findUnique
         .mockResolvedValueOnce(booking)
@@ -629,8 +649,8 @@ describe('CancellationService', () => {
         id: 'b-1',
         userId: 'u-1',
         status: BookingStatus.CONFIRMED,
-        duffelOrderId: 'ord-1',
-        duffelCancellationQuoteId: null,
+        supplierOrderId: 'ord-1',
+        supplierCancellationQuoteId: null,
         cancellationDeadline: null,
         currency: 'GBP',
       };
@@ -656,8 +676,8 @@ describe('CancellationService', () => {
       id: 'booking-1',
       userId: 'user-1',
       status: BookingStatus.CONFIRMED,
-      duffelOrderId: 'order-1',
-      duffelCancellationQuoteId: 'quote-1',
+      supplierOrderId: 'order-1',
+      supplierCancellationQuoteId: 'quote-1',
       cancellationDeadline: new Date(Date.now() + 60_000),
       customerRefundAmount: { toString: () => '100.00' },
       cancellationRefundable: true,
@@ -682,10 +702,10 @@ describe('CancellationService', () => {
       );
     });
 
-    it('throws BadRequestException if quoteId is invalid or duffelOrderId missing', async () => {
+    it('throws BadRequestException if quoteId is invalid or supplierOrderId missing', async () => {
       mockPrisma.booking.findUnique.mockResolvedValue({
         ...booking,
-        duffelCancellationQuoteId: 'quote-different',
+        supplierCancellationQuoteId: 'quote-different',
       });
       await expect(service.cancelBooking('booking-1', 'user-1', 'quote-1')).rejects.toThrow(
         'Cancellation quote is invalid',
@@ -693,7 +713,7 @@ describe('CancellationService', () => {
 
       mockPrisma.booking.findUnique.mockResolvedValue({
         ...booking,
-        duffelOrderId: null,
+        supplierOrderId: null,
       });
       await expect(service.cancelBooking('booking-1', 'user-1', 'quote-1')).rejects.toThrow(
         'Cancellation quote is invalid',
@@ -716,8 +736,8 @@ describe('CancellationService', () => {
         userId: 'user-1',
         status: BookingStatus.FAILED,
         failureReason: BookingFailureReason.SYSTEM_ERROR,
-        duffelOrderId: 'ord-1',
-        duffelCancellationQuoteId: 'quote-1',
+        supplierOrderId: 'ord-1',
+        supplierCancellationQuoteId: 'quote-1',
         cancellationDeadline: new Date(Date.now() + 60_000),
         customerRefundAmount: { toString: () => '125.00' },
       };
@@ -1243,7 +1263,7 @@ describe('CancellationService', () => {
           id: 'b-1',
           status: BookingStatus.CANCELLED_AND_REFUNDED,
           customerRefundAmount: '50.00',
-          duffelCancellationQuoteId: 'can_quo_1',
+          supplierCancellationQuoteId: 'can_quo_1',
         } as any);
 
         expect(res).toEqual({
@@ -1262,7 +1282,7 @@ describe('CancellationService', () => {
           status: BookingStatus.FAILED,
           failureReason: BookingFailureReason.SYSTEM_ERROR,
           customerRefundAmount: null,
-          duffelCancellationQuoteId: null,
+          supplierCancellationQuoteId: null,
         } as any);
 
         expect(res).toEqual({
@@ -1281,7 +1301,7 @@ describe('CancellationService', () => {
           status: BookingStatus.CONFIRMED,
           failureReason: null,
           customerRefundAmount: '20.00',
-          duffelCancellationQuoteId: 'can_quo_2|balance||',
+          supplierCancellationQuoteId: 'can_quo_2|balance||',
         } as any);
 
         expect(res).toEqual({

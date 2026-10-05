@@ -37,7 +37,9 @@ jobs:
         with:
           node-version: 20
       - name: Verify workflow contract
-        run: node --test tests/ci/ci-workflow.contract.test.mjs
+        run: node --test tests/ci/ci-workflow.contract.test.mjs tests/ci/security-change-filter.test.mjs
+      - name: Verify supplier identifier contracts
+        run: node --test tests/ci/supplier-identifiers-migration.contract.test.mjs tests/ci/supplier-identifiers-runner.contract.test.mjs
       - name: Install checksum-verified actionlint
         run: |
           curl --fail --location --silent --show-error --output actionlint.tar.gz https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
@@ -63,6 +65,7 @@ jobs:
               - 'package.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
+              - 'patches/**'
               - 'tsconfig.json'
               - '.eslintrc.json'
             web:
@@ -78,6 +81,7 @@ jobs:
               - 'package.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
+              - 'patches/**'
               - 'tsconfig.json'
               - '.eslintrc.json'
             agent:
@@ -102,8 +106,10 @@ jobs:
               - 'tests/security/toolchain.json'
               - 'tests/security/exceptions.json'
               - 'docs/security/**'
+              - 'patches/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
               - 'pyproject.toml'
               - 'apps/agent/pyproject.toml'
               - 'uv.lock'
@@ -292,6 +298,11 @@ jobs:
           pnpm build:shared
           pnpm --filter @api/backend exec prisma generate
           pnpm --filter @api/backend exec prisma migrate deploy
+      - name: Prove supplier identifier fresh and upgrade migrations
+        env:
+          NODE_OPTIONS: --require=${{ github.workspace }}/tests/ci/node-network-guard.cjs
+          T054_ADMIN_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres?schema=public
+        run: node tests/ci/supplier-identifiers-migration.e2e.mjs
       - name: Run API E2E tests with loopback-only network
         env:
           NODE_OPTIONS: --require=${{ github.workspace }}/tests/ci/node-network-guard.cjs
@@ -332,6 +343,10 @@ jobs:
         run: |
           pnpm build:shared
           pnpm --filter @web/frontend typecheck
+      - name: Run supplier identity compatibility tests
+        env:
+          NODE_OPTIONS: --require=${{ github.workspace }}/tests/ci/node-network-guard.cjs
+        run: pnpm --filter @web/frontend run test:compatibility
       - name: Run web characterization safety checks
         env:
           PLAYWRIGHT_FRONTEND_ONLY: 'true'
@@ -474,10 +489,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Set up pnpm 9.15.4
+      - name: Set up pnpm 10.34.5
         uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
-          version: 9.15.4
+          version: 10.34.5
       - name: Set up Node 20
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -526,14 +541,18 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
-      - name: Set up pnpm 9.15.4
+      - name: Set up pnpm 10.34.5
         uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
-          version: 9.15.4
+          version: 10.34.5
       - name: Set up Node 20
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 20
+      - name: Install patched Node dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify braces patch behavior and supply chain policy
+        run: node --test tests/security/braces-patch.test.mjs tests/security/supply-chain.test.mjs tests/security/workspace-audit-ignore.test.mjs
       - name: Set up uv 0.12.0 and Python 3.11
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:

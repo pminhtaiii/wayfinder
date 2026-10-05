@@ -18,7 +18,7 @@ export class DuffelAncillaryAdapter {
       return this.mockOfferWithServices(offerId);
     }
     await this.reserveAttempt();
-    return (await this.duffel.offers.get(offerId, { return_available_services: true })).data;
+    return this.fetchOfferWithServices(offerId);
   }
 
   async getSeatMaps(offerId: string): Promise<unknown> {
@@ -26,6 +26,23 @@ export class DuffelAncillaryAdapter {
       return this.mockSeatMaps();
     }
     await this.reserveAttempt();
+    return this.fetchSeatMaps(offerId);
+  }
+
+  async getCatalogData(offerId: string): Promise<[unknown, unknown]> {
+    if (this.isMockMode()) {
+      return [this.mockSeatMaps(), this.mockOfferWithServices(offerId)];
+    }
+    await this.reserveAttempt();
+    await this.reserveAttempt();
+    return Promise.all([this.fetchSeatMaps(offerId), this.fetchOfferWithServices(offerId)]);
+  }
+
+  private async fetchOfferWithServices(offerId: string): Promise<unknown> {
+    return (await this.duffel.offers.get(offerId, { return_available_services: true })).data;
+  }
+
+  private async fetchSeatMaps(offerId: string): Promise<unknown> {
     try {
       return (await this.duffel.seatMaps.get({ offer_id: offerId })).data;
     } catch (error: unknown) {

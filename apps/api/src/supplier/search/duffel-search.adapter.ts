@@ -9,7 +9,6 @@ import {
 } from '@nestjs/common';
 import { Duffel } from '@duffel/api';
 import { DUFFEL_SDK, DuffelRateBudgetService } from '@/supplier/core/duffel-core.module';
-import { DuffelService } from '@/duffel/duffel.service';
 import { FlightSearchCriteria } from './flight-search.port';
 
 export class DuffelTimeoutError extends Error {
@@ -28,14 +27,7 @@ export class DuffelSearchAdapter {
   constructor(
     @Optional() @Inject(DUFFEL_SDK) private readonly duffel?: Duffel,
     @Optional() private readonly rateBudgetService?: DuffelRateBudgetService,
-    @Optional() private readonly duffelService?: DuffelService,
   ) {}
-
-  private getDuffel(): Duffel | undefined {
-    const serviceDuffel = (this.duffelService as unknown as Record<string, unknown> | undefined)
-      ?.duffel as Duffel | undefined;
-    return serviceDuffel || this.duffel;
-  }
 
   async searchOffers(criteria: FlightSearchCriteria): Promise<unknown> {
     const origin = criteria.origin.trim().toUpperCase();
@@ -232,7 +224,7 @@ export class DuffelSearchAdapter {
       };
     }
 
-    const duffelClient = this.getDuffel();
+    const duffelClient = this.duffel;
     if (!duffelClient) {
       throw new HttpException(
         {
@@ -291,7 +283,7 @@ export class DuffelSearchAdapter {
       throw new NotFoundException(`Duffel mock offer ${supplierOfferId} was not found`);
     }
 
-    const duffelClient = this.getDuffel();
+    const duffelClient = this.duffel;
     if (!duffelClient) {
       throw new HttpException(
         {

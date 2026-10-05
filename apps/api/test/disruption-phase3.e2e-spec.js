@@ -87,7 +87,7 @@ describe('Disruption Phase 3 (Sync & Concurrency E2E)', () => {
         const intent = await prisma.bookingIntent.create({
             data: {
                 userId,
-                duffelOfferId: `off_fake_${suffix}`,
+                supplierOfferId: `off_fake_${suffix}`,
                 originalPrice: new client_1.Prisma.Decimal('100.00'),
                 confirmedPrice: new client_1.Prisma.Decimal('100.00'),
                 currency: 'USD',
@@ -108,7 +108,7 @@ describe('Disruption Phase 3 (Sync & Concurrency E2E)', () => {
                 totalAmount: new client_1.Prisma.Decimal('100.00'),
                 currency: 'USD',
                 status: 'CONFIRMED',
-                duffelOrderId: `ord_fake_${suffix}`,
+                supplierOrderId: `ord_fake_${suffix}`,
                 flightSnapshot: {
                     stops: 0,
                     cabinClass: 'economy',

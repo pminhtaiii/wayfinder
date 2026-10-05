@@ -12,6 +12,7 @@ from agent.trusted_search_snapshot import (
 )
 
 
+# User approved on 2026-10-03: Redis sample snapshots use the canonical supplierOfferId field.
 @pytest.fixture
 async def redis_client():
     redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
@@ -42,7 +43,7 @@ def sample_snapshot_dict():
             {
                 "offerIndex": 1,
                 "flightOfferId": str(uuid.uuid4()),
-                "duffelOfferId": "off_12345",
+                "supplierOfferId": "off_12345",
                 "airline": "British Airways",
                 "origin": "LHR",
                 "destination": "JFK",

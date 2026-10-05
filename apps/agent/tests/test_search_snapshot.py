@@ -1,3 +1,5 @@
+# User approved on 2026-10-03: direct canonical snapshot fixtures use supplierOfferId; gateway
+# search-response fixtures keep the legacy duffelOfferId wire key.
 import inspect
 import json
 import re
@@ -436,7 +438,7 @@ async def test_search_flights_strips_identifiers_and_saves_snapshot():
         assert saved_snapshot.selectionAttestation == "sel_v1_signed-opaque"
         assert len(saved_snapshot.results) == 1
         assert saved_snapshot.results[0].flightOfferId == "local-uuid-1"
-        assert saved_snapshot.results[0].duffelOfferId == "provider-id-1"
+        assert saved_snapshot.results[0].supplierOfferId == "provider-id-1"
 
 
 @pytest.mark.asyncio
@@ -536,7 +538,7 @@ async def test_snapshot_ttl_calculation_and_expiry():
                 {
                     "offerIndex": 1,
                     "flightOfferId": "uuid-1",
-                    "duffelOfferId": "duff-1",
+                    "supplierOfferId": "duff-1",
                     "airline": "VN",
                     "origin": "SGN",
                     "destination": "HAN",
@@ -569,7 +571,7 @@ async def test_snapshot_ttl_calculation_and_expiry():
                 {
                     "offerIndex": 1,
                     "flightOfferId": "uuid-2",
-                    "duffelOfferId": "duff-2",
+                    "supplierOfferId": "duff-2",
                     "airline": "VN",
                     "origin": "SGN",
                     "destination": "HAN",
@@ -609,7 +611,7 @@ async def test_snapshot_cross_user_and_session_isolation():
                 {
                     "offerIndex": 1,
                     "flightOfferId": "uuid-alice-offer",
-                    "duffelOfferId": "duff-alice",
+                    "supplierOfferId": "duff-alice",
                     "airline": "VN",
                     "origin": "SGN",
                     "destination": "HAN",
@@ -755,7 +757,7 @@ def test_project_snapshot_results_is_identifier_free():
                 {
                     "offerIndex": 1,
                     "flightOfferId": "local-uuid-1",
-                    "duffelOfferId": "provider-id-1",
+                    "supplierOfferId": "provider-id-1",
                     "airline": "VN",
                     "origin": "SGN",
                     "destination": "NRT",
@@ -813,7 +815,7 @@ def test_models_reject_scoring_fields_validation_error(field: str):
     valid_result = {
         "offerIndex": 1,
         "flightOfferId": "uuid-1",
-        "duffelOfferId": "duff-1",
+        "supplierOfferId": "duff-1",
         "airline": "VN",
         "origin": "SGN",
         "destination": "HAN",
@@ -876,7 +878,7 @@ async def test_serialized_redis_payload_under_snapshot_key_is_score_free():
                 {
                     "offerIndex": 1,
                     "flightOfferId": "flight-uuid-1",
-                    "duffelOfferId": "duffel-id-1",
+                    "supplierOfferId": "duffel-id-1",
                     "airline": "VN",
                     "origin": "SGN",
                     "destination": "HAN",

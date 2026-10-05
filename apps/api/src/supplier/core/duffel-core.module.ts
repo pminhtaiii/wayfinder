@@ -1,4 +1,4 @@
-import { Global, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { CacheModule } from '@/cache/cache.module';
 import {
   DUFFEL_SDK,
@@ -17,7 +17,6 @@ export {
 };
 export type { DuffelSdkConfiguration };
 
-@Global()
 @Module({
   imports: [CacheModule],
   providers: [duffelSdkConfigurationProvider, duffelSdkProvider, DuffelRateBudgetService],

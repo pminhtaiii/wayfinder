@@ -9,7 +9,7 @@
 
 In accordance with **Feature 023 — Security Systems**, the repository enforces zero critical/high/moderate security vulnerabilities in automated supply-chain pipelines (`pnpm audit`, `pip-audit`, and `gitleaks`).
 
-A full workspace dependency audit identified 98 unique GitHub Security Advisories (GHSAs) across transitive dependencies. This document records the architectural justification for deferring major upstream upgrades, specifies compensating controls, and catalogs all ignored advisory identifiers configured in `package.json` (`pnpm.auditConfig.ignoreGhas`) and `pnpm-workspace.yaml` (`auditConfig.ignoreGhsas`).
+This register catalogs 102 unique GitHub Security Advisories (GHSAs) across transitive dependencies, including the verified local braces patch. It records the architectural justification for deferring major upstream upgrades, specifies compensating controls, and catalogs all ignored advisory identifiers configured in `package.json` (`pnpm.auditConfig.ignoreGhas`) and `pnpm-workspace.yaml` (`auditConfig.ignoreGhas`).
 
 ## 2. Upstream Blocker Rationale (Next.js 14 -> 15 Deferral)
 
@@ -30,7 +30,7 @@ A full workspace dependency audit identified 98 unique GitHub Security Advisorie
 
 ## 4. Workspace Inventory of Deferred Advisories
 
-Total unique advisories registered: **101**
+Total unique advisories registered: **102**
 
 Version ranges below cover the release lines represented in this workspace dependency audit; they are not exhaustive upstream affected or patched ranges. For example, `pnpm-lock.yaml` resolves `brace-expansion` 1.1.15 and 2.1.1, so its rows cover the relevant 1.x and 2.x ranges. Consult each linked advisory for other release lines, including 3.x, 4.x, and 5.x.
 
@@ -137,6 +137,18 @@ Version ranges below cover the release lines represented in this workspace depen
 | [GHSA-w8wr-v893-vjvp](https://github.com/advisories/GHSA-w8wr-v893-vjvp) | `tar` | **MODERATE** | node-tar: Process crash via PAX numeric path type confusion | `<=7.5.17` | `>=7.5.18` |
 | [GHSA-ph9p-34f9-6g65](https://github.com/advisories/GHSA-ph9p-34f9-6g65) | `tmp` | **HIGH** | tmp has Path Traversal via unsanitized prefix/postfix that enables directory escape | `<0.2.6` | `>=0.2.6` |
 | [GHSA-w5hq-g745-h8pq](https://github.com/advisories/GHSA-w5hq-g745-h8pq) | `uuid` | **MODERATE** | uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided | `<11.1.1` | `>=11.1.1` |
+
+### Locally patched braces advisory
+
+| Advisory | Package | Severity | Remediation | Affected published versions | Published patch |
+|---|---|---|---|---|---|
+| [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) | `braces` | **HIGH** | Verified local nesting-depth patch; see control below | `<=3.0.3` | None as of 2026-10-03 |
+
+User-directed CI remediation on 2026-10-03 backports the source guards from [upstream PR #72](https://github.com/micromatch/braces/pull/72), commit `d0d575e`, into the pinned `braces@3.0.3` pnpm patch. Parser nesting and recursive compile/expand/stringify traversal are bounded at 100 levels, including caller-supplied ASTs. Deep input is rejected with a controlled syntax error; normal patterns retain their results.
+
+Reviewed patch SHA-256 and pnpm 10.34.5 lock patch hash: `795ff4ec62054830af82791060bccad7e6b551a7399488cbbd5dcb6017931861`. Patch path: `patches/braces@3.0.3.patch`. CI jobs use the same pnpm version so frozen installation and security scanning agree on the lock format.
+
+The audit registry still reports the published package version as affected. This single advisory is acknowledged through the existing exception mechanism only when the scanner verifies the reviewed patch digest and pnpm registration. Frozen installation and behavioral regressions run before the strict CI scan. Missing, altered, or unregistered patches fail closed; other findings retain their existing treatment. The exception expires with the current policy on **2026-10-12T00:00:00.000Z**. Replace the local patch with an upstream fixed release and remove this exception when one is published and compatibility checks pass.
 
 ## 5. Review Cadence & Sunsetting Policy
 

@@ -90,7 +90,7 @@ describe('Disruption & Flight-Change Management (Webhook & Processor E2E)', () =
     const intent = await prisma.bookingIntent.create({
       data: {
         userId,
-        duffelOfferId: `off_fake_${suffix}`,
+        supplierOfferId: `off_fake_${suffix}`,
         originalPrice: new Prisma.Decimal('100.00'),
         confirmedPrice: new Prisma.Decimal('100.00'),
         currency: 'USD',
@@ -112,7 +112,7 @@ describe('Disruption & Flight-Change Management (Webhook & Processor E2E)', () =
         totalAmount: new Prisma.Decimal('100.00'),
         currency: 'USD',
         status: 'CONFIRMED',
-        duffelOrderId: `ord_fake_${suffix}`,
+        supplierOrderId: `ord_fake_${suffix}`,
         flightSnapshot: {
           stops: 0,
           cabinClass: 'economy',
@@ -446,7 +446,7 @@ describe('Disruption & Flight-Change Management (Webhook & Processor E2E)', () =
           segments: {
             create: [
               {
-                duffelSegmentId: 'seg_new_1',
+                supplierSegmentId: 'seg_new_1',
                 airlineName: 'Japan Airlines',
                 marketingCarrierIata: 'JL',
                 operatingCarrierIata: 'JL',
