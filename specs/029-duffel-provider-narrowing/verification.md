@@ -323,6 +323,96 @@ Executed from repository root `C:\Booking Systems` on 2026-10-05 on branch `code
 
 ### 2. Verification Conclusion (T055)
 
-The executed local checks passed, but the local API invocation is partial: the database-backed `supplier-sync.service.spec.ts` suite was not run. This is not a full local API gate pass. Separately, PR [#371](https://github.com/pminhtaiii/wayfinder/pull/371) has recorded successful remote CI in run [37275073216](https://github.com/pminhtaiii/wayfinder/actions/runs/37275073216) at commit `2712cc50ad3cb3898b220fe6d8222dd99483bb3b`; that evidence covers that commit, not later changes. Wire and attestation compatibility are verified byte-for-byte. T055 verification work is complete with these qualifications; Phase 7 remains pending until PR #371 merges.
+The executed local checks passed, but the local API invocation is partial: the database-backed `supplier-sync.service.spec.ts` suite was not run. This is not a full local API gate pass. Separately, PR [#371](https://github.com/pminhtaiii/wayfinder/pull/371) has recorded successful remote CI in run [37275073216](https://github.com/pminhtaiii/wayfinder/actions/runs/37275073216) at commit `2712cc50ad3cb3898b220fe6d8222dd99483bb3b`; that evidence covers that commit, not later changes. Wire and attestation compatibility are verified byte-for-byte. At the time of this pre-merge checkpoint, Phase 7 remained pending; post-merge evidence follows.
+
+## Post-merge integration and acceptance update (2026-10-05)
+
+PR [#371](https://github.com/pminhtaiii/wayfinder/pull/371) is merged into `development`. GitHub reports final PR head `791947c365c95e2721893c90cc3d92a433938117`, merge commit `8efbfc5aff4eea7179ef83529d11898b7e8477fb`, and merge time `2026-10-05T07:44:48Z`. Local merge ancestry agrees: `8efbfc5a` has base parent `0b1c84682c122101ac7f98e3eeeac481c6c7f14d` and source parent `791947c365c95e2721893c90cc3d92a433938117`.
+
+The previously recorded [run 37275073216](https://github.com/pminhtaiii/wayfinder/actions/runs/37275073216) completed successfully on `2712cc50ad3cb3898b220fe6d8222dd99483bb3b`. The final source includes a later expiry-normalization correction and its regression cases in `flight-offer.normalizer.ts` and `flight-offer.normalizer.spec.ts`; the remaining intervening changes are documentation. Final-head coverage is provided by [run 37278447237](https://github.com/pminhtaiii/wayfinder/actions/runs/37278447237), which completed successfully on the exact final PR head `791947c365c95e2721893c90cc3d92a433938117` before merge. The API gate, API unit and E2E jobs, web gate/build, SAST, supply-chain scan, smoke/sanity, and aggregate `ci-status` succeeded. Agent gate/test jobs were skipped by change filtering; the T055 local agent test and Ruff results remain the evidence for T066.
+
+The successful API unit log for run 37278447237 explicitly reports `PASS src/disruption/sync/supplier-sync.service.spec.ts` and `Test Suites: 135 passed, 135 total`. This supplies remote database-backed coverage omitted from the partial local API run while preserving the distinction that the local run itself did not pass all suites. The same final-head run reports 71/71 API E2E suites passed. Its fresh/upgrade migration proof reports 25 migrations on the fresh database, 11 renamed columns and 5 indexes checked, and on upgrade 16 sentinel rows, 12 linked checks, 8 null controls, uniqueness, and webhook records/index preserved.
+
+The final-slice records remain consistent with the merged source: T056's census found zero unexplained runtime provider hits, with `@duffel/api` confined to four supplier adapters and non-webhook schema names neutralized; Slice 6.1 pins byte-for-byte wire/`sel_v1_` HMAC compatibility, while Slice 6.2 records fresh/upgrade migration preservation; Slice 5 records payment compensation and recovery safety, including the payment-fulfillment safety E2E. T058–T067 are checked in the task register. T067 verifies the isolated `DATABASE_URL` config RED/GREEN behavior and test discovery, but its report says no service or database was started and it did not run the full Playwright flow.
+
+The final-head web gate ran the frontend characterization suite with `PLAYWRIGHT_FRONTEND_ONLY=true`; it did not execute `apps/web/tests/chat-t093-real-flow.spec.ts`. The task register describes T067 as preceding the final T093 real-flow gate, and `context/testing.md` requires a successful full Playwright exit code before T093 is reported as passed. The initial T093 setup attempt below stopped during Prisma engine bootstrap before test launch. At the time this historical update was written, Feature 029 acceptance closeout was still incomplete pending a full T093 run against a dedicated disposable database and runner-owned services. The final section below records the later passing full-flow result. Do not treat test discovery or the web characterization run as that gate.
+
+### Historical T093 Setup Attempt — Blocked Before Test Launch (2026-10-05)
+
+The validation worker checked out `build/untrack-superpowers-plans` at `c5b396525cb8ba761d662e527a9be36551f242fc` and targeted final Feature 029 source `791947c365c95e2721893c90cc3d92a433938117`. **T093 was not run.** No Playwright process or application service started, no T093 assertion executed, and no successful T093 exit code exists.
+
+The worker found ports 3000–3003, 5433, and 6381 free. Existing containers `flight-postgres` and `flight-redis` on ports 5432 and 6379, plus the unrelated container on 8082, were not used or changed. It started runner-owned PostgreSQL and Redis containers on loopback ports 5433 and 6381, confirmed both services ready, and created database `t093_closeout_20261005` inside the runner-owned PostgreSQL container. No shared or user database was contacted.
+
+The initial `prisma migrate deploy` exited 1 before database contact because the Prisma schema-engine download through the configured proxy failed with `ECONNREFUSED 127.0.0.1:9`. For the single corrective attempt, the worker pointed `PRISMA_SCHEMA_ENGINE_BINARY` to the cached Windows engine matching Prisma commit `605197351a3c8bdd595af2d2a9bc3025bca48ea2`. Prisma loaded the schema and identified the disposable database, then exited 1 with `Could not parse schema engine response: SyntaxError: Unexpected token 'o', "operable p"... is not valid JSON`. The cached engine has no `.exe` extension; attributing the response to Windows subprocess launch handling is an inference from the `operable p...` output. No migration was applied.
+
+No third migration attempt was made under the repository fail-fast rule. The worker made no source, test, manifest, or lockfile edits and did not create the temporary Playwright configuration wrapper. It stopped and removed only its two runner-owned containers; the existing services remained running. At this historical setup-only checkpoint, T093 was the sole outstanding acceptance gate and Feature 029 closeout had not yet been completed; a full real-flow exit code 0 was still required. The later passing result is recorded below.
+
+### Historical T093 Approved Continuation — Seeded Full-Flow Retry (before corrected documented-timeout run; 2026-10-05)
+
+The earlier subsection records the historical Prisma bootstrap block. After the user approved the matching cached engine copied to a temporary `.exe`, validation resumed from checkout HEAD `a1db13768034f04a77400243678e1b64de93e8d2` against Feature 029 source `791947c365c95e2721893c90cc3d92a433938117`. The temporary engine matched SHA-256 `A7D949E16CC5937AA77D67888C8993118EF16C764E536E9ED7C17CFE61BB65AD` and reported `schema-engine-cli 605197351a3c8bdd595af2d2a9bc3025bca48ea2`. With `PRISMA_SCHEMA_ENGINE_BINARY` pointed to this copy, `prisma migrate deploy --schema prisma/schema.prisma` exited 0 on the fresh isolated database `t093_closeout_20261005_resume_a1db1376`; all 25 migrations applied.
+
+The first full T093 run then exited 1 at `chat-t093-real-flow.spec.ts:266` because it received no `flight_results` event. Its sanitized tool audit recorded `v2/flights/search` failure `HTTP_400`, and the fresh database contained no airport rows. The T093 server overrides the supplier and country lookup but does not seed `Airport`; `FlightsService.search` rejects origin/destination codes missing from that table. The repository’s documented Prisma seed command, `pnpm --filter @api/backend exec prisma db seed`, was applied only to this isolated database and exited 0, inserting 4,562 airports. A read-only query confirmed `HAN|VN` and `SGN|VN`. Earlier command-lookup mistakes exited before the seed script started and made no database changes.
+
+The checked-in `apps/web/tests/chat-t093-real-flow.spec.ts` was unchanged for the seeded retry. The temporary Playwright wrapper imported the checked-in config, changed only the API and agent Redis URLs to the runner-owned Redis on port 6391, and pointed `testDir` to the checked-in test directory; all other service commands, test timeouts, browser/security settings, and assertions stayed inherited. The full Playwright run executed one Chromium test and exited 1 after the configured 180,000 ms timeout at `chat-t093-real-flow.spec.ts:249`, waiting for `window.__t093StreamBodies.length` to reach 1. The agent stream response was observed at line 238, but its cloned response body did not finish. The post-run audit contained login, registration, chat-session, and chat-message events, but no `v2/flights/search` tool audit. The captured evidence does not identify why the stream stayed open. No third full-flow run was made.
+
+Both runner-owned `--rm` containers were stopped by their verified IDs and removed: PostgreSQL `codex-t093-resume-a1db1376-postgres` (`127.0.0.1:5447`) and Redis `codex-t093-resume-a1db1376-redis` (`127.0.0.1:6391`). The pre-existing `flight-postgres` and `flight-redis` remained running; app ports 3000–3003 and disposable ports 5447/6391 were clear after teardown. The Playwright error artifact remains available under `test-results/chat-t093-real-flow-T093-r-67610--token-only-consumed-intent-chromium/`.
+
+**Interim result after the seeded 180,000 ms retry (historical; superseded below): T093 had not yet passed and Feature 029 acceptance closeout was then incomplete.** At that interim checkpoint, the unchanged real-flow search and checkout assertions remained unverified because no full T093 run had exited 0. This historical local result is separate from final-source CI run 37278447237 at `791947c365c95e2721893c90cc3d92a433938117`; that run’s web gate executed characterization and did not run T093. The final section below records the later T093 pass.
+
+#### Historical seeded-retry PowerShell invocation
+
+This is the actual launch used for the seeded retry that timed out. It is recorded historically, including the environment settings that were actually assigned. The disposable PostgreSQL password is redacted. The timeout variables required by `context/testing.md` were not assigned by this invocation; the Playwright artifact reports a test timeout of 180,000 ms.
+
+```powershell
+# Run from C:\Booking Systems
+$env:T093_REAL_FLOW = 'true'
+$env:DATABASE_URL = 'postgresql://postgres:<redacted>@127.0.0.1:5447/t093_closeout_20261005_resume_a1db1376'
+$env:PRISMA_SCHEMA_ENGINE_BINARY = (Join-Path (Get-Location) '.scratch\t093-resume-a1db1376\schema-engine.exe')
+$runLog = Join-Path (Get-Location) '.scratch\t093-resume-a1db1376\playwright-second.log'
+Push-Location apps/web
+try {
+  & '.\node_modules\.bin\playwright.cmd' test --config='C:\Booking Systems\.scratch\t093-resume-a1db1376\playwright.config.ts' tests/chat-t093-real-flow.spec.ts *> $runLog
+  $code = $LASTEXITCODE
+} finally {
+  Pop-Location
+}
+Get-Content $runLog | Where-Object { $_ -match '^Running [0-9]+ test|^  [0-9]+ passed|^  [0-9]+ failed|^\s+\[chromium\]|^T093_PLAYWRIGHT_EXIT|Error:|Test timeout' } | ForEach-Object { $_ }
+"T093_PLAYWRIGHT_EXIT=$code"
+exit $code
+```
 
 
+### Final T093 Acceptance Gate — Passing Isolated Full Flow (2026-10-05)
+
+The earlier T093 subsections preserve the engine-bootstrap failures and the seeded retry that timed out after 180,000 ms because its launch omitted the timeout exports documented by `context/testing.md`. They are historical attempts, not the final result. The timeout correction was limited to the execution environment; neither the checked-in test nor application source changed. Final Feature 029 source `791947c365c95e2721893c90cc3d92a433938117` was validated.
+
+A fresh runner-owned database `t093_closeout_20261005_b89eefd2` ran all 25 Prisma migrations successfully using the matching cached schema engine (`605197351a3c8bdd595af2d2a9bc3025bca48ea2`, SHA-256 `A7D949E16CC5937AA77D67888C8993118EF16C764E536E9ED7C17CFE61BB65AD`). The documented API seed command succeeded only against that database and inserted 4,562 airports; the read-only check confirmed `HAN|VN` and `SGN|VN`. PostgreSQL and Redis were task-owned `--rm` containers on loopback ports 5448 and 6392. No shared database or pre-existing container was used for the flow.
+
+Before Playwright started, the same PowerShell process asserted the effective timeout environment was `T093_TEST_TIMEOUT_MS=600000`, `T093_STREAM_TIMEOUT_MS=300000`, and `T093_BROWSER_TIMEOUT_MS=120000`, and verified the checked-in test consumes all three variables. It also set `UV_CACHE_DIR`, `T093_REAL_FLOW`, the isolated `DATABASE_URL`, and the temporary matching `PRISMA_SCHEMA_ENGINE_BINARY` in that same process. The Playwright wrapper imported the checked-in config, redirected only the T093 API and agent Redis URLs to the owned Redis service, and set `testDir` to the checked-in web tests. The captured wrapper source is `.scratch/t093-resume-a1db1376-retry2/wrapper-evidence.txt` (SHA-256 `40B501C445F70EFE4652E6F7B545CBD0172AB7D03930ED586DCEE282391919A1`).
+
+The actual corrected full-flow command and explicit environment assignments were:
+
+```powershell
+# Run from C:\Booking Systems; values shown for DATABASE_URL and the engine path are the actual isolated target, with the disposable password redacted.
+$env:UV_CACHE_DIR = 'C:\Booking Systems\.uv-cache'
+$env:T093_REAL_FLOW = 'true'
+$env:T093_TEST_TIMEOUT_MS = '600000'
+$env:T093_STREAM_TIMEOUT_MS = '300000'
+$env:T093_BROWSER_TIMEOUT_MS = '120000'
+$env:DATABASE_URL = 'postgresql://postgres:<redacted>@127.0.0.1:5448/t093_closeout_20261005_b89eefd2'
+$env:PRISMA_SCHEMA_ENGINE_BINARY = (Join-Path (Get-Location) '.scratch\t093-resume-a1db1376-retry2\schema-engine.exe')
+$runLog = Join-Path (Get-Location) '.scratch\t093-resume-a1db1376-retry2\playwright-timeouts600k.log'
+Push-Location apps/web
+try {
+  & 'C:\Booking Systems\apps\web\node_modules\.bin\playwright.CMD' test --config='C:\Booking Systems\.scratch\t093-resume-a1db1376-retry2\playwright.config.ts' 'tests/chat-t093-real-flow.spec.ts' *> $runLog
+  $code = $LASTEXITCODE
+} finally {
+  Pop-Location
+}
+"PLAYWRIGHT_EXIT=$code"
+exit $code
+```
+
+**T093 passed:** Playwright exited 0; one Chromium test passed in 4.9 minutes: `completes signed search through one token-only consumed intent`. This completes the missing full real-flow acceptance gate. Feature 029 closeout is resolved alongside exact-final-source CI run 37278447237, which passed at the same source SHA; the CI web gate itself ran characterization only, so this isolated real-flow result is the distinct T093 evidence. Local API validation remains **PARTIAL** because the local `supplier-sync.service.spec.ts` suite was not run; final-head remote CI separately reports that suite and all 135 API unit suites passing.
+
+Cleanup stopped only the verified task-owned PostgreSQL container `codex-t093-retry-b89eefd2-postgres` (ID `d7b5720477e3f183e30736a8352e09cfe127f3416a107cc04c614793d872cbe2`, port 5448) and Redis container `codex-t093-retry-b89eefd2-redis` (ID `e18bd8a482887bac0f190a1051bf4d0ad860ab6ef78006aa975482bfb2a72982`, port 6392). Their `--rm` policy removed them. Existing `flight-postgres` and `flight-redis` remained running. Ports 3000–3003, 5448, and 6392 were clear after teardown. The temporary engine executable and wrapper config were removed after the wrapper text and hash were preserved. Sanitized migration, seed, and Playwright logs remain in the task scratch directory. No source, test, package, or lockfile edits were made.
