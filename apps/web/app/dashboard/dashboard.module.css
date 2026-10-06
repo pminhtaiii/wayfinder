@@ -182,6 +182,7 @@
 
 .headerSubtitle {
   color: var(--dashboard-text-muted);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -191,12 +192,18 @@
 .headerTitle {
   margin-top: 0.15rem;
   color: var(--dashboard-text-primary);
-  font-size: clamp(1.25rem, 1.8vw, 1.5rem);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-size: clamp(1.85rem, 2.75vw, 2.35rem);
   font-weight: 800;
+  letter-spacing: -0.025em;
   line-height: 1.15;
 }
 
 .headerAccent {
+  background: var(--dashboard-heading-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   color: var(--dashboard-action-primary);
 }
 
@@ -495,7 +502,8 @@
 }
 
 .statsSection {
-  margin-top: 0;
+  margin: 0;
+  padding: 0;
   min-width: 0;
 }
 
@@ -503,6 +511,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .metricCard,
@@ -516,7 +525,11 @@
 }
 
 .metricCard {
+  display: flex;
   min-width: 0;
+  height: 5.25rem;
+  flex-direction: column;
+  justify-content: space-between;
   border-radius: 0.875rem;
   padding: 0.65rem 0.875rem;
   transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
@@ -551,12 +564,12 @@
 }
 
 .metricValue {
-  margin-top: 0.25rem;
+  margin: 0;
   color: var(--dashboard-text-primary);
   font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  line-height: 1.1;
+  line-height: 1;
 }
 
 .totalMetric .metricIcon {
@@ -811,7 +824,8 @@
 
 .skeletonMetricCard {
   display: flex;
-  min-height: 9.5rem;
+  height: 5.25rem;
+  min-height: 5.25rem;
   flex-direction: column;
   justify-content: space-between;
 }
@@ -830,7 +844,7 @@
 
 .skeletonValue {
   width: 38%;
-  height: 2.5rem;
+  height: 1.5rem;
 }
 
 .skeletonHeading {
@@ -1046,8 +1060,8 @@
   }
 
   .headerTitle {
-    margin-top: 0.35rem;
-    font-size: 1.25rem;
+    margin-top: 0.25rem;
+    font-size: clamp(1.4rem, 5.5vw, 1.75rem);
   }
 
   .main {
@@ -1065,14 +1079,6 @@
   .quickSearchButton,
   .quickSearchAction {
     width: 100%;
-  }
-
-  .metricCard {
-    padding: 1rem;
-  }
-
-  .metricValue {
-    margin-top: 1rem;
   }
 
   .sectionHeader,
@@ -1130,6 +1136,11 @@
   .quickActionsSection a,
   .actionCard {
     border-color: ButtonText;
+  }
+
+  .headerAccent {
+    -webkit-text-fill-color: currentColor;
+    background: none;
   }
 }
 
