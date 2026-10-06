@@ -11,6 +11,7 @@ import {
 import { CheckoutHandoffCard } from './CheckoutHandoffCard';
 import { createChatStreamRequest } from '@/lib/chatStream';
 import { actionHandoffSchema, type HandoffEvent } from '@shared/types/chat.types';
+import { Minus } from 'lucide-react';
 
 const OFFER_ID_PATTERN = /^off_[A-Za-z0-9_-]{1,128}$/;
 const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
@@ -131,6 +132,7 @@ function ChatWidgetInner(): JSX.Element {
   const [handoffEvent, setHandoffEvent] = useState<HandoffEvent | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [inputMessage, setInputMessage] = useState('');
+  const [isMinimized, setIsMinimized] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -236,12 +238,38 @@ function ChatWidgetInner(): JSX.Element {
     setInputMessage('');
   };
 
+  if (isMinimized) {
+    return (
+      <aside className="fixed bottom-4 right-4 z-50" aria-label="Agent chat">
+        <button
+          type="button"
+          onClick={() => setIsMinimized(false)}
+          className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-medium text-primary-foreground shadow-lg transition-transform hover:opacity-90 hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2"
+          aria-label="Expand agent chat"
+        >
+          <span aria-hidden="true">💬</span>
+          <span>Agent Chat</span>
+        </button>
+      </aside>
+    );
+  }
+
   return (
     <aside
       className="card fixed bottom-4 right-4 flex h-96 w-80 flex-col overflow-hidden shadow-xl z-50"
       aria-label="Agent chat"
     >
-      <div className="bg-accent p-3 font-medium text-primary-foreground">Agent Chat</div>
+      <div className="bg-accent p-3 font-medium text-primary-foreground flex items-center justify-between">
+        <span>Agent Chat</span>
+        <button
+          type="button"
+          onClick={() => setIsMinimized(true)}
+          className="rounded p-1 text-primary-foreground/80 hover:bg-white/20 hover:text-primary-foreground transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+          aria-label="Minimize agent chat"
+        >
+          <Minus className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
       <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-4">
         <p className="rounded border border-card-border bg-card p-2 text-sm text-text-primary">
           Hello! How can I help you book your flight today?

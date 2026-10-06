@@ -17,12 +17,14 @@ function formatBookingDate(date: string): string {
 }
 
 function getStatusClassName(status: DashboardRecentBooking['status']): string {
+  const classes = styles ?? {};
+
   if (status === 'CONFIRMED') {
-    return styles.statusConfirmed;
+    return classes.statusConfirmed ?? '';
   }
 
   if (status === 'COMPLETED') {
-    return styles.statusCompleted;
+    return classes.statusCompleted ?? '';
   }
 
   if (
@@ -30,52 +32,53 @@ function getStatusClassName(status: DashboardRecentBooking['status']): string {
     status.startsWith('CANCELLED') ||
     status === 'REFUND_FAILED_NEEDS_ATTENTION'
   ) {
-    return styles.statusCancelled;
+    return classes.statusCancelled ?? '';
   }
 
-  return styles.statusPending;
+  return classes.statusPending ?? '';
 }
 
 export function DashboardRecentBookings({ recentBookings }: DashboardRecentBookingsProps) {
+  const classes = styles ?? {};
   const visibleBookings = recentBookings.slice(0, 5);
 
   return (
-    <section className={styles.recentBookingsSection} aria-labelledby="recent-bookings-heading">
-      <div className={styles.sectionHeader}>
-        <h2 id="recent-bookings-heading" className={styles.sectionHeading}>
+    <section className={classes.recentBookingsSection} aria-labelledby="recent-bookings-heading">
+      <div className={classes.sectionHeader}>
+        <h2 id="recent-bookings-heading" className={classes.sectionHeading}>
           Recent bookings
         </h2>
-        <Link className={styles.viewAllLink} href="/bookings">
+        <Link className={classes.viewAllLink} href="/bookings">
           View all bookings
         </Link>
       </div>
 
       {visibleBookings.length > 0 ? (
-        <ul className={styles.bookingList}>
+        <ul className={classes.bookingList}>
           {visibleBookings.map((booking) => {
             const displayedDate = booking.departureAt ?? booking.createdAt;
 
             return (
-              <li key={booking.id} className={styles.bookingListItem}>
-                <Link className={styles.bookingLink} href={`/bookings/${booking.id}`}>
-                  <div className={styles.bookingPrimaryContent}>
-                    <p className={styles.flightNumber}>{booking.flightNumber || 'Flight'}</p>
+              <li key={booking.id} className={classes.bookingListItem}>
+                <Link className={classes.bookingLink} href={`/bookings/${booking.id}`}>
+                  <div className={classes.bookingPrimaryContent}>
+                    <p className={classes.flightNumber}>{booking.flightNumber || 'Flight'}</p>
                     {booking.airlineCode ? (
-                      <p className={styles.airlineCode}>{booking.airlineCode}</p>
+                      <p className={classes.airlineCode}>{booking.airlineCode}</p>
                     ) : null}
-                    <p className={styles.bookingRoute}>
-                      <span className={styles.routeCode}>{booking.originCode || '—'}</span>
-                      <span className={styles.routeSeparator} aria-hidden="true">
+                    <p className={classes.bookingRoute}>
+                      <span className={classes.routeCode}>{booking.originCode || '—'}</span>
+                      <span className={classes.routeSeparator} aria-hidden="true">
                         →
                       </span>
-                      <span className={styles.routeCode}>{booking.destinationCode || '—'}</span>
+                      <span className={classes.routeCode}>{booking.destinationCode || '—'}</span>
                     </p>
                   </div>
-                  <div className={styles.bookingSecondaryContent}>
-                    <time className={styles.bookingDate} dateTime={displayedDate}>
+                  <div className={classes.bookingSecondaryContent}>
+                    <time className={classes.bookingDate} dateTime={displayedDate}>
                       {formatBookingDate(displayedDate)}
                     </time>
-                    <span className={`${styles.statusBadge} ${getStatusClassName(booking.status)}`}>
+                    <span className={`${classes.statusBadge} ${getStatusClassName(booking.status)}`}>
                       {booking.status}
                     </span>
                   </div>
@@ -85,19 +88,19 @@ export function DashboardRecentBookings({ recentBookings }: DashboardRecentBooki
           })}
         </ul>
       ) : (
-        <div className={styles.emptyState}>
+        <div className={classes.emptyState}>
           <div
-            className={styles.emptyStateIllustration}
+            className={classes.emptyStateIllustration}
             role="img"
             aria-label="Empty booking illustration"
           >
             <Plane aria-hidden="true" />
           </div>
-          <h3 className={styles.emptyStateHeading}>No bookings yet</h3>
-          <p className={styles.emptyStateDescription}>
+          <h3 className={classes.emptyStateHeading}>No bookings yet</h3>
+          <p className={classes.emptyStateDescription}>
             Search for a flight to begin planning your next trip.
           </p>
-          <Link className={styles.emptyStateAction} href="/search">
+          <Link className={classes.emptyStateAction} href="/search">
             Search Flights
           </Link>
         </div>

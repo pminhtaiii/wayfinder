@@ -2,8 +2,9 @@
 
 import { type FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search } from 'lucide-react';
+import { Calendar, Plane, Search } from 'lucide-react';
 import { buildSearchUrl, validateQuickSearch } from './dashboard-search';
+import styles from '@/app/dashboard/dashboard.module.css';
 
 export function DashboardQuickSearch(): JSX.Element {
   const [origin, setOrigin] = useState('');
@@ -35,15 +36,15 @@ export function DashboardQuickSearch(): JSX.Element {
     }
   };
 
+  const classes = styles ?? {};
+
   return (
-    <form onSubmit={handleSubmit} className="card space-y-4" noValidate>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div>
-          <label
-            htmlFor="dashboard-origin"
-            className="block text-sm font-medium text-text-secondary mb-1"
-          >
-            Departure airport code
+    <form onSubmit={handleSubmit} className={classes.quickSearchForm} noValidate>
+      <div className={classes.quickSearchRow}>
+        <div className={classes.quickSearchField}>
+          <label htmlFor="dashboard-origin" className={classes.quickSearchLabel}>
+            <Plane className={classes.quickSearchFieldIcon} aria-hidden="true" />
+            <span>Departure airport code</span>
           </label>
           <input
             id="dashboard-origin"
@@ -52,15 +53,15 @@ export function DashboardQuickSearch(): JSX.Element {
             onKeyDown={handleKeyDown}
             maxLength={3}
             autoComplete="off"
-            className="form-input w-full uppercase"
+            placeholder="Origin (e.g. SGN)"
+            className={classes.quickSearchInput}
           />
         </div>
-        <div>
-          <label
-            htmlFor="dashboard-destination"
-            className="block text-sm font-medium text-text-secondary mb-1"
-          >
-            Arrival airport code
+
+        <div className={classes.quickSearchField}>
+          <label htmlFor="dashboard-destination" className={classes.quickSearchLabel}>
+            <Plane className={classes.quickSearchFieldIcon} aria-hidden="true" />
+            <span>Arrival airport code</span>
           </label>
           <input
             id="dashboard-destination"
@@ -69,15 +70,15 @@ export function DashboardQuickSearch(): JSX.Element {
             onKeyDown={handleKeyDown}
             maxLength={3}
             autoComplete="off"
-            className="form-input w-full uppercase"
+            placeholder="Destination (e.g. HAN)"
+            className={classes.quickSearchInput}
           />
         </div>
-        <div>
-          <label
-            htmlFor="dashboard-departure-date"
-            className="block text-sm font-medium text-text-secondary mb-1"
-          >
-            Departure date
+
+        <div className={classes.quickSearchField}>
+          <label htmlFor="dashboard-departure-date" className={classes.quickSearchLabel}>
+            <Calendar className={classes.quickSearchFieldIcon} aria-hidden="true" />
+            <span>Departure date</span>
           </label>
           <input
             id="dashboard-departure-date"
@@ -85,15 +86,18 @@ export function DashboardQuickSearch(): JSX.Element {
             value={departureDate}
             onChange={(event) => setDepartureDate(event.target.value)}
             onKeyDown={handleKeyDown}
-            className="form-input w-full"
+            className={classes.quickSearchInput}
           />
         </div>
+
+        <div className={classes.quickSearchAction}>
+          <button type="submit" className={classes.quickSearchButton}>
+            <Search className={classes.searchButtonIcon} aria-hidden="true" />
+            <span>Search flights</span>
+          </button>
+        </div>
       </div>
-      {error ? <p role="alert">{error}</p> : null}
-      <button type="submit" className="btn-primary inline-flex items-center gap-2">
-        <Search className="h-4 w-4" aria-hidden="true" />
-        <span>Search flights</span>
-      </button>
+      {error ? <p role="alert" className={classes.quickSearchAlert}>{error}</p> : null}
     </form>
   );
 }

@@ -10,37 +10,44 @@ type DashboardShellProps = {
   children: React.ReactNode;
 };
 
-const navigationItems = [
+type NavigationItem = {
+  href: string;
+  label: string;
+  shortLabel: string;
+};
+
+const navigationItems: NavigationItem[] = [
   { href: '/dashboard', label: 'Overview', shortLabel: 'Home' },
   { href: '/search', label: 'Search flights', shortLabel: 'Search' },
   { href: '/bookings', label: 'My bookings', shortLabel: 'Bookings' },
-] as const;
+];
 
 export function DashboardShell({
   user,
   showProfileNavigation = false,
   children,
 }: DashboardShellProps): JSX.Element {
+  const classes = styles ?? {};
   const displayName = user.name?.trim() || user.email?.trim() || 'Traveler';
   const avatarLabel = displayName.charAt(0).toLocaleUpperCase();
-  const visibleNavigationItems = showProfileNavigation
+  const visibleNavigationItems: NavigationItem[] = showProfileNavigation
     ? [...navigationItems, { href: '/profile', label: 'Traveler profile', shortLabel: 'Profile' }]
     : navigationItems;
 
   return (
-    <div className={styles.dashboardRoot}>
-      <aside className={styles.sidebar} aria-label="Dashboard navigation">
-        <Link className={styles.sidebarBrand} href="/dashboard">
-          <span className={styles.brandMark} aria-hidden="true">
+    <div className={classes.dashboardRoot}>
+      <aside className={classes.sidebar} aria-label="Dashboard navigation">
+        <Link className={classes.sidebarBrand} href="/dashboard">
+          <span className={classes.brandMark} aria-hidden="true">
             W
           </span>
           <span>Wayfinder</span>
         </Link>
-        <nav className={styles.sidebarNav}>
+        <nav className={classes.sidebarNav}>
           {visibleNavigationItems.map((item) => (
             <Link
               key={item.href}
-              className={`${styles.sidebarLink} ${item.href === '/dashboard' ? styles.sidebarLinkCurrent : ''}`}
+              className={`${classes.sidebarLink} ${item.href === '/dashboard' ? classes.sidebarLinkCurrent : ''}`}
               href={item.href}
               aria-current={item.href === '/dashboard' ? 'page' : undefined}
             >
@@ -50,35 +57,37 @@ export function DashboardShell({
         </nav>
       </aside>
 
-      <div className={styles.contentFrame}>
-        <header className={styles.header}>
-          <div className={styles.headerContext}>
-            <p className={styles.headerSubtitle}>Travel overview</p>
-            <h1 className={styles.headerTitle}>Dashboard</h1>
+      <div className={classes.contentFrame}>
+        <header className={classes.header}>
+          <div className={classes.headerContext}>
+            <p className={classes.headerSubtitle}>Travel overview</p>
+            <h1 className={classes.headerTitle}>
+              Find Your Way. <span className={classes.headerAccent}>Do More.</span>
+            </h1>
           </div>
-          <div className={styles.userBadge} aria-label={`Signed in as ${displayName}`}>
-            <span className={styles.userAvatar} aria-hidden="true">
+          <div className={classes.userBadge} aria-label={`Signed in as ${displayName}`}>
+            <span className={classes.userAvatar} aria-hidden="true">
               {avatarLabel}
             </span>
-            <span className={styles.userDetails}>
-              <span className={styles.userName}>{displayName}</span>
+            <span className={classes.userDetails}>
+              <span className={classes.userName}>{displayName}</span>
               {user.name?.trim() && user.email?.trim() ? (
-                <span className={styles.userEmail}>{user.email}</span>
+                <span className={classes.userEmail}>{user.email}</span>
               ) : null}
             </span>
           </div>
         </header>
 
-        <main id="main-content" className={styles.main}>
+        <main id="main-content" className={classes.main}>
           {children}
         </main>
       </div>
 
-      <nav className={styles.mobileNav} aria-label="Mobile dashboard navigation">
+      <nav className={classes.mobileNav} aria-label="Mobile dashboard navigation">
         {visibleNavigationItems.map((item) => (
           <Link
             key={item.href}
-            className={`${styles.mobileNavLink} ${item.href === '/dashboard' ? styles.mobileNavLinkCurrent : ''}`}
+            className={`${classes.mobileNavLink} ${item.href === '/dashboard' ? classes.mobileNavLinkCurrent : ''}`}
             href={item.href}
             aria-current={item.href === '/dashboard' ? 'page' : undefined}
           >
