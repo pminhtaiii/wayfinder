@@ -181,6 +181,7 @@ def production_gateway() -> GuardrailGateway:
 
 
 @pytest.mark.asyncio
+@pytest.mark.performance
 async def test_cold_initialization_vs_warm_execution(
     admission_context: AdmissionContext,
     turn_capabilities: TurnCapabilities,
@@ -321,6 +322,7 @@ async def test_cold_initialization_vs_warm_execution(
 
 
 @pytest.mark.asyncio
+@pytest.mark.performance
 async def test_hostile_near_limit_input_payloads(
     admission_context: AdmissionContext,
     production_gateway: GuardrailGateway,
@@ -482,6 +484,7 @@ async def test_hostile_near_limit_input_payloads(
 
 
 @pytest.mark.asyncio
+@pytest.mark.performance
 async def test_hostile_near_limit_tool_output_payloads(
     turn_capabilities: TurnCapabilities,
     production_gateway: GuardrailGateway,
@@ -586,6 +589,7 @@ async def test_hostile_near_limit_tool_output_payloads(
     )
 
 
+@pytest.mark.performance
 def test_pathological_regex_and_redos_resistance() -> None:
     """Stress test pathological inputs and ReDoS patterns against compiled regexes.
 
@@ -649,6 +653,7 @@ def test_pathological_regex_and_redos_resistance() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.performance
 async def test_stream_chunk_fragmentation_stress() -> None:
     """Stress test multibyte UTF-8 characters and combining sequences split across
 
@@ -716,6 +721,7 @@ async def test_stream_chunk_fragmentation_stress() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.performance
 async def test_metric_decomposition_compute_vs_holdback_wait() -> None:
     """Strictly separate active CPU/compute latency from streaming buffer holdback wait time
 
@@ -862,6 +868,7 @@ async def test_metric_decomposition_compute_vs_holdback_wait() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.performance
 async def test_memory_growth_and_concurrency_stress() -> None:
     """Track peak memory growth and deltas using standard library tracemalloc.
 

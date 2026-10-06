@@ -10,6 +10,15 @@ This file tracks the currently active in-flight feature, its checkpoints, and ex
 - **Direction**: One shared policy for entry and checkout proxy; malformed explicit configuration rejects everywhere, missing configuration falls back only in local development, request evidence is validated strictly, and redirects use the resolved trusted origin.
 - **Failure semantics**: Configuration failures return non-cacheable 503 responses; rejected evidence returns non-cacheable 403 responses, both before authentication or backend calls.
 - **Status**: Interview decisions accepted on 2026-10-06. Application implementation and verification remain pending.
+## CI Test Suite Separation (Implemented; Verification Limits Recorded)
+
+- **Goal**: Separate unit, interface/component, infrastructure integration/migration, and performance results while preserving existing required coverage.
+- **Direction**: Independent suite commands and named change-aware CI jobs, a shared smoke/critical-flow startup, and one required `ci-status` aggregate.
+- **Decision record**: [CI test boundaries](../docs/adr/research-ci-test-boundaries-grilling-session.md).
+- **Exit gates**: Exhaustive suite partition checks, focused runner checks, workflow/status contract tests, package lint/typechecks, and independent review. Infrastructure-backed checks require available disposable services; record any unexecuted checks explicitly.
+- **Delivered**: Four API test lanes, web unit/browser-interface lanes, three agent lanes, independent local commands, and fail-closed `ci-status` aggregation. Shared smoke/critical-flow startup is retained.
+- **Verified**: All 206 existing required API suites classified exactly once; web isolated Node tests 420/420; agent isolated tests 1,290 passed/4 skipped before additional guard regressions; CI contracts 40/40; network/smoke-runner checks 25/25; focused disposable-database API tests 18/18; package lint/typechecks and independent reviews passed.
+- **Limits**: Browser characterization passed 14/16 with navigation timeout/route expectation failures. Optional web route-contract cases fail locally (56/64); two unchanged agent benchmark latency assertions fail on this Windows host. One Redis wait-time check passed in isolation after a timing failure in the full Redis lane. Remote CI, the full API runtime matrix, and T093 were not rerun. See the decision record for exact results and final browser/guard verification.
 
 ---
 

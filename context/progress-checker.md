@@ -8,6 +8,12 @@ Do not mark a capability complete because it appears in architecture or planning
 
 ## MVP Status
 
+### CI Test Suite Separation — Local Implementation
+
+The pipeline now reports unit, interface/component, infrastructure integration/migration, and performance results separately, with one required `ci-status` aggregate and change-aware service routing. Existing required coverage remains included. The [testing guide](./testing.md) lists the independently runnable commands; the [verification record](../docs/adr/research-ci-test-boundaries-grilling-session.md) records local checks and their limits.
+
+Selector checks cover all 206 required API suites exactly once. Local verification includes 420 passing web unit tests, the guarded agent correctness lane, 40 CI contract checks, 25 network/smoke-runner checks, and 18 database-backed supplier-sync tests against disposable storage. Browser characterization passed 14/16; optional web route-mock failures and local benchmark timing failures remain visible in separate suites; remote CI has not been run for this maintenance change. This work does not change the historical Feature 029 acceptance result below.
+
 Overall status:
 
 ```text

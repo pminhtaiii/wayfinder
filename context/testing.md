@@ -82,14 +82,46 @@ When the task involves writing, running, or verifying E2E tests:
 
 ## Pre-PR Local Gate Validation Matrix
 
+### Test suite boundaries
+
+CI reports static validation separately from tests. The service suites are change-aware; `ci-status` remains the single required branch-protection check and rejects missing or unexpectedly skipped required lanes.
+
+| Service / boundary | Local command | Dependencies |
+| --- | --- | --- |
+| API unit | `pnpm --filter @api/backend test:unit` | Mocked collaborators; no PostgreSQL/Redis service |
+| API interface contracts | `pnpm --filter @api/backend test:contract` | Wire/snapshot compatibility fixtures |
+| Shared interface contracts | `pnpm --filter @shared/types test` | Shared DTO/schema fixtures; API interface CI step |
+| API component/interface | `pnpm --filter @api/backend test:component` | Nest module/adapter wiring and mocked infrastructure |
+| API infrastructure integration | `pnpm --filter @api/backend test:integration` | Disposable PostgreSQL and Redis; generated Prisma client and migrated schema |
+| API existing CI benchmarks | `pnpm --filter @api/backend test:performance:unit` | In-process benchmarks; required in CI |
+| API full performance | `pnpm --filter @api/backend test:performance` | Also includes database-backed HTTP benchmarks; explicit local suite, not newly required in PR CI |
+| Web unit/Node tests | `pnpm --filter @web/frontend test:unit` | Isolated Node/tsx tests outside `app/`; includes existing compatibility coverage |
+| Web route contracts | `pnpm --filter @web/frontend test:route-contracts` | Node route-level interface tests; separately runnable, not newly required in CI |
+| Web all Node tests | `pnpm --filter @web/frontend test:node` | Aggregate unit and route-contract suites |
+| Web browser interface | `pnpm --filter @web/frontend test:interface` | Chromium and frontend only; characterization coverage |
+| Web composed-system acceptance | `pnpm --filter @web/frontend test:system` | T093 disposable database, Redis, API, frontend, agent, local model fixture; opt-in acceptance |
+| Agent isolated correctness | `uv run --package agent pytest apps/agent/tests -m agent_unit --strict-markers` | Mocked service collaborators |
+| Agent Redis correctness | `uv run --package agent pytest apps/agent/tests -m agent_redis --strict-markers` | Dedicated disposable Redis database |
+| Agent performance | `uv run --package agent pytest apps/agent/tests -m agent_performance --strict-markers` | Benchmarks; Redis for Redis-marked benchmarks |
+
+API interface contracts and component tests have separate CI steps in one interface job. Database-backed API HTTP tests belong to infrastructure integration even if their filenames retain `e2e-spec`. Existing API `test`, `test:ci`, and `test:e2e` aggregate commands remain available for compatibility.
+
+On a fresh checkout, build the shared package (`pnpm build:shared`) and generate the Prisma client (`pnpm --filter @api/backend exec prisma generate`) before API tests; generation itself does not require a running database. Each API CI job prepares its own generated files. `pnpm --filter @api/backend test:partition` uses Jest's actual selectors to prove the previous required suite appears exactly once in the new lanes and the optional performance aggregate retains both fast and database-backed benchmarks.
+
+Web Node discovery separates tests under `app/` (route contracts) from isolated tests elsewhere. The previous compatibility command remains available. The pre-existing `app/api/booking-management/route-parity.spec.ts` mock-loading failure is recorded in the [suite-separation decision record](../docs/adr/research-ci-test-boundaries-grilling-session.md); it is exposed through the route-contract/all-Node commands and is not silently skipped or newly included in required PR CI.
+
+Agent primary selectors are disjoint: Redis-backed performance tests run only in the performance lane. Existing `redis_integration` and `performance` markers describe dependencies/purpose; collection assigns one primary lane to each test. Set `CI_REQUIRE_REDIS_TESTS=1` for Redis correctness and `CI_REQUIRE_PERFORMANCE_TESTS=1` for performance to reject empty required selections and fail required Redis-backed skips. To validate classification without touching Redis, set `CI_VALIDATE_TEST_PARTITIONS=1` and run `uv run --package agent pytest apps/agent/tests --collect-only -q --strict-markers`; clear that flag before normal runs. Lock TTL/refresh and ReDoS termination assertions remain correctness checks; a clock assertion alone does not make a benchmark.
+
+Apply the Node/Python network guards below to test commands. Use disposable storage: some Redis fixtures flush their selected Redis database. Smoke and critical business flows retain one shared stack startup and distinct suite results; existing external-vendor mocks and network restrictions remain active.
+
 Always verify the change-aware service chains locally before opening or updating PRs:
 
 - **Static Contract**: `node --test tests/ci/ci-workflow.contract.test.mjs`
-- **API Gate**: `pnpm exec eslint "apps/api/**/*.ts" "packages/shared/**/*.ts" --max-warnings 0` && `pnpm --filter @shared/types test` && `pnpm --filter @api/backend exec tsc -p tsconfig.json --noEmit`
-- **API Unit Tests**: `$env:NODE_OPTIONS = "--require=$PWD/tests/ci/node-network-guard.cjs"`; `pnpm --filter @api/backend test -- --runInBand`
+- **API Gate**: Run `pnpm exec eslint "apps/api/**/*.ts" "packages/shared/**/*.ts" --max-warnings 0` and `pnpm --filter @api/backend exec tsc -p tsconfig.json --noEmit`. Shared contract tests run with the interface lane.
+- **API Tests**: `$env:NODE_OPTIONS = '--require="C:/Booking Systems/tests/ci/node-network-guard.cjs"'`; run `test:unit`, `test:contract`, `test:component`, and `test:performance:unit` from the table. Run `test:integration` against prepared disposable storage. Keep the inner quotes around paths containing spaces and use forward slashes inside Node's option string to avoid escape parsing.
 - **Web Gate & Build**: `pnpm --filter @web/frontend lint` && `pnpm --filter @web/frontend typecheck` && `pnpm --filter @web/frontend build`
-- **Agent Gate & Tests**: `$env:UV_CACHE_DIR = "c:\Booking Systems\.uv-cache"`; `uv run --package agent ruff check apps/agent` && `uv run --package agent ruff format --check apps/agent`; with `$env:PYTHONPATH = "$PWD/tests/ci/python;$PWD/apps/agent/src"` run `uv run --package agent pytest apps/agent/tests -m "not redis_integration"`
-- **Windows agent timing gate**: If the guarded non-Redis suite repeatedly fails only SC-004 wall-time measurements while its isolated benchmark passes, verify the Python network guard and run the full suite once with `ABOVE_NORMAL_PRIORITY_CLASS` applied only to the Python process executing pytest; restore that process's previous class in `finally`. Keep the suite, sample counts, percentiles, and ceilings unchanged; do not use realtime or machine-wide priority changes. This is a host-specific measured timing mitigation, not a proven scanner regression. See the [T066 verification plan](../docs/superpowers/plans/2026-10-04-feature-029-agent-performance-fix.md) for the exact launcher and evidence.
+- **Agent Gate & Tests**: `$env:UV_CACHE_DIR = "C:\Booking Systems\.uv-cache"`; run `uv run --package agent ruff check apps/agent` and `uv run --package agent ruff format --check apps/agent`. With `$env:PYTHONPATH = "$PWD/tests/ci/python;$PWD/apps/agent/src"`, run the three selectors in the table; required Redis/performance flags belong only to their respective lane.
+- **Windows agent timing gate**: If the guarded performance lane repeatedly fails only SC-004 wall-time measurements while its isolated benchmark passes, verify the Python network guard and run that lane once with `ABOVE_NORMAL_PRIORITY_CLASS` applied only to the Python process executing pytest; restore that process's previous class in `finally`. Keep the suite, sample counts, percentiles, and ceilings unchanged; do not use realtime or machine-wide priority changes. This is a host-specific measured timing mitigation, not a proven scanner regression. The [T066 verification plan](../docs/superpowers/plans/2026-10-04-feature-029-agent-performance-fix.md) records the original full-suite launcher and evidence before suite separation.
 - **Branch Protection Requirement**: Only require `ci-status` on branch protection rules for `development`.
 
 ---

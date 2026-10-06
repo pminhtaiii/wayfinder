@@ -5,9 +5,15 @@ import { fileURLToPath } from 'node:url';
 import { evaluateSecurityResults } from '../security/evaluate-results.mjs';
 
 export const SERVICE_CHAINS = {
-  api: ['api-gate', 'api-unit-tests', 'api-e2e-tests'],
-  web: ['web-gate', 'web-build'],
-  agent: ['agent-gate', 'agent-tests'],
+  api: [
+    'api-gate',
+    'api-unit-tests',
+    'api-interface-tests',
+    'api-integration-tests',
+    'api-performance-tests',
+  ],
+  web: ['web-gate', 'web-build', 'web-unit-tests', 'web-interface-tests'],
+  agent: ['agent-gate', 'agent-unit-tests', 'agent-integration-tests', 'agent-performance-tests'],
   security: ['security-sast', 'security-supply-chain'],
 };
 
@@ -119,11 +125,17 @@ function parseCliInput(argv, stdin) {
       security: process.env.SECURITY_CHANGED,
       'api-gate': process.env.API_GATE_RESULT,
       'api-unit-tests': process.env.API_UNIT_TESTS_RESULT,
-      'api-e2e-tests': process.env.API_E2E_TESTS_RESULT,
+      'api-interface-tests': process.env.API_INTERFACE_TESTS_RESULT,
+      'api-integration-tests': process.env.API_INTEGRATION_TESTS_RESULT,
+      'api-performance-tests': process.env.API_PERFORMANCE_TESTS_RESULT,
       'web-gate': process.env.WEB_GATE_RESULT,
       'web-build': process.env.WEB_BUILD_RESULT,
+      'web-unit-tests': process.env.WEB_UNIT_TESTS_RESULT,
+      'web-interface-tests': process.env.WEB_INTERFACE_TESTS_RESULT,
       'agent-gate': process.env.AGENT_GATE_RESULT,
-      'agent-tests': process.env.AGENT_TESTS_RESULT,
+      'agent-unit-tests': process.env.AGENT_UNIT_TESTS_RESULT,
+      'agent-integration-tests': process.env.AGENT_INTEGRATION_TESTS_RESULT,
+      'agent-performance-tests': process.env.AGENT_PERFORMANCE_TESTS_RESULT,
       'security-sast': process.env.SECURITY_SAST_RESULT,
       'security-supply-chain': process.env.SECURITY_SUPPLY_CHAIN_RESULT,
       'smoke-and-sanity': process.env.SMOKE_AND_SANITY_RESULT,

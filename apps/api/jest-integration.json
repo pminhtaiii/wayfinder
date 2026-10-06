@@ -1,0 +1,25 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testTimeout": 30000,
+  "testMatch": [
+    "<rootDir>/src/disruption/sync/supplier-sync.service.spec.ts",
+    "<rootDir>/test/**/*.e2e-spec.ts"
+  ],
+  "testPathIgnorePatterns": [
+    "[.-]performance\\.e2e-spec\\.ts$",
+    "supplier-order-module\\.e2e-spec\\.ts$",
+    "supplier-order-services\\.e2e-spec\\.ts$",
+    "supplier-ancillary\\.e2e-spec\\.ts$",
+    "ancillary-catalog\\.e2e-spec\\.ts$",
+    "payment-fulfillment-safety\\.e2e-spec\\.ts$"
+  ],
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "moduleNameMapper": {
+    "^@/(.*)$": "<rootDir>/src/$1",
+    "^@shared/(.*)$": "<rootDir>/../../packages/shared/src/$1"
+  }
+}

@@ -95,6 +95,7 @@ async def t098_redis_client():
         await client.aclose()
 
 
+@pytest.mark.performance
 def test_t098_router_entry_benchmark(monkeypatch):
     """Measure public stream request-to-router entry with an accepted fake quota."""
     settings = get_settings()
@@ -255,6 +256,7 @@ async def test_t098_daily_quota_edge_race(t098_redis_client):
 
 
 @pytest.mark.asyncio
+@pytest.mark.performance
 async def test_t098_lua_admission_latency_benchmark(t098_redis_client):
     """Measure 100 Redis Lua quota/rate-limit admission decision overheads (p95 < 10ms)."""
     user_id = f"t098-bench-{uuid.uuid4().hex}"
