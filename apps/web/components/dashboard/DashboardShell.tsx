@@ -1,10 +1,12 @@
 import Link from 'next/link';
+import { Calendar, Compass, LayoutDashboard, Plane, User, type LucideIcon } from 'lucide-react';
 import styles from '@/app/dashboard/dashboard.module.css';
 
 type DashboardShellProps = {
   user: {
     name?: string | null;
     email?: string | null;
+    image?: string | null;
   };
   showProfileNavigation?: boolean;
   children: React.ReactNode;
@@ -14,12 +16,13 @@ type NavigationItem = {
   href: string;
   label: string;
   shortLabel: string;
+  icon: LucideIcon;
 };
 
 const navigationItems: NavigationItem[] = [
-  { href: '/dashboard', label: 'Overview', shortLabel: 'Home' },
-  { href: '/search', label: 'Search flights', shortLabel: 'Search' },
-  { href: '/bookings', label: 'My bookings', shortLabel: 'Bookings' },
+  { href: '/dashboard', label: 'Overview', shortLabel: 'Home', icon: LayoutDashboard },
+  { href: '/search', label: 'Search flights', shortLabel: 'Search', icon: Plane },
+  { href: '/bookings', label: 'My bookings', shortLabel: 'Bookings', icon: Calendar },
 ];
 
 export function DashboardShell({
@@ -31,29 +34,42 @@ export function DashboardShell({
   const displayName = user.name?.trim() || user.email?.trim() || 'Traveler';
   const avatarLabel = displayName.charAt(0).toLocaleUpperCase();
   const visibleNavigationItems: NavigationItem[] = showProfileNavigation
-    ? [...navigationItems, { href: '/profile', label: 'Traveler profile', shortLabel: 'Profile' }]
+    ? [
+        ...navigationItems,
+        { href: '/profile', label: 'Traveler profile', shortLabel: 'Profile', icon: User },
+      ]
     : navigationItems;
 
   return (
     <div className={classes.dashboardRoot}>
       <aside className={classes.sidebar} aria-label="Dashboard navigation">
-        <Link className={classes.sidebarBrand} href="/dashboard">
-          <span className={classes.brandMark} aria-hidden="true">
-            W
-          </span>
-          <span>Wayfinder</span>
-        </Link>
+        <div className={classes.sidebarHeader}>
+          <Link className={classes.sidebarBrand} href="/dashboard">
+            <span className={classes.brandMark} aria-hidden="true">
+              <Compass className={classes.brandIcon} />
+            </span>
+            <span className={classes.brandText}>
+              <span className={classes.brandTitle}>Wayfinder</span>
+              <span className={classes.brandSubtitle}>Intelligent Travel Desk</span>
+            </span>
+          </Link>
+        </div>
         <nav className={classes.sidebarNav}>
-          {visibleNavigationItems.map((item) => (
-            <Link
-              key={item.href}
-              className={`${classes.sidebarLink} ${item.href === '/dashboard' ? classes.sidebarLinkCurrent : ''}`}
-              href={item.href}
-              aria-current={item.href === '/dashboard' ? 'page' : undefined}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {visibleNavigationItems.map((item) => {
+            const isCurrent = item.href === '/dashboard';
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                className={`${classes.sidebarLink} ${isCurrent ? classes.sidebarLinkCurrent : ''}`}
+                href={item.href}
+                aria-current={isCurrent ? 'page' : undefined}
+              >
+                <Icon className={classes.sidebarLinkIcon} aria-hidden="true" />
+                <span className={classes.sidebarLinkLabel}>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
       </aside>
 
@@ -67,13 +83,16 @@ export function DashboardShell({
           </div>
           <div className={classes.userBadge} aria-label={`Signed in as ${displayName}`}>
             <span className={classes.userAvatar} aria-hidden="true">
-              {avatarLabel}
-            </span>
-            <span className={classes.userDetails}>
-              <span className={classes.userName}>{displayName}</span>
-              {user.name?.trim() && user.email?.trim() ? (
-                <span className={classes.userEmail}>{user.email}</span>
-              ) : null}
+              {user.image?.trim() ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={user.image}
+                  alt={displayName}
+                  className={classes.userAvatarImage}
+                />
+              ) : (
+                avatarLabel
+              )}
             </span>
           </div>
         </header>
@@ -84,16 +103,21 @@ export function DashboardShell({
       </div>
 
       <nav className={classes.mobileNav} aria-label="Mobile dashboard navigation">
-        {visibleNavigationItems.map((item) => (
-          <Link
-            key={item.href}
-            className={`${classes.mobileNavLink} ${item.href === '/dashboard' ? classes.mobileNavLinkCurrent : ''}`}
-            href={item.href}
-            aria-current={item.href === '/dashboard' ? 'page' : undefined}
-          >
-            {item.shortLabel}
-          </Link>
-        ))}
+        {visibleNavigationItems.map((item) => {
+          const isCurrent = item.href === '/dashboard';
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              className={`${classes.mobileNavLink} ${isCurrent ? classes.mobileNavLinkCurrent : ''}`}
+              href={item.href}
+              aria-current={isCurrent ? 'page' : undefined}
+            >
+              <Icon className={classes.mobileNavIcon} aria-hidden="true" />
+              <span className={classes.mobileNavLabel}>{item.shortLabel}</span>
+            </Link>
+          );
+        })}
       </nav>
     </div>
   );
