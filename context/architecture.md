@@ -13,6 +13,42 @@ Historical feature narratives, commit logs, and per-task completion checklists (
 
 ---
 
+## CI Verification Boundaries
+
+The PR pipeline separates static validation from unit, interface/component, infrastructure integration, and performance results. Suite commands and environment requirements are maintained in [testing.md](./testing.md). Changed services run all their required lanes; unchanged services skip them. `ci-status` is the only required branch-protection check and validates every applicable lane, security reports, and the system-flow result.
+
+```mermaid
+flowchart TD
+    Changes[Detect affected services] --> API[API static gate]
+    Changes --> Web[Web static gate]
+    Changes --> Agent[Agent static gate]
+    Changes --> Security[Security scans]
+    API --> AU[API unit]
+    API --> AI[API interface and contracts]
+    API --> AD[API database integration and migrations]
+    API --> AP[API existing CI performance]
+    Web --> WU[Web Node unit tests]
+    Web --> WI[Web browser interface]
+    Web --> WB[Web build]
+    Agent --> GU[Agent isolated correctness]
+    Agent --> GI[Agent Redis correctness]
+    Agent --> GP[Agent performance]
+    AU --> System[System smoke and critical flows]
+    AI --> System
+    AD --> System
+    AP --> System
+    WU --> System
+    WI --> System
+    WB --> System
+    GU --> System
+    GI --> System
+    GP --> System
+    System --> Status[ci-status]
+    Security --> Status
+```
+
+Infrastructure lives only in suites that need it. API database-backed HTTP tests are service integration; the composed system flow is separate. API wire contracts and component tests have distinct steps in one interface job. Smoke and critical flows share one startup and report separately. Previously required benchmarks remain required; the full API HTTP performance command and T093 browser acceptance remain explicit additional suites rather than newly required PR gates.
+
 ## System Topology
 
 ```text

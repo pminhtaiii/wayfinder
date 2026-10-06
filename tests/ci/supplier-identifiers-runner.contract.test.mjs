@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const workflow = readFileSync(resolve(root, '.github/workflows/ci.yml'), 'utf8');
 const webPackage = JSON.parse(readFileSync(resolve(root, 'apps/web/package.json'), 'utf8'));
+const webUnitRunner = readFileSync(resolve(root, 'apps/web/scripts/run-node-tests.mjs'), 'utf8');
 const migrationHarness = resolve(root, 'tests/ci/supplier-identifiers-migration.e2e.mjs');
 const migrationHarnessUrl = pathToFileURL(migrationHarness).href;
 const compatibilityScript =
@@ -21,7 +22,17 @@ test('web compatibility script lists the four existing compatibility tests', () 
     'apps/web/tests/supplier-identity-injection.unit.ts',
   ]) {
     assert.equal(existsSync(resolve(root, testPath)), true, `${testPath} exists`);
+    assert.match(
+      readFileSync(resolve(root, testPath), 'utf8'),
+      /node:test/,
+      `${testPath} remains covered by the Node test runner`,
+    );
   }
+  assert.match(webUnitRunner, /includes\('node:test'\)/);
+  assert.equal(webPackage.scripts['test:unit'], 'node scripts/run-node-tests.mjs unit');
+  assert.equal(webPackage.scripts['test:route-contracts'], 'node scripts/run-node-tests.mjs routes');
+  assert.equal(webPackage.scripts['test:node'], 'node scripts/run-node-tests.mjs all');
+  assert.match(webUnitRunner, /category === 'all' \|\| \(category === 'routes'\) === isRouteTest/);
 });
 
 test('CI runs compatibility and migration contracts without replacing the pinned workflow contract', () => {
@@ -33,11 +44,11 @@ test('CI runs compatibility and migration contracts without replacing the pinned
     workflow,
     /node --test tests\/ci\/supplier-identifiers-migration\.contract\.test\.mjs tests\/ci\/supplier-identifiers-runner\.contract\.test\.mjs/,
   );
-  assert.match(workflow, /NODE_OPTIONS:\s*--require=\$\{\{ github\.workspace \}\}\/tests\/ci\/node-network-guard\.cjs[\s\S]{0,180}test:compatibility/);
-  assert.match(workflow, /pnpm --filter @web\/frontend run test:compatibility/);
+  assert.match(workflow, /NODE_OPTIONS:\s*--require=\$\{\{ github\.workspace \}\}\/tests\/ci\/node-network-guard\.cjs[\s\S]{0,180}test:unit/);
+  assert.match(workflow, /pnpm --filter @web\/frontend run test:unit/);
 });
 
-test('API E2E CI invokes the live migration proof with loopback admin access', () => {
+test('API integration CI invokes the live migration proof with loopback admin access', () => {
   assert.match(workflow, /node tests\/ci\/supplier-identifiers-migration\.e2e\.mjs/);
   assert.match(
     workflow,

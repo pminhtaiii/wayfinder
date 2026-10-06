@@ -152,9 +152,9 @@ function assertChangeAwareSharedJobPredicate(expression) {
   );
 
   for (const [service, terminals] of Object.entries({
-    api: ['api-unit-tests', 'api-e2e-tests'],
-    web: ['web-build'],
-    agent: ['agent-tests'],
+    api: ['api-unit-tests', 'api-interface-tests', 'api-integration-tests', 'api-performance-tests'],
+    web: ['web-build', 'web-unit-tests', 'web-interface-tests'],
+    agent: ['agent-unit-tests', 'agent-integration-tests', 'agent-performance-tests'],
   })) {
     assert.ok(
       candidates.some(
@@ -261,11 +261,17 @@ test('evaluator CLI emits JSON and fails closed', () => {
       SECURITY_CHANGED: 'false',
       API_GATE_RESULT: 'skipped',
       API_UNIT_TESTS_RESULT: 'skipped',
-      API_E2E_TESTS_RESULT: 'skipped',
+      API_INTERFACE_TESTS_RESULT: 'skipped',
+      API_INTEGRATION_TESTS_RESULT: 'skipped',
+      API_PERFORMANCE_TESTS_RESULT: 'skipped',
       WEB_GATE_RESULT: 'skipped',
       WEB_BUILD_RESULT: 'skipped',
+      WEB_UNIT_TESTS_RESULT: 'skipped',
+      WEB_INTERFACE_TESTS_RESULT: 'skipped',
       AGENT_GATE_RESULT: 'skipped',
-      AGENT_TESTS_RESULT: 'skipped',
+      AGENT_UNIT_TESTS_RESULT: 'skipped',
+      AGENT_INTEGRATION_TESTS_RESULT: 'skipped',
+      AGENT_PERFORMANCE_TESTS_RESULT: 'skipped',
       SECURITY_SAST_RESULT: 'skipped',
       SECURITY_SUPPLY_CHAIN_RESULT: 'skipped',
       SMOKE_AND_SANITY_RESULT: 'skipped',
@@ -361,26 +367,39 @@ test('workflow preserves service-specific validation and network boundaries', ()
   const apiGate = jobBlock(source, 'api-gate');
   for (const requirement of [
     /eslint/,
-    /pnpm --filter @shared\/types test/,
+    /pnpm build:shared/,
     /prisma generate/,
     /tsc --noEmit/,
   ]) {
     assertContains(apiGate, requirement, `API gate must include ${requirement}`);
   }
 
-  const apiE2e = jobBlock(source, 'api-e2e-tests');
+  const apiInterface = jobBlock(source, 'api-interface-tests');
+  for (const requirement of [
+    /api-test-partition\.contract\.test\.mjs/,
+    /pnpm --filter @shared\/types test/,
+    /test:contract/,
+    /test:component/,
+  ]) {
+    assertContains(apiInterface, requirement, `API interface tests must include ${requirement}`);
+  }
+
+  const apiIntegration = jobBlock(source, 'api-integration-tests');
   for (const requirement of [
     /postgres:16-alpine/,
     /redis:7-alpine/,
     /prisma migrate deploy/,
-    /test:e2e/,
+    /test:integration/,
+    /supplier-identifiers-migration\.e2e\.mjs/,
     /node-network-guard\.cjs/,
   ]) {
-    assertContains(apiE2e, requirement, `API E2E must include ${requirement}`);
+    assertContains(apiIntegration, requirement, `API integration must include ${requirement}`);
   }
 
   const webGate = jobBlock(source, 'web-gate');
   const webBuild = jobBlock(source, 'web-build');
+  const webUnit = jobBlock(source, 'web-unit-tests');
+  const webInterface = jobBlock(source, 'web-interface-tests');
   for (const requirement of [/lint/, /route/, /typecheck/]) {
     assertContains(webGate, requirement, `Web gate must include ${requirement}`);
   }
@@ -389,6 +408,9 @@ test('workflow preserves service-specific validation and network boundaries', ()
     /node-network-guard\.cjs/,
     'Web build must preload the Node network guard',
   );
+  assertContains(webUnit, /test:unit/, 'web unit job must run the fast Node suite');
+  assertContains(webUnit, /build:shared/, 'web unit job must build shared workspace exports');
+  assertContains(webInterface, /test:characterization/, 'web interface job must run characterization');
   assertContains(
     webBuild,
     /NEXT_PUBLIC_API_URL/,
@@ -396,58 +418,76 @@ test('workflow preserves service-specific validation and network boundaries', ()
   );
 
   const agentGate = jobBlock(source, 'agent-gate');
-  const agentTests = jobBlock(source, 'agent-tests');
+  const agentUnit = jobBlock(source, 'agent-unit-tests');
+  const agentIntegration = jobBlock(source, 'agent-integration-tests');
+  const agentPerformance = jobBlock(source, 'agent-performance-tests');
   for (const requirement of [
     /uv sync --locked --package agent/,
+    /CI_VALIDATE_TEST_PARTITIONS:\s*['"]?1['"]?/,
+    /pytest apps\/agent\/tests --collect-only -qq/,
     /ruff check/,
     /ruff format --check/,
   ]) {
     assertContains(agentGate, requirement, `Agent gate must include ${requirement}`);
   }
   for (const requirement of [
-    /redis:7-alpine/,
-    /CI_REQUIRE_REDIS_TESTS:\s*['"]?1['"]?/,
-    /redis_integration/,
+    /-m agent_unit/,
     /PYTHONPATH.*tests\/ci\/python/,
   ]) {
-    assertContains(agentTests, requirement, `Agent tests must include ${requirement}`);
+    assertContains(agentUnit, requirement, `Agent unit tests must include ${requirement}`);
+  }
+  for (const requirement of [
+    /redis:7-alpine/,
+    /CI_REQUIRE_REDIS_TESTS:\s*['"]?1['"]?/,
+    /-m agent_redis/,
+    /PYTHONPATH.*tests\/ci\/python/,
+  ]) {
+    assertContains(agentIntegration, requirement, `Agent integration tests must include ${requirement}`);
+  }
+  for (const requirement of [
+    /redis:7-alpine/,
+    /CI_REQUIRE_PERFORMANCE_TESTS:\s*['"]?1['"]?/,
+    /-m agent_performance/,
+    /PYTHONPATH.*tests\/ci\/python/,
+  ]) {
+    assertContains(agentPerformance, requirement, `Agent performance tests must include ${requirement}`);
   }
 });
 
-test('Redis coverage enforcement applies only to the Redis Agent test step', () => {
-  const agentTests = jobBlock(workflow(), 'agent-tests');
-  const nonRedisStep = stepBlock(
-    agentTests,
-    'Run non-Redis Agent tests with loopback-only network',
-  );
-  const redisStep = stepBlock(
-    agentTests,
-    'Run required Redis integration tests with loopback-only network',
-  );
-
-  assert.doesNotMatch(
-    nonRedisStep,
-    /CI_REQUIRE_REDIS_TESTS/,
-    'the non-Redis selection must not require Redis-marked tests to remain collected',
-  );
-  assert.match(
-    redisStep,
-    /CI_REQUIRE_REDIS_TESTS:\s*['"]?1['"]?/,
-    'the dedicated Redis step must fail closed when Redis coverage is unavailable',
-  );
+test('Agent unit, Redis, and performance selectors are independently required', () => {
+  const source = workflow();
+  for (const [jobId, marker, guard] of [
+    ['agent-unit-tests', 'agent_unit', undefined],
+    ['agent-integration-tests', 'agent_redis', 'CI_REQUIRE_REDIS_TESTS'],
+    ['agent-performance-tests', 'agent_performance', 'CI_REQUIRE_PERFORMANCE_TESTS'],
+  ]) {
+    const job = jobBlock(source, jobId);
+    assert.match(job, new RegExp(`-m ${marker}`), `${jobId} must select ${marker}`);
+    if (guard) assert.match(job, new RegExp(`${guard}:\\s*['"]?1['"]?`), `${jobId} must require collected coverage`);
+  }
 });
 
-test('API unit CI uses a dedicated non-forwarded Jest command', () => {
+test('API unit and fast performance lanes use explicit Jest commands', () => {
   const apiUnitTests = jobBlock(workflow(), 'api-unit-tests');
   const unitStep = stepBlock(apiUnitTests, 'Run API unit tests with loopback-only network');
+  const apiPerformance = jobBlock(workflow(), 'api-performance-tests');
+  const performanceStep = stepBlock(apiPerformance, 'Run API performance checks with loopback-only network');
   const apiPackage = JSON.parse(readFileSync(resolve(root, 'apps/api/package.json'), 'utf8'));
 
   assert.equal(
-    apiPackage.scripts['test:ci'],
-    'jest --config ./jest.config.json --runInBand',
+    apiPackage.scripts['test:unit'],
+    'jest --config ./jest-unit.json --runInBand',
     'API package must expose an explicit deterministic CI unit command',
   );
-  assert.match(unitStep, /pnpm --filter @api\/backend run test:ci/);
+  assert.match(unitStep, /pnpm --filter @api\/backend run test:unit/);
+  assert.match(apiUnitTests, /pnpm build:shared/);
+  assert.match(apiUnitTests, /prisma generate/);
+  assert.equal(
+    apiPackage.scripts['test:performance:unit'],
+    'jest --config ./jest-performance-unit.json --runInBand',
+    'API package must expose a fast in-process performance command',
+  );
+  assert.match(performanceStep, /pnpm --filter @api\/backend run test:performance:unit/);
   assert.doesNotMatch(
     unitStep,
     /test -- --runInBand/,
@@ -467,6 +507,11 @@ test('default API E2E excludes runner-dependent performance benchmarks', () => {
     apiPackage.scripts['test:e2e:performance'],
     'jest --config ./test/jest-e2e-performance.json --runInBand',
     'performance benchmarks must remain available through an explicit opt-in command',
+  );
+  assert.doesNotMatch(
+    workflow(),
+    /test:e2e:performance/,
+    'runner-sensitive AppModule performance benchmarks must stay opt-in',
   );
 });
 
@@ -502,11 +547,17 @@ test('workflow defines the required job graph, routing matrix, and fail-closed s
   for (const [job, dependency] of [
     ['api-gate', 'detect-changes'],
     ['api-unit-tests', 'api-gate'],
-    ['api-e2e-tests', 'api-gate'],
+    ['api-interface-tests', 'api-gate'],
+    ['api-integration-tests', 'api-gate'],
+    ['api-performance-tests', 'api-gate'],
     ['web-gate', 'detect-changes'],
     ['web-build', 'web-gate'],
+    ['web-unit-tests', 'web-gate'],
+    ['web-interface-tests', 'web-gate'],
     ['agent-gate', 'detect-changes'],
-    ['agent-tests', 'agent-gate'],
+    ['agent-unit-tests', 'agent-gate'],
+    ['agent-integration-tests', 'agent-gate'],
+    ['agent-performance-tests', 'agent-gate'],
   ]) {
     assertContains(
       jobBlock(source, job),
@@ -601,9 +652,15 @@ test('smoke-and-sanity is an always-evaluated, change-aware dependency gate', ()
   for (const dependency of [
     'detect-changes',
     'api-unit-tests',
-    'api-e2e-tests',
+    'api-interface-tests',
+    'api-integration-tests',
+    'api-performance-tests',
     'web-build',
-    'agent-tests',
+    'web-unit-tests',
+    'web-interface-tests',
+    'agent-unit-tests',
+    'agent-integration-tests',
+    'agent-performance-tests',
   ]) {
     assertContains(
       shared,
@@ -616,7 +673,7 @@ test('smoke-and-sanity is an always-evaluated, change-aware dependency gate', ()
   assert.throws(
     () =>
       assertChangeAwareSharedJobPredicate(
-        "always() && needs.detect-changes.result == 'success' && (needs.detect-changes.outputs.api == 'true' || needs.detect-changes.outputs.web == 'true' || needs.detect-changes.outputs.agent == 'true') && needs.api-unit-tests.result == 'success' && needs.api-e2e-tests.result == 'success' && needs.web-build.result == 'success' && needs.agent-tests.result == 'success'",
+        "always() && needs.detect-changes.result == 'success' && (needs.detect-changes.outputs.api == 'true' || needs.detect-changes.outputs.web == 'true' || needs.detect-changes.outputs.agent == 'true') && needs.api-unit-tests.result == 'success' && needs.api-interface-tests.result == 'success' && needs.api-integration-tests.result == 'success' && needs.api-performance-tests.result == 'success' && needs.web-build.result == 'success' && needs.web-unit-tests.result == 'success' && needs.web-interface-tests.result == 'success' && needs.agent-unit-tests.result == 'success' && needs.agent-integration-tests.result == 'success' && needs.agent-performance-tests.result == 'success'",
       ),
     /must permit an unchanged domain/,
     'a predicate that requires every terminal even for unchanged domains must be rejected',

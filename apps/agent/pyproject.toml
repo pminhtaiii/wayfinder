@@ -44,6 +44,10 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["src"]
 markers = [
+    "agent_unit: isolated correctness coverage",
+    "agent_redis: real Redis correctness integration coverage",
+    "agent_performance: benchmark and measured safety performance coverage",
     "redis_integration: requires a reachable Redis server",
+    "performance: benchmark or time-ceiling coverage for the performance lane",
     "security: security regression and guardrail verification tests",
 ]

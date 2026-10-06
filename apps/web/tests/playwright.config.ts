@@ -38,6 +38,7 @@ const frontendEnv = {
 
 export default defineConfig({
   testDir: './',
+  testIgnore: t093RealFlow ? [] : '**/chat-t093-real-flow.spec.ts',
   fullyParallel: false,
   workers: 1,
   timeout: 60000,
