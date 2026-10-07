@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Compass,
   Plane,
@@ -123,14 +124,40 @@ const TESTIMONIALS: readonly Testimonial[] = [
   },
 ];
 
+function formatSampleDate(daysAhead: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() + daysAhead);
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric',
+  });
+}
+
 export function LandingPage(): JSX.Element {
+  const router = useRouter();
   const [tripMode, setTripMode] = useState<TripMode>('round-trip');
   const [originStation, setOriginStation] = useState({ code: 'SFO', city: 'San Francisco, CA' });
   const [destStation, setDestStation] = useState({ code: 'HND', city: 'Tokyo Haneda, JP' });
+  const [signupEmail, setSignupEmail] = useState('');
+
+  const departureDateText = formatSampleDate(14);
+  const returnDateText = formatSampleDate(25);
 
   const handleSwapStations = (): void => {
     setOriginStation(destStation);
     setDestStation(originStation);
+  };
+
+  const handleSignupSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
+    e.preventDefault();
+    const trimmed = signupEmail.trim();
+    if (trimmed) {
+      router.push(`/register?email=${encodeURIComponent(trimmed)}`);
+    } else {
+      router.push('/register');
+    }
   };
 
   return (
@@ -231,7 +258,7 @@ export function LandingPage(): JSX.Element {
                   </div>
 
                   <div className={`${styles.glassDeck} ${styles.metricBadge}`}>
-                    <Activity size={16} color="#059669" aria-hidden="true" />
+                    <Activity size={16} color="#047857" aria-hidden="true" />
                     <span className={styles.metricBadgeGreen}>
                       $14M saved in fare arbitrage
                     </span>
@@ -282,11 +309,11 @@ export function LandingPage(): JSX.Element {
                 <div className={`${styles.glassDeck} ${styles.searchConsoleDeck}`}>
                   {/* Trip Mode Switcher */}
                   <div className={styles.tripModeHeader}>
-                    <div className={styles.tripModeTabs} role="tablist" aria-label="Trip type">
+                    <div className={styles.tripModeTabs} role="radiogroup" aria-label="Trip type">
                       <button
                         type="button"
-                        role="tab"
-                        aria-selected={tripMode === 'round-trip'}
+                        role="radio"
+                        aria-checked={tripMode === 'round-trip'}
                         onClick={(): void => setTripMode('round-trip')}
                         className={
                           tripMode === 'round-trip'
@@ -298,8 +325,8 @@ export function LandingPage(): JSX.Element {
                       </button>
                       <button
                         type="button"
-                        role="tab"
-                        aria-selected={tripMode === 'one-way'}
+                        role="radio"
+                        aria-checked={tripMode === 'one-way'}
                         onClick={(): void => setTripMode('one-way')}
                         className={
                           tripMode === 'one-way'
@@ -311,8 +338,8 @@ export function LandingPage(): JSX.Element {
                       </button>
                       <button
                         type="button"
-                        role="tab"
-                        aria-selected={tripMode === 'multi-city'}
+                        role="radio"
+                        aria-checked={tripMode === 'multi-city'}
                         onClick={(): void => setTripMode('multi-city')}
                         className={
                           tripMode === 'multi-city'
@@ -344,7 +371,7 @@ export function LandingPage(): JSX.Element {
                       </div>
                       <div className={styles.stationCardDate}>
                         <Calendar size={13} aria-hidden="true" />
-                        <span>Fri, Oct 24, 2025</span>
+                        <span>{departureDateText}</span>
                       </div>
                     </div>
 
@@ -368,10 +395,12 @@ export function LandingPage(): JSX.Element {
                         <span className={styles.stationIata}>{destStation.code}</span>
                         <span className={styles.stationName}>{destStation.city}</span>
                       </div>
-                      <div className={styles.stationCardDate}>
-                        <Calendar size={13} aria-hidden="true" />
-                        <span>Wed, Nov 04, 2025</span>
-                      </div>
+                      {tripMode !== 'one-way' ? (
+                        <div className={styles.stationCardDate}>
+                          <Calendar size={13} aria-hidden="true" />
+                          <span>{returnDateText}</span>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
 
@@ -453,7 +482,7 @@ export function LandingPage(): JSX.Element {
                   </span>
                   <span style={{ color: '#cbd5e1' }}>·</span>
                   <span>
-                    <strong style={{ color: '#059669' }}>99.8%</strong> Direct GDS Accuracy
+                    <strong style={{ color: '#047857' }}>99.8%</strong> Direct GDS Accuracy
                   </span>
                 </div>
               </div>
@@ -546,7 +575,7 @@ export function LandingPage(): JSX.Element {
                   <div className={styles.chartTimeAxis}>
                     <span>Day -21</span>
                     <span>Day -14</span>
-                    <strong style={{ color: '#0099cc' }}>TODAY (Lock $1,180)</strong>
+                    <strong style={{ color: 'var(--wf-primary)' }}>TODAY (Lock $1,180)</strong>
                     <span>Day +7</span>
                     <span>Day +14</span>
                   </div>
@@ -560,7 +589,7 @@ export function LandingPage(): JSX.Element {
                     <span className={styles.bentoBadgeSecondary}>FEATURE 02 · ATMOSPHERICS</span>
                     <span
                       className={styles.bentoTelemetryLabel}
-                      style={{ color: '#0099cc' }}
+                      style={{ color: 'var(--wf-primary)' }}
                     >
                       <Navigation size={15} aria-hidden="true" />
                       JETSTREAM LIVE
@@ -612,7 +641,7 @@ export function LandingPage(): JSX.Element {
                     }}
                   >
                     <span>37°37&apos;N 122°22&apos;W</span>
-                    <strong style={{ color: '#0099cc' }}>+42 kts Tailwind Assist</strong>
+                    <strong style={{ color: 'var(--wf-primary)' }}>+42 kts Tailwind Assist</strong>
                     <span>35°33&apos;N 139°46&apos;E</span>
                   </div>
 
@@ -678,7 +707,7 @@ export function LandingPage(): JSX.Element {
                         style={{
                           padding: '0.2rem 0.6rem',
                           borderRadius: '9999px',
-                          background: '#00bfff',
+                          background: '#0284c7',
                           color: '#ffffff',
                           fontWeight: 700,
                           fontSize: '0.6875rem',
@@ -794,7 +823,7 @@ export function LandingPage(): JSX.Element {
                           style={{
                             fontFamily: "'JetBrains Mono', monospace",
                             fontSize: '0.6875rem',
-                            color: '#0099cc',
+                            color: 'var(--wf-primary)',
                             fontWeight: 600,
                             marginBottom: '0.25rem',
                           }}
@@ -914,7 +943,7 @@ export function LandingPage(): JSX.Element {
                   key={item.name}
                   className={`${styles.glassDeck} ${styles.testimonialCard}`}
                 >
-                  <div className={styles.starsRow} aria-label="Rating: 5 out of 5 stars">
+                  <div className={styles.starsRow} role="img" aria-label="Rating: 5 out of 5 stars">
                     <Star size={16} fill="#f59e0b" color="#f59e0b" aria-hidden="true" />
                     <Star size={16} fill="#f59e0b" color="#f59e0b" aria-hidden="true" />
                     <Star size={16} fill="#f59e0b" color="#f59e0b" aria-hidden="true" />
@@ -965,23 +994,24 @@ export function LandingPage(): JSX.Element {
 
                 <form
                   className={styles.ctaForm}
-                  onSubmit={(e): void => {
-                    e.preventDefault();
-                  }}
+                  onSubmit={handleSignupSubmit}
                 >
                   <input
                     type="email"
+                    name="email"
+                    value={signupEmail}
+                    onChange={(e): void => setSignupEmail(e.target.value)}
                     placeholder="Enter your work email..."
                     aria-label="Work email address"
                     className={styles.ctaInput}
                   />
-                  <Link
-                    href="/register"
-                    className={`${styles.cyanGlowButton}`}
+                  <button
+                    type="submit"
+                    className={styles.cyanGlowButton}
                     style={{ padding: '0.85rem 1.5rem', whiteSpace: 'nowrap' }}
                   >
                     Get Started Free
-                  </Link>
+                  </button>
                 </form>
 
                 <div className={styles.ctaCheckmarks}>
@@ -1035,7 +1065,7 @@ export function LandingPage(): JSX.Element {
               <div className={styles.footerColTitle}>Product</div>
               <ul className={styles.footerLinksList}>
                 <li>
-                  <a href="#search-engine" className={styles.footerLink}>
+                  <a href="#route-engine" className={styles.footerLink}>
                     Route Engine
                   </a>
                 </li>
@@ -1132,11 +1162,11 @@ export function LandingPage(): JSX.Element {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div className={styles.prefBox}>
                   <span style={{ color: 'var(--wf-outline)' }}>Currency</span>
-                  <strong style={{ color: '#0099cc' }}>USD ($)</strong>
+                  <strong style={{ color: 'var(--wf-primary)' }}>USD ($)</strong>
                 </div>
                 <div className={styles.prefBox}>
                   <span style={{ color: 'var(--wf-outline)' }}>Units</span>
-                  <strong style={{ color: '#0099cc' }}>Nautical (nm)</strong>
+                  <strong style={{ color: 'var(--wf-primary)' }}>Nautical (nm)</strong>
                 </div>
               </div>
             </div>
@@ -1144,17 +1174,11 @@ export function LandingPage(): JSX.Element {
 
           {/* Legal and Copyright */}
           <div className={styles.footerBottom}>
-            <div>© 2025 Wayfinder Inc. Precision Aviation Telemetry. All rights reserved.</div>
+            <div>© {new Date().getFullYear()} Wayfinder Inc. Precision Aviation Telemetry. All rights reserved.</div>
             <div className={styles.footerBottomLinks}>
-              <Link href="/login" className={styles.footerLink}>
-                Privacy Policy
-              </Link>
-              <Link href="/login" className={styles.footerLink}>
-                Terms of Service
-              </Link>
-              <Link href="/login" className={styles.footerLink}>
-                Security Whitepaper
-              </Link>
+              <span>Privacy Policy</span>
+              <span>Terms of Service</span>
+              <span>Security Whitepaper</span>
             </div>
           </div>
         </div>

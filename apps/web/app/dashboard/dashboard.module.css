@@ -285,6 +285,7 @@
 
 .quickSearchContainer,
 .quickSearchSection {
+  container-type: inline-size;
   padding: 0.75rem 1rem;
 }
 
@@ -301,7 +302,13 @@
   align-items: flex-end;
 }
 
-@media (min-width: 860px) {
+@media (min-width: 1024px) {
+  .quickSearchRow {
+    grid-template-columns: 1fr 1fr 1fr auto;
+  }
+}
+
+@container (min-width: 680px) {
   .quickSearchRow {
     grid-template-columns: 1fr 1fr 1fr auto;
   }

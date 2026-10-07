@@ -133,6 +133,16 @@ function ChatWidgetInner(): JSX.Element {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [inputMessage, setInputMessage] = useState('');
   const [isMinimized, setIsMinimized] = useState(false);
+  const restoreButtonRef = useRef<HTMLButtonElement | null>(null);
+  const shouldFocusRestoreRef = useRef(false);
+
+  useEffect(() => {
+    if (isMinimized && shouldFocusRestoreRef.current) {
+      shouldFocusRestoreRef.current = false;
+      restoreButtonRef.current?.focus();
+    }
+  }, [isMinimized]);
+
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -238,10 +248,16 @@ function ChatWidgetInner(): JSX.Element {
     setInputMessage('');
   };
 
+  const handleMinimize = (): void => {
+    shouldFocusRestoreRef.current = true;
+    setIsMinimized(true);
+  };
+
   if (isMinimized) {
     return (
       <aside className="fixed bottom-4 right-4 z-50" aria-label="Agent chat">
         <button
+          ref={restoreButtonRef}
           type="button"
           onClick={() => setIsMinimized(false)}
           className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-medium text-primary-foreground shadow-lg transition-transform hover:opacity-90 hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2"
@@ -263,7 +279,7 @@ function ChatWidgetInner(): JSX.Element {
         <span>Agent Chat</span>
         <button
           type="button"
-          onClick={() => setIsMinimized(true)}
+          onClick={handleMinimize}
           className="rounded p-1 text-primary-foreground/80 hover:bg-white/20 hover:text-primary-foreground transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
           aria-label="Minimize agent chat"
         >

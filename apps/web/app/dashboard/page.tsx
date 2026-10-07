@@ -29,6 +29,7 @@ export default async function DashboardPage(): Promise<JSX.Element> {
   const user = {
     name: session?.user?.name,
     email: session?.user?.email,
+    image: session?.user?.image,
   };
 
   let showProfileNavigation = isBookingReadinessEnabled();
