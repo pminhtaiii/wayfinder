@@ -6,7 +6,7 @@
 
 ## Phase 1: Setup
 - [X] T001 [P] Add default-off/invalid-configuration tests in apps/api/src/payment-fulfillment/fulfillment-recovery.config.spec.ts.
-- [ ] T002 Implement recovery enrollment/configuration and validated lease/expiry policy in apps/api/src/payment-fulfillment/fulfillment-recovery.config.ts and apps/api/src/app.module.ts.
+- [X] T002 Implement recovery enrollment/configuration and validated lease/expiry policy in apps/api/src/payment-fulfillment/fulfillment-recovery.config.ts and apps/api/src/app.module.ts.
 
 ## Phase 2: Foundation and Controlled Harness
 - [ ] T003 [P] Add clean/legacy migration and Payment reservation reader tests in apps/api/test/fulfillment-recovery-migration.e2e-spec.ts.

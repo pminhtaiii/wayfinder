@@ -17,7 +17,7 @@ Selector checks cover all 206 required API suites exactly once. Local verificati
 Overall status:
 
 ```text
-FEATURES 001–028 100% COMPLETE / FEATURE 029 COMPLETE / FINAL-SOURCE CI PASSED / T093 ACCEPTANCE PASSED; LOCAL API PARTIAL
+FEATURES 001-028 100% COMPLETE / FEATURE 029 COMPLETE / FEATURE 030 PHASE 1 (T001-T002) COMPLETE; LATER PHASES PENDING
 ```
 
 Feature 029 was developed on `codex/029-duffel-provider-narrowing` and PR [#371](https://github.com/pminhtaiii/wayfinder/pull/371) merged into `development` at `8efbfc5aff4eea7179ef83529d11898b7e8477fb`. Exact-source CI run [37278447237](https://github.com/pminhtaiii/wayfinder/actions/runs/37278447237) passed on source HEAD `791947c365c95e2721893c90cc3d92a433938117`; the API unit job passed 135/135 suites, including the database-backed supplier-sync suite, and API E2E passed 71/71 suites. The local T055 API invocation remains partial at 134/135 suites and 2,367/2,385 tests; remote CI covers the omitted suite but does not change the local result. Earlier Slice 6.2 verification remains recorded under PR [#370](https://github.com/pminhtaiii/wayfinder/pull/370), run [37188540602](https://github.com/pminhtaiii/wayfinder/actions/runs/37188540602), source `551c3890cd37f65ded2adf900244fc9ca0d76dd8`. PR #368 closed without merging; PRs #369 and #370 are historical merged slices.
@@ -28,7 +28,13 @@ Feature 029 was developed on `codex/029-duffel-provider-narrowing` and PR [#371]
 
 Feature 029 implementation tasks T001–T057 and convergence tasks T058–T067 are complete and merged. The boundary census found zero unexplained runtime hits. T093 full real-flow Playwright acceptance passed with exit code 0: one Chromium test completed in 4.9 minutes against a fresh disposable database after 25 migrations and seeding 4,562 airports, including SGN and HAN. The documented timeout values were set in the Playwright process, application source and test assertions were unchanged, and only runner-owned PostgreSQL and Redis containers were stopped. Exact-final-source CI run [37278447237](https://github.com/pminhtaiii/wayfinder/actions/runs/37278447237) passed the API unit job (135/135 suites, including the database-backed supplier-sync suite) and API E2E job (71/71 suites). The local API run remains partial (134/135 suites, 2,367/2,385 tests); remote CI provides coverage for the omitted suite without changing the local result. Feature 029 acceptance is complete. See the [Feature 029 verification record](../specs/029-duffel-provider-narrowing/verification.md) for the final T093 result and historical attempts.
 
-Feature 030 has not been specified or selected. Next-feature planning waits only for user selection. No backlog item or second supplier has been selected.
+## Feature 030 - Safe Booking Fulfillment Recovery (Phase 1 checkpoint)
+
+Phase 1 setup tasks T001 and T002 are complete on codex/030-fulfillment-recovery-acceptance; T001 received an independent PASS review. T002 validates recovery configuration at API startup. The switch defaults to false, timing values use positive safe-integer parsing with reviewed lease/renewal/escalation defaults, and enabling configuration requires an explicit positive pre-create authorization margin.
+
+Verification: recovery configuration 10/10, chat-handoff configuration 5/5, AppModule component suite 21/21, API typecheck passed, and API package lint passed. T002's report records the exact commands and the test-only supplier token required for the AppModule wiring fixture.
+
+Only configuration validation is delivered. T003 onward, database persistence, provider calls, recovery workflow and payment routing, controlled acceptance harness, rollout gates, and feature-wide acceptance remain pending. The flag does not activate any workflow in Phase 1 and remains false by default. Existing uncommitted Balance mapping work in the original checkout is outside this scope.
 
 Detailed phase-by-phase execution, live task checklists, and exit gates are tracked in [active-feature.md](./active-feature.md).
 
