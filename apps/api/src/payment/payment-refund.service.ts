@@ -23,6 +23,7 @@ import {
   PublishableEvent,
 } from '@/domain-events';
 import { BookingLifecycleService } from '@/booking-lifecycle/booking-lifecycle.service';
+import { hasStripePaymentIntentId } from '@/payment-fulfillment/stripe-payment-intent-reference';
 
 @Injectable()
 export class PaymentRefundService {
@@ -95,6 +96,17 @@ export class PaymentRefundService {
         };
       }
 
+      const pendingResponse = {
+        refundId: refund.id,
+        paymentId,
+        amount: dto.amount,
+        currency: payment.currency,
+        status: RefundStatus.REFUND_PENDING,
+        triggerType,
+      };
+      if (!hasStripePaymentIntentId(payment)) {
+        return pendingResponse;
+      }
       let stripeRefund;
       try {
         stripeRefund = await this.stripeService.createRefund(
@@ -337,6 +349,17 @@ export class PaymentRefundService {
         };
       }
 
+      const pendingResponse = {
+        refundId: refund.id,
+        paymentId,
+        amount: refundableAmount,
+        currency: payment.currency,
+        status: RefundStatus.REFUND_PENDING,
+        triggerType: RefundTriggerType.SYSTEM_AUTOMATED,
+      };
+      if (!hasStripePaymentIntentId(payment)) {
+        return pendingResponse;
+      }
       let stripeRefund;
       try {
         stripeRefund = await this.stripeService.createRefund(
@@ -451,6 +474,9 @@ export class PaymentRefundService {
       return { refundStatus: 'SUCCEEDED', refundAmount };
     }
 
+    if (!hasStripePaymentIntentId(payment)) {
+      return { refundStatus: RefundStatus.REFUND_PENDING, refundAmount };
+    }
     let stripeRefund: { id: string } | null;
     try {
       stripeRefund = await this.createCancellationRefundWithRetries(
@@ -516,6 +542,9 @@ export class PaymentRefundService {
       return;
     }
 
+    if (!hasStripePaymentIntentId(refund.payment)) {
+      return;
+    }
     if (
       !refund.idempotencyKeyCreatedAt ||
       this.isIdempotencyKeyUnsafe(refund.idempotencyKeyCreatedAt)

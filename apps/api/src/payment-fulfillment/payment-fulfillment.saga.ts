@@ -28,6 +28,7 @@ import { enforceTransition } from '@/payment/payment-state-machine';
 import { FlightSnapshot, PassengerSnapshot } from '@shared/booking-types';
 import { FLIGHT_SEARCH_PORT } from '@/supplier/search/flight-search.port';
 import type { FlightSearchPort } from '@/supplier/search/flight-search.port';
+import { hasStripePaymentIntentId } from './stripe-payment-intent-reference';
 import {
   PAYMENT_GATEWAY_PORT,
   FULFILLMENT_GATEWAY_PORT,
@@ -266,6 +267,13 @@ export class PaymentFulfillmentSaga {
         throw new ForbiddenException('You do not own this payment');
       }
 
+      if (!hasStripePaymentIntentId(payment)) {
+        return {
+          status: 'PENDING',
+          message: 'Payment is waiting for a provider payment intent. Please poll status.',
+          pollUrl: '/api/bookings/payment/' + dto.paymentId + '/status',
+        };
+      }
       if (dto.bookingId && typeof this.prisma.booking?.findUnique === 'function') {
         const requestedBooking = await this.prisma.booking.findUnique({
           where: { id: dto.bookingId },

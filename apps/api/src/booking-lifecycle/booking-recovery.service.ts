@@ -22,6 +22,7 @@ import { CacheService } from '@/cache/cache.service';
 import { BookingLifecycleService } from './booking-lifecycle.service';
 import { BookingWithRelations } from './booking-lifecycle.types';
 import { BookingEventPublisherService, TransactionEventContext } from '@/domain-events';
+import { hasStripePaymentIntentId } from '@/payment-fulfillment/stripe-payment-intent-reference';
 
 const STALE_THRESHOLD_MS = 15 * 60 * 1000;
 
@@ -248,7 +249,7 @@ export class BookingRecoveryService {
         });
       };
 
-      if (!booking.payment?.stripePaymentIntentId) {
+      if (!booking.payment) {
         let eventContext: TransactionEventContext | undefined;
         let didTransition = false;
         await this.prisma.$transaction(async (tx) => {
@@ -277,6 +278,7 @@ export class BookingRecoveryService {
       }
 
       const payment = booking.payment;
+      if (!hasStripePaymentIntentId(payment)) return booking;
       const intent = await withTimeout(
         this.stripeService.retrievePaymentIntent(payment.stripePaymentIntentId),
       );
@@ -591,6 +593,8 @@ export class BookingRecoveryService {
       this.logger.warn(`Payment ${paymentId} not found for automated refund`);
       return;
     }
+
+    if (!hasStripePaymentIntentId(payment)) return;
 
     const succeededRefunds = await this.prisma.refund.findMany({
       where: { paymentId, status: RefundStatus.SUCCEEDED },
