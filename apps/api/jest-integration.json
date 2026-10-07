@@ -4,8 +4,8 @@
   "testEnvironment": "node",
   "testTimeout": 30000,
   "testMatch": [
-    "<rootDir>/src/disruption/sync/supplier-sync.service.spec.ts",
-    "<rootDir>/test/**/*.e2e-spec.ts"
+    "**/src/disruption/sync/supplier-sync.service.spec.ts",
+    "**/test/**/*.e2e-spec.ts"
   ],
   "testPathIgnorePatterns": [
     "[.-]performance\\.e2e-spec\\.ts$",

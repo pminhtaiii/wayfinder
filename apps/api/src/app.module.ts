@@ -35,6 +35,10 @@ import { BookingReadinessMetricsModule } from './common/observability/booking-re
 import { RefundModule } from './refund/refund.module';
 import { RefundSettlementModule } from './refund-settlement/refund-settlement.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import {
+  addFulfillmentRecoveryConfigIssues,
+  fulfillmentRecoveryEnvSchema,
+} from './payment-fulfillment/fulfillment-recovery.config';
 
 import { StripeModule } from './common/stripe.module';
 
@@ -95,19 +99,28 @@ export const envSchema = z
       .regex(/^[1-9]\d*$/, 'DUFFEL_ADMISSION_TIMEOUT_MS must be a positive integer string')
       .optional(),
   })
+  .extend(fulfillmentRecoveryEnvSchema.shape)
   .passthrough()
-  .refine(
-    (data) => {
+  .superRefine(
+    (
+      data: z.infer<typeof fulfillmentRecoveryEnvSchema> & {
+        FEATURE_FLAG_CHAT_HANDOFF_ISSUE: string;
+        FEATURE_FLAG_CHAT_HANDOFF_ACCEPT: string;
+      },
+      context: z.RefinementCtx,
+    ): void => {
+      addFulfillmentRecoveryConfigIssues(data, context);
+
       if (
         data.FEATURE_FLAG_CHAT_HANDOFF_ISSUE === 'true' &&
         data.FEATURE_FLAG_CHAT_HANDOFF_ACCEPT !== 'true'
       ) {
-        return false;
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['FEATURE_FLAG_CHAT_HANDOFF_ISSUE'],
+          message: 'Invalid config: ISSUE=true but ACCEPT=false',
+        });
       }
-      return true;
-    },
-    {
-      message: 'Invalid config: ISSUE=true but ACCEPT=false',
     },
   );
 

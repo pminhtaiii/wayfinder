@@ -2,7 +2,7 @@
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": "src",
   "testEnvironment": "node",
-  "testMatch": ["<rootDir>/**/*.spec.ts"],
+  "testMatch": ["**/*.spec.ts"],
   "testPathIgnorePatterns": [
     "\\.module\\.spec\\.ts$",
     "\\.adapter\\.spec\\.ts$",

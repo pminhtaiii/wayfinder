@@ -166,6 +166,10 @@ Exit gate:
 boundary census clean (0 unexplained leaks); domain orchestrators consume canonical offers; agent security performance gate green; dedicated test db isolation verified
 ```
 
-## Feature 030 planning checkpoint (2026-10-07)
+## Feature 030 Phase 1 checkpoint (2026-10-07)
 
-Safe booking fulfillment recovery and controlled acceptance verification are planned in specs/030-fulfillment-recovery-acceptance/. Accepted payment/reconciliation and verification decisions are recorded in docs/adr/research-booking-fulfillment-reconciliation-decisions.md and docs/adr/research-payment-verification-architecture-decisions.md. Implementation tasks remain unchecked; this checkpoint does not claim recovery, checkout wiring or the provider harness is shipped. Existing uncommitted Balance mapping work in the original checkout is not part of this planning-only change.
+Safe booking fulfillment recovery has completed Phase 1 setup tasks T001 and T002 on codex/030-fulfillment-recovery-acceptance. T001's immutable default-off and invalid-configuration tests were independently reviewed with a PASS verdict. T002 adds a feature-owned Zod configuration schema and composes it into root startup validation; recovery defaults to false, durations parse to positive safe integers, renewal must be shorter than the lease, and enablement requires an explicit positive authorization margin.
+
+Verification: focused recovery configuration 10/10, existing chat-handoff configuration 5/5, AppModule component configuration and wiring 21/21, API typecheck and package lint passed. See .superpowers/sdd/2026-10-07-feature-030-phase-1/task-2-report.md for commands and results.
+
+This checkpoint covers configuration validation only. T003 onward, persistence, provider integration, workflow execution, payment routing, the controlled harness, and feature acceptance remain pending. The validated flag does not activate a recovery workflow in this phase; keep it false until later phase gates and provider thresholds are verified. Existing uncommitted Balance mapping work in the original checkout remains outside this implementation.
