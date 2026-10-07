@@ -76,5 +76,5 @@ To run the full stack locally (Next.js frontend, NestJS backend, and Python agen
 <!-- SPECKIT START -->
 For additional context about technologies, project structure, shell commands,
 and other important information, read the current plan at
-specs/029-duffel-provider-narrowing/plan.md.
+specs/030-fulfillment-recovery-acceptance/plan.md.
 <!-- SPECKIT END -->
