@@ -4,8 +4,8 @@
   "testEnvironment": "node",
   "testTimeout": 180000,
   "testMatch": [
-    "<rootDir>/src/**/*.performance.spec.ts",
-    "<rootDir>/test/**/*performance.e2e-spec.ts"
+    "**/src/**/*.performance.spec.ts",
+    "**/test/**/*performance.e2e-spec.ts"
   ],
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
