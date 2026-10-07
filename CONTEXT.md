@@ -126,6 +126,44 @@ _Avoid_: Flight type, Route category
 A three-tier passport validation architecture. Hard validation: passport fields present when required, expiry after trip completion date, document type supported by Duffel offer — returns `invalid` and blocks booking. Advisory validation: configurable system-wide `PASSPORT_ADVISORY_BUFFER_DAYS` (default 180) — returns `warning` with reason `PASSPORT_VALIDITY_REQUIRES_VERIFICATION` if passport expires within the buffer period after the trip, but does not block. Destination-specific validation: deferred to a future maintained travel-rules provider (e.g. Timatic) for authoritative itinerary-specific eligibility — returns `unknown` when the system cannot determine eligibility. Statuses: `valid`, `warning`, `invalid`, `unknown`.
 _Avoid_: Universal expiry rule, Hard 180-day blocker
 
+### Booking Payment and Fulfillment
+
+**Supplier Order**:
+A supplier's independent record of a flight booking. Its existence and state are established from supplier evidence, not inferred from whether the create request returned a response.
+_Avoid_: Order response, Booking attempt
+
+**Supplier Dispatch Readiness**:
+The precondition for a new supplier create: the Stripe authorization is valid and has enough time for order creation, capture, and the configured recovery margin. If this is absent before the first attempt, obtain renewed authorization; if an attempt is unresolved, reconcile it instead of creating again.
+_Avoid_: Retry eligibility, Request readiness
+
+**Supplier Fulfillment Outcome**:
+The evidence-backed result of an attempt to create the supplier order: confirmed, definitively failed, or unresolved. Unresolved means available evidence does not establish either success or failure.
+_Avoid_: Request result, Assumed failure
+
+**Customer Payment**:
+The payment collected from the traveller through Stripe. It is a separate financial leg from the amount charged by the flight supplier.
+_Avoid_: Supplier payment
+
+**Supplier Payment**:
+The amount charged by the supplier for the order, using the supplier's authoritative amount and currency. It is separate from the traveller's Stripe payment.
+_Avoid_: Customer charge
+
+**Operator Review Case**:
+An auditable case for a booking whose provider outcome remains unresolved at the initial configurable 15-minute escalation threshold after uncertainty begins, or earlier when action is needed before the actual Stripe authorization expires. Reconciliation continues after escalation, and new provider evidence can resolve the active case while its history remains available.
+_Avoid_: Forced failure, Manual override
+
+**Reconciliation Claim**:
+Time-bounded ownership of an unresolved booking case by one actor authorized to advance or compensate it. The actor validates current persisted state before acting, and expiry permits recovery if the actor stalls.
+_Avoid_: Permanent lock, Parallel ownership
+
+**Provider Operation**:
+One logical supplier or payment side effect in a booking workflow, with an identity that remains stable across customer requests and recovery actors. Each execution is a separate attempt, and the identity belongs to the workflow operation rather than its request or current owner.
+_Avoid_: HTTP request, Execution attempt
+
+**Provider Attempt Evidence**:
+A durable record that an execution attempt for a provider operation was prepared and may have been sent. It does not prove the provider received or completed the call; recovery reconciles it before replay.
+_Avoid_: Dispatch success, Provider confirmation
+
 ### Chatbot Booking Orchestration
 
 **Conversational Handoff**:

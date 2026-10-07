@@ -165,3 +165,7 @@ Exit gate:
 ```text
 boundary census clean (0 unexplained leaks); domain orchestrators consume canonical offers; agent security performance gate green; dedicated test db isolation verified
 ```
+
+## Feature 030 planning checkpoint (2026-10-07)
+
+Safe booking fulfillment recovery and controlled acceptance verification are planned in specs/030-fulfillment-recovery-acceptance/. Accepted payment/reconciliation and verification decisions are recorded in docs/adr/research-booking-fulfillment-reconciliation-decisions.md and docs/adr/research-payment-verification-architecture-decisions.md. Implementation tasks remain unchecked; this checkpoint does not claim recovery, checkout wiring or the provider harness is shipped. Existing uncommitted Balance mapping work in the original checkout is not part of this planning-only change.
