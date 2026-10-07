@@ -5,7 +5,7 @@
 **Format**: Sequential task ID, optional [P] only for independent files, [USn] on every story task, concrete target paths. New paths are planned deliverables.
 
 ## Phase 1: Setup
-- [ ] T001 [P] Add default-off/invalid-configuration tests in apps/api/src/payment-fulfillment/fulfillment-recovery.config.spec.ts.
+- [X] T001 [P] Add default-off/invalid-configuration tests in apps/api/src/payment-fulfillment/fulfillment-recovery.config.spec.ts.
 - [ ] T002 Implement recovery enrollment/configuration and validated lease/expiry policy in apps/api/src/payment-fulfillment/fulfillment-recovery.config.ts and apps/api/src/app.module.ts.
 
 ## Phase 2: Foundation and Controlled Harness
