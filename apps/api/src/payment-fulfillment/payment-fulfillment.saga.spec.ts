@@ -377,6 +377,18 @@ describe('PaymentFulfillmentSaga', () => {
     saga.timeoutMs = 1000;
   });
 
+  describe('nullable Stripe payment intent ID', () => {
+    it('keeps confirmation pending without invoking provider gateways', async () => {
+      currentPaymentState.stripePaymentIntentId = null;
+
+      const result = await saga.executeConfirmPayment(dto, idempotencyKey, userId);
+
+      expect(result).toEqual(expect.objectContaining({ status: 'PENDING' }));
+      expect(mockPaymentGateway.authorizeHold).not.toHaveBeenCalled();
+      expect(mockFulfillmentGateway.createOrder).not.toHaveBeenCalled();
+      expect(mockPrisma.payment.updateMany).not.toHaveBeenCalled();
+    });
+  });
   describe('4-Stage Happy Path Pipeline', () => {
     it('normalizes the loaded raw snapshot and passes it in createBooking slot six', async () => {
       const rawOfferSnapshot = {

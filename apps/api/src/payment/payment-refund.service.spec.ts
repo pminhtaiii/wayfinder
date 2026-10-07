@@ -179,6 +179,43 @@ describe('PaymentRefundService', () => {
       });
     });
 
+    it('keeps a refund pending without invoking Stripe when the payment intent ID is missing', async () => {
+      prisma.payment.findUnique.mockResolvedValue({
+        id: 'payment-1',
+        stripePaymentIntentId: null,
+        status: PaymentStatus.SUCCEEDED,
+        currency: 'usd',
+        amount: 12_500,
+        bookingIntent: { userId: 'user-1' },
+      });
+      refundTransactionService.reserveTransaction.mockResolvedValue({
+        id: 'refund-pending-1',
+        paymentId: 'payment-1',
+        amount: 5_000,
+        currency: 'usd',
+        status: RefundStatus.REFUND_PENDING,
+      });
+      stripe.createRefund.mockResolvedValue({ id: 're_unused' });
+
+      const result = await service.initiateRefund(
+        'payment-1',
+        { amount: 5_000, reason: 'customer_request' },
+        'idem-key-missing-pi',
+        'user-1',
+        'USER',
+      );
+
+      expect(result).toEqual({
+        refundId: 'refund-pending-1',
+        paymentId: 'payment-1',
+        amount: 5_000,
+        currency: 'usd',
+        status: RefundStatus.REFUND_PENDING,
+        triggerType: RefundTriggerType.USER,
+      });
+      expect(stripe.createRefund).not.toHaveBeenCalled();
+      expect(prisma.refund.update).not.toHaveBeenCalled();
+    });
     it('rejects if non-admin user does not own the payment', async () => {
       await expect(
         service.initiateRefund(

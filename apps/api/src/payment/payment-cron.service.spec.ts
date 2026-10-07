@@ -81,6 +81,23 @@ describe('PaymentCronService', () => {
     });
   });
 
+  it('leaves an authorized payment pending when its Stripe intent ID is missing', async () => {
+    prisma.payment.findMany.mockResolvedValue([
+      {
+        ...payment,
+        status: PaymentStatus.AUTHORIZED,
+        stripePaymentIntentId: null,
+        updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      },
+    ]);
+    stripeService.retrievePaymentIntent.mockResolvedValue({ status: 'requires_capture' });
+
+    await service.handleAuthorizationExpiry();
+
+    expect(stripeService.retrievePaymentIntent).not.toHaveBeenCalled();
+    expect(stripeService.cancelPaymentIntent).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
   it('reconciles a succeeded Stripe intent instead of expiring it', async () => {
     prisma.payment.findMany.mockResolvedValue([payment]);
     stripeService.retrievePaymentIntent.mockResolvedValue({ status: 'succeeded' });
