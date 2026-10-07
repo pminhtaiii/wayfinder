@@ -6,10 +6,11 @@ Read [acceptance matrix](acceptance-matrix.md), [harness contract](contracts/con
 
 ## Existing commands and limitations
 
-Use PowerShell and the repository's installed tools. These commands already exist; they do not prove recovery acceptance. Run in the feature worktree:
+Use PowerShell and the repository's installed tools. These commands already exist; they do not prove recovery acceptance. Start PowerShell in your repository root, initialize $repositoryRoot once, and reuse it for the later snippets in the same session:
 
 ~~~powershell
-Set-Location 'C:\Users\taiph\.codex\worktrees\fulfillment-recovery-plan\Booking Systems'
+$repositoryRoot = (Get-Location).Path
+Set-Location -LiteralPath $repositoryRoot
 pnpm --filter @api/backend run test:unit
 pnpm --filter @api/backend run test:integration
 pnpm --filter @web/frontend run test:unit
@@ -32,7 +33,7 @@ Feature migration/legacy fixtures are planned and must preserve source rows. Cre
 PLANNED files: apps/web/tests/playwright.fulfillment.config.ts, apps/web/tests/fulfillment-recovery.spec.ts and an isolated backend test bootstrap/driver. These paths are proposed deliverables, not existing commands. After implementation, the intended direct command is:
 
 ~~~powershell
-Set-Location 'C:\Users\taiph\.codex\worktrees\fulfillment-recovery-plan\Booking Systems\apps\web'
+Set-Location -LiteralPath (Join-Path $repositoryRoot 'apps\web')
 node node_modules\@playwright\test\cli.js test tests\fulfillment-recovery.spec.ts --config=tests\playwright.fulfillment.config.ts
 ~~~
 
@@ -64,7 +65,7 @@ PLANNED apps/api/test/jest-fulfillment-timeout.json selects fulfillment-provider
 
 Planned direct commands after those files exist:
 ~~~powershell
-Set-Location 'C:\Users\taiph\.codex\worktrees\fulfillment-recovery-plan\Booking Systems\apps\api'
+Set-Location -LiteralPath (Join-Path $repositoryRoot 'apps\api')
 node node_modules\jest\bin\jest.js --config=test\jest-fulfillment-sandbox.json --runInBand
 node node_modules\jest\bin\jest.js --config=test\jest-fulfillment-timeout.json --runInBand
 ~~~
