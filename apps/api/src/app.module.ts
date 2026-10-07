@@ -101,20 +101,28 @@ export const envSchema = z
   })
   .extend(fulfillmentRecoveryEnvSchema.shape)
   .passthrough()
-  .superRefine((data, context) => {
-    addFulfillmentRecoveryConfigIssues(data, context);
+  .superRefine(
+    (
+      data: z.infer<typeof fulfillmentRecoveryEnvSchema> & {
+        FEATURE_FLAG_CHAT_HANDOFF_ISSUE: string;
+        FEATURE_FLAG_CHAT_HANDOFF_ACCEPT: string;
+      },
+      context: z.RefinementCtx,
+    ): void => {
+      addFulfillmentRecoveryConfigIssues(data, context);
 
-    if (
-      data.FEATURE_FLAG_CHAT_HANDOFF_ISSUE === 'true' &&
-      data.FEATURE_FLAG_CHAT_HANDOFF_ACCEPT !== 'true'
-    ) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['FEATURE_FLAG_CHAT_HANDOFF_ISSUE'],
-        message: 'Invalid config: ISSUE=true but ACCEPT=false',
-      });
-    }
-  });
+      if (
+        data.FEATURE_FLAG_CHAT_HANDOFF_ISSUE === 'true' &&
+        data.FEATURE_FLAG_CHAT_HANDOFF_ACCEPT !== 'true'
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['FEATURE_FLAG_CHAT_HANDOFF_ISSUE'],
+          message: 'Invalid config: ISSUE=true but ACCEPT=false',
+        });
+      }
+    },
+  );
 
 @Module({
   imports: [

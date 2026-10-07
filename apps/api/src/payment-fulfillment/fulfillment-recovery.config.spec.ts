@@ -28,8 +28,8 @@ const invalidRecoveryConfigs: Array<[string, Record<string, string>]> = [
   ],
 ];
 
-describe('fulfillment recovery environment configuration', () => {
-  it('defaults recovery off and applies the reviewed policy timings', () => {
+describe('fulfillment recovery environment configuration', (): void => {
+  it('defaults recovery off and applies the reviewed policy timings', (): void => {
     const parsed = envSchema.parse(baseConfig);
 
     expect(parsed.FEATURE_FLAG_FULFILLMENT_RECOVERY).toBe('false');
@@ -39,7 +39,7 @@ describe('fulfillment recovery environment configuration', () => {
     expect(parsed.FULFILLMENT_RECOVERY_PRE_CREATE_AUTHORIZATION_MARGIN_MS).toBeUndefined();
   });
 
-  it('accepts explicit enablement only with an explicit positive authorization margin', () => {
+  it('accepts explicit enablement only with an explicit positive authorization margin', (): void => {
     const parsed = envSchema.parse({
       ...baseConfig,
       FEATURE_FLAG_FULFILLMENT_RECOVERY: 'true',
@@ -50,7 +50,7 @@ describe('fulfillment recovery environment configuration', () => {
     expect(parsed.FULFILLMENT_RECOVERY_PRE_CREATE_AUTHORIZATION_MARGIN_MS).toBe(180_000);
   });
 
-  it.each(invalidRecoveryConfigs)('rejects %s', (_reason, overrides) => {
-    expect(() => envSchema.parse({ ...baseConfig, ...overrides })).toThrow();
+  it.each(invalidRecoveryConfigs)('rejects %s', (_reason: string, overrides: Record<string, string>): void => {
+    expect((): unknown => envSchema.parse({ ...baseConfig, ...overrides })).toThrow();
   });
 });

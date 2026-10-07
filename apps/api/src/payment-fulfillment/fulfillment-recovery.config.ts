@@ -3,11 +3,15 @@ import { z } from 'zod';
 const positiveIntegerDuration = z
   .string()
   .regex(/^[1-9]\d*$/, 'must be a positive integer string')
-  .transform((value) => Number(value))
+  .transform((value: string): number => Number(value))
   .refine(Number.isSafeInteger, 'must be a safe integer');
 
-const durationWithDefault = (defaultMs: number) =>
-  positiveIntegerDuration.optional().transform((value) => value ?? defaultMs);
+const durationWithDefault = (
+  defaultMs: number,
+): z.ZodEffects<z.ZodOptional<typeof positiveIntegerDuration>, number, string | undefined> =>
+  positiveIntegerDuration
+    .optional()
+    .transform((value: number | undefined): number => value ?? defaultMs);
 
 export const fulfillmentRecoveryEnvSchema = z.object({
   FEATURE_FLAG_FULFILLMENT_RECOVERY: z.enum(['true', 'false']).default('false'),
