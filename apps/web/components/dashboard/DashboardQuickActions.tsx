@@ -1,21 +1,24 @@
 import Link from 'next/link';
-import { Calendar, History, Plane, User } from 'lucide-react';
+import { Calendar, History, Plane, User, type LucideIcon } from 'lucide-react';
 import type { DashboardAction } from './dashboard-actions';
+import styles from '@/app/dashboard/dashboard.module.css';
 
 type DashboardQuickActionsProps = {
   actions: DashboardAction[];
 };
 
-const icons = {
+const icons: Record<DashboardAction['iconName'], LucideIcon> = {
   plane: Plane,
   calendar: Calendar,
   history: History,
   user: User,
-} as const;
+};
 
 export function DashboardQuickActions({ actions }: DashboardQuickActionsProps): JSX.Element {
+  const classes = styles ?? {};
+
   return (
-    <section aria-label="Quick Actions" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <section aria-label="Quick Actions" className={classes.quickActionsGrid}>
       {actions.map((action) => {
         const Icon = icons[action.iconName];
 
@@ -23,12 +26,17 @@ export function DashboardQuickActions({ actions }: DashboardQuickActionsProps): 
           <Link
             key={action.id}
             href={action.href}
-            className="card flex min-h-28 items-start gap-4 p-5 transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
+            className={`${classes.actionCard} ${classes[`actionCard_${action.id}`] ?? ''}`}
           >
-            <Icon aria-hidden="true" className="h-6 w-6 shrink-0" />
-            <span>
-              <span className="block font-semibold">{action.label}</span>
-              <span className="mt-1 block text-sm text-text-secondary">{action.description}</span>
+            <span
+              className={`${classes.actionIconPill} ${classes[`actionPill_${action.id}`] ?? ''}`}
+              aria-hidden="true"
+            >
+              <Icon className={classes.actionCardIcon} />
+            </span>
+            <span className={classes.actionCardContent}>
+              <span className={classes.actionCardHeading}>{action.label}</span>
+              <span className={classes.actionCardDescription}>{action.description}</span>
             </span>
           </Link>
         );

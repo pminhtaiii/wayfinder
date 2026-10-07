@@ -13,12 +13,18 @@
   display: flex;
   width: 260px;
   flex-direction: column;
-  gap: 2rem;
   border-right: 1px solid var(--dashboard-border);
   background: var(--dashboard-surface);
-  padding: 1.5rem;
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
+  overflow-y: auto;
+}
+
+.sidebarHeader {
+  display: flex;
+  align-items: center;
+  padding: 1.25rem 1.25rem;
+  border-bottom: 1px solid var(--dashboard-border-subtle);
 }
 
 .sidebarBrand {
@@ -26,46 +32,111 @@
   align-items: center;
   gap: 0.75rem;
   color: var(--dashboard-text-primary);
-  font-size: 1.125rem;
-  font-weight: 750;
-  letter-spacing: -0.02em;
   text-decoration: none;
+  min-width: 0;
 }
 
 .brandMark {
   display: inline-grid;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
   place-items: center;
   border: 1px solid var(--dashboard-glass-border);
-  border-radius: 0.75rem;
+  border-radius: 9999px;
   background: var(--dashboard-action-primary-bg);
   color: var(--dashboard-action-primary);
   box-shadow: var(--dashboard-card-shadow);
 }
 
+.brandIcon {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.brandText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.brandTitle {
+  color: var(--dashboard-text-primary);
+  font-size: 1.125rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.brandSubtitle {
+  color: var(--dashboard-text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
 .sidebarNav {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.375rem;
+  padding: 1.25rem 1rem;
 }
 
 .sidebarLink {
-  border: 1px solid var(--dashboard-border-subtle);
-  border-radius: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+  background: transparent;
   color: var(--dashboard-text-secondary);
-  padding: 0.75rem 0.875rem;
-  font-size: 0.9375rem;
-  font-weight: 650;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 550;
   text-decoration: none;
   transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
 }
 
-.sidebarLink:hover,
-.sidebarLinkCurrent {
+.sidebarLinkIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  color: var(--dashboard-text-muted);
+  transition: color 160ms ease;
+}
+
+.sidebarLinkLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebarLink:hover {
   border-color: var(--dashboard-glass-border);
   background: var(--dashboard-glass);
-  color: var(--dashboard-accent);
+  color: var(--dashboard-text-primary);
+}
+
+.sidebarLink:hover .sidebarLinkIcon {
+  color: var(--dashboard-text-primary);
+}
+
+.sidebarLinkCurrent {
+  border-color: transparent;
+  background: var(--dashboard-action-primary-bg);
+  color: var(--dashboard-action-primary);
+  font-weight: 650;
+}
+
+.sidebarLinkCurrent .sidebarLinkIcon {
+  color: var(--dashboard-action-primary);
+}
+
+.sidebarLinkCurrent:hover {
+  border-color: transparent;
+  background: var(--dashboard-action-primary-bg);
+  color: var(--dashboard-action-primary);
 }
 
 .contentFrame {
@@ -89,15 +160,12 @@
   -webkit-backdrop-filter: blur(24px);
 }
 
-.headerContext,
-.userDetails {
+.headerContext {
   min-width: 0;
 }
 
 .headerSubtitle,
 .headerTitle,
-.userName,
-.userEmail,
 .metricLabel,
 .metricValue,
 .flightNumber,
@@ -114,6 +182,7 @@
 
 .headerSubtitle {
   color: var(--dashboard-text-muted);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -123,21 +192,38 @@
 .headerTitle {
   margin-top: 0.15rem;
   color: var(--dashboard-text-primary);
-  font-size: clamp(1.35rem, 2vw, 1.75rem);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-size: clamp(1.85rem, 2.75vw, 2.35rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
   line-height: 1.15;
 }
 
+.headerAccent {
+  background: var(--dashboard-heading-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: var(--dashboard-action-primary);
+}
+
 .userBadge {
-  display: flex;
-  min-width: 0;
-  max-width: min(20rem, 48vw);
+  display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
-  border: 1px solid var(--dashboard-glass-border);
-  border-radius: 999px;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 2px solid var(--dashboard-glass-border-hover);
+  border-radius: 9999px;
   background: var(--dashboard-glass);
-  padding: 0.4rem 0.8rem 0.4rem 0.4rem;
+  padding: 2px;
   box-shadow: var(--dashboard-card-shadow);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+  cursor: pointer;
+}
+
+.userBadge:hover {
+  border-color: var(--dashboard-action-primary);
+  box-shadow: var(--dashboard-card-shadow-hover);
 }
 
 .userAvatar {
@@ -146,33 +232,19 @@
   height: 2.25rem;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 50%;
+  border-radius: 9999px;
   background: var(--dashboard-action-primary-bg);
   color: var(--dashboard-action-primary);
   font-weight: 800;
-}
-
-.userDetails {
-  display: flex;
-  flex-direction: column;
-}
-
-.userName,
-.userEmail {
+  font-size: 0.9375rem;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.userName {
-  color: var(--dashboard-text-primary);
-  font-size: 0.875rem;
-  font-weight: 700;
-}
-
-.userEmail {
-  color: var(--dashboard-text-muted);
-  font-size: 0.75rem;
+.userAvatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 9999px;
 }
 
 .main {
@@ -180,7 +252,23 @@
   max-width: 1440px;
   min-width: 0;
   margin: 0 auto;
-  padding: clamp(1rem, 3vw, 2.5rem);
+  padding: 0.75rem clamp(1rem, 2.5vw, 2rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dashboardColumns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .dashboardColumns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .quickSearchContainer,
@@ -188,7 +276,7 @@
 .quickActionsSection {
   min-width: 0;
   border: 1px solid var(--dashboard-glass-border);
-  border-radius: 1.25rem;
+  border-radius: 1rem;
   background: var(--dashboard-card-bg);
   box-shadow: var(--dashboard-card-shadow);
   backdrop-filter: blur(18px);
@@ -197,66 +285,74 @@
 
 .quickSearchContainer,
 .quickSearchSection {
-  padding: clamp(1rem, 2.5vw, 1.5rem);
+  container-type: inline-size;
+  padding: 0.75rem 1rem;
 }
 
-.quickSectionHeader {
-  min-width: 0;
-  margin-bottom: 1rem;
-}
-
-.quickSectionHeading,
-.quickSectionDescription {
-  margin: 0;
-}
-
-.quickSectionHeading {
-  color: var(--dashboard-text-primary);
-  font-size: 1.125rem;
-  line-height: 1.3;
-}
-
-.quickSectionDescription {
-  margin-top: 0.35rem;
-  color: var(--dashboard-text-secondary);
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-
-.quickSearchSection form {
+.quickSearchForm {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
-.quickSearchGrid,
-.quickSearchSection form > div:first-child {
+.quickSearchRow {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  align-items: flex-end;
 }
 
-.quickSearchSection form > div:first-child > div {
+@media (min-width: 1024px) {
+  .quickSearchRow {
+    grid-template-columns: 1fr 1fr 1fr auto;
+  }
+}
+
+@container (min-width: 680px) {
+  .quickSearchRow {
+    grid-template-columns: 1fr 1fr 1fr auto;
+  }
+}
+
+.quickSearchField {
   min-width: 0;
 }
 
-.quickSearchSection label {
-  display: block;
-  margin-bottom: 0.4rem;
+.quickSearchLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.25rem;
   color: var(--dashboard-text-secondary);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 650;
+  white-space: nowrap;
+}
+
+.quickSearchFieldIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--dashboard-accent);
+  flex-shrink: 0;
 }
 
 .quickSearchInput,
 .quickSearchSection input {
   width: 100%;
-  min-height: 2.75rem;
+  height: 2.375rem;
+  min-height: 2.375rem;
   border: 1px solid var(--dashboard-border);
-  border-radius: 0.75rem;
+  border-radius: 0.625rem;
   background: var(--dashboard-surface);
   color: var(--dashboard-text-primary);
-  padding: 0.65rem 0.75rem;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+}
+
+.quickSearchInput[type='date'],
+.quickSearchSection input[type='date'] {
+  text-transform: none;
 }
 
 .quickSearchInput:focus-visible,
@@ -270,24 +366,27 @@
   box-shadow: 0 0 0 5px var(--dashboard-focus-ring-glow);
 }
 
-.quickSearchSection [role='alert'] {
-  margin: 0;
-  color: var(--dashboard-stat-cancelled);
-  font-size: 0.875rem;
-  font-weight: 650;
+.quickSearchAction {
+  flex-shrink: 0;
 }
 
 .quickSearchButton,
 .quickSearchSection button {
-  align-self: flex-start;
-  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.375rem;
+  min-height: 2.375rem;
   border: 1px solid var(--dashboard-action-primary);
-  border-radius: 0.75rem;
+  border-radius: 0.625rem;
   background: var(--dashboard-action-primary);
   color: var(--dashboard-surface);
-  padding: 0.65rem 1rem;
+  padding: 0.35rem 1.15rem;
   font: inherit;
+  font-size: 0.875rem;
   font-weight: 750;
+  white-space: nowrap;
   cursor: pointer;
   transition: background-color 160ms ease, transform 160ms ease;
 }
@@ -298,31 +397,39 @@
   transform: translateY(-1px);
 }
 
-.quickActionsSection {
-  margin-top: 1.25rem;
-  overflow: hidden;
+.searchButtonIcon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
 }
 
-.quickActionsGrid,
-.quickActionsSection > section {
+.quickSearchAlert,
+.quickSearchSection [role='alert'] {
+  margin: 0;
+  color: var(--dashboard-stat-cancelled);
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.quickActionsGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-  padding: 1rem;
+  gap: 0.75rem;
+  min-width: 0;
 }
 
 .actionCard,
 .quickActionsSection a {
   display: flex;
   min-width: 0;
-  min-height: 7rem;
-  align-items: flex-start;
-  gap: 1rem;
+  height: 5.25rem;
+  align-items: center;
+  gap: 0.75rem;
   border: 1px solid var(--dashboard-border-subtle);
-  border-radius: 1rem;
+  border-radius: 0.875rem;
   background: var(--dashboard-glass);
   color: var(--dashboard-text-primary);
-  padding: 1.25rem;
+  padding: 0.65rem 0.75rem;
   text-decoration: none;
   transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
@@ -332,45 +439,86 @@
   border-color: var(--dashboard-glass-border-hover);
   background: var(--dashboard-card-hover);
   box-shadow: var(--dashboard-card-shadow-hover);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
+}
+
+.actionIconPill {
+  display: inline-grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--dashboard-action-primary-bg);
+  color: var(--dashboard-action-primary);
+}
+
+.actionPill_search {
+  background: var(--dashboard-action-primary-bg);
+  color: var(--dashboard-action-primary);
+}
+
+.actionPill_upcoming {
+  background: var(--dashboard-action-secondary-bg);
+  color: var(--dashboard-stat-upcoming);
+}
+
+.actionPill_past {
+  background: var(--dashboard-action-tertiary-bg);
+  color: var(--dashboard-status-pending-text);
+}
+
+.actionPill_profile {
+  background: var(--dashboard-status-completed-bg);
+  color: var(--dashboard-accent);
 }
 
 .actionCardIcon,
 .quickActionsSection a > svg {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.125rem;
+  height: 1.125rem;
   flex: 0 0 auto;
-  color: var(--dashboard-accent);
 }
 
 .actionCardContent,
 .quickActionsSection a > span {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
+.actionCardHeading,
 .quickActionsSection a > span > span:first-child {
   display: block;
   color: var(--dashboard-text-primary);
+  font-size: 0.8125rem;
   font-weight: 750;
+  line-height: 1.25;
 }
 
+.actionCardDescription,
 .quickActionsSection a > span > span + span {
   display: block;
-  margin-top: 0.3rem;
+  margin-top: 0.15rem;
   color: var(--dashboard-text-secondary);
-  font-size: 0.875rem;
-  line-height: 1.5;
+  font-size: 0.6875rem;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .statsSection {
-  margin-top: 1.25rem;
+  margin: 0;
+  padding: 0;
   min-width: 0;
 }
 
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 0.75rem;
+  min-width: 0;
 }
 
 .metricCard,
@@ -384,9 +532,13 @@
 }
 
 .metricCard {
+  display: flex;
   min-width: 0;
-  border-radius: 1.25rem;
-  padding: 1.25rem;
+  height: 5.25rem;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: 0.875rem;
+  padding: 0.65rem 0.875rem;
   transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
@@ -394,36 +546,36 @@
   border-color: var(--dashboard-glass-border-hover);
   background: var(--dashboard-card-hover);
   box-shadow: var(--dashboard-card-shadow-hover);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .metricHeading {
   display: flex;
   min-width: 0;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .metricLabel {
   color: var(--dashboard-text-secondary);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 650;
-  line-height: 1.35;
+  line-height: 1.25;
 }
 
 .metricIcon {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1rem;
+  height: 1rem;
   flex: 0 0 auto;
 }
 
 .metricValue {
-  margin-top: 1.5rem;
+  margin: 0;
   color: var(--dashboard-text-primary);
-  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-size: 1.5rem;
   font-weight: 800;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
   line-height: 1;
 }
 
@@ -445,9 +597,9 @@
 
 .recentBookingsSection {
   min-width: 0;
-  margin-top: 1.25rem;
+  margin-top: 0;
   overflow: hidden;
-  border-radius: 1.25rem;
+  border-radius: 0.875rem;
 }
 
 .sectionHeader {
@@ -457,20 +609,21 @@
   justify-content: space-between;
   gap: 1rem;
   border-bottom: 1px solid var(--dashboard-border-subtle);
-  padding: 1.25rem;
+  padding: 0.5rem 1rem;
 }
 
 .sectionHeading {
   margin: 0;
   color: var(--dashboard-text-primary);
-  font-size: 1.125rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
   line-height: 1.3;
 }
 
 .viewAllLink {
   flex: 0 0 auto;
   color: var(--dashboard-accent);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-decoration: none;
 }
@@ -496,9 +649,9 @@
   min-width: 0;
   align-items: center;
   justify-content: space-between;
-  gap: 1.25rem;
+  gap: 1rem;
   color: inherit;
-  padding: 1rem 1.25rem;
+  padding: 0.5rem 1rem;
   text-decoration: none;
   transition: background-color 160ms ease;
 }
@@ -520,14 +673,15 @@
 }
 
 .flightNumber {
-  min-width: 4.5rem;
+  min-width: 4.25rem;
   color: var(--dashboard-text-primary);
+  font-size: 0.8125rem;
   font-weight: 750;
 }
 
 .airlineCode {
   color: var(--dashboard-text-muted);
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 700;
 }
 
@@ -535,8 +689,9 @@
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
   color: var(--dashboard-text-secondary);
+  font-size: 0.8125rem;
 }
 
 .routeCode {
@@ -550,22 +705,22 @@
 .bookingSecondaryContent {
   flex: 0 1 auto;
   justify-content: flex-end;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .bookingDate {
   color: var(--dashboard-text-muted);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   white-space: nowrap;
 }
 
 .statusBadge {
-  max-width: 14rem;
+  max-width: 12rem;
   overflow: hidden;
   border: 1px solid;
   border-radius: 999px;
-  padding: 0.3rem 0.6rem;
-  font-size: 0.6875rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.03em;
   text-overflow: ellipsis;
@@ -598,18 +753,18 @@
 
 .emptyState {
   display: flex;
-  min-height: 20rem;
+  min-height: 7.5rem;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  padding: 3rem 1.25rem;
+  padding: 1rem;
   text-align: center;
 }
 
 .emptyStateIllustration {
   display: grid;
-  width: 4rem;
-  height: 4rem;
+  width: 2.25rem;
+  height: 2.25rem;
   place-items: center;
   border: 1px solid var(--dashboard-glass-border);
   border-radius: 50%;
@@ -618,35 +773,38 @@
 }
 
 .emptyStateIllustration svg {
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 1.125rem;
+  height: 1.125rem;
 }
 
 .emptyStateHeading {
-  margin-top: 1rem;
+  margin-top: 0.35rem;
   color: var(--dashboard-text-primary);
-  font-size: 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 700;
 }
 
 .emptyStateDescription {
-  max-width: 28rem;
-  margin-top: 0.5rem;
+  max-width: 24rem;
+  margin-top: 0.15rem;
   color: var(--dashboard-text-secondary);
-  line-height: 1.6;
+  font-size: 0.75rem;
+  line-height: 1.4;
 }
 
 .emptyStateAction,
 .errorAction {
   display: inline-flex;
-  min-height: 2.75rem;
+  min-height: 2.125rem;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--dashboard-action-primary);
-  border-radius: 0.75rem;
+  border-radius: 0.625rem;
   background: var(--dashboard-action-primary);
   color: var(--dashboard-surface);
-  padding: 0.65rem 1rem;
+  padding: 0.25rem 0.875rem;
   font: inherit;
+  font-size: 0.75rem;
   font-weight: 750;
   cursor: pointer;
   text-decoration: none;
@@ -654,7 +812,7 @@
 }
 
 .emptyStateAction {
-  margin-top: 1.25rem;
+  margin-top: 0.5rem;
 }
 
 .emptyStateAction:hover,
@@ -673,7 +831,8 @@
 
 .skeletonMetricCard {
   display: flex;
-  min-height: 9.5rem;
+  height: 5.25rem;
+  min-height: 5.25rem;
   flex-direction: column;
   justify-content: space-between;
 }
@@ -692,7 +851,7 @@
 
 .skeletonValue {
   width: 38%;
-  height: 2.5rem;
+  height: 1.5rem;
 }
 
 .skeletonHeading {
@@ -848,19 +1007,52 @@
 
   .mobileNavLink {
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
     border-radius: 0.75rem;
     color: var(--dashboard-text-secondary);
-    padding: 0.65rem 0.25rem;
+    padding: 0.5rem 0.25rem;
     font-size: 0.75rem;
     font-weight: 700;
     text-align: center;
     text-decoration: none;
+    transition: background-color 160ms ease, color 160ms ease;
   }
 
-  .mobileNavLink:hover,
-  .mobileNavLinkCurrent {
+  .mobileNavIcon {
+    width: 1.125rem;
+    height: 1.125rem;
+    flex-shrink: 0;
+    color: var(--dashboard-text-muted);
+    transition: color 160ms ease;
+  }
+
+  .mobileNavLabel {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobileNavLink:hover {
     background: var(--dashboard-glass);
     color: var(--dashboard-accent);
+  }
+
+  .mobileNavLink:hover .mobileNavIcon {
+    color: var(--dashboard-accent);
+  }
+
+  .mobileNavLinkCurrent {
+    background: var(--dashboard-action-primary-bg);
+    color: var(--dashboard-action-primary);
+  }
+
+  .mobileNavLinkCurrent .mobileNavIcon {
+    color: var(--dashboard-action-primary);
   }
 }
 
@@ -870,44 +1062,30 @@
     padding: 0.875rem 1rem;
   }
 
-  .headerSubtitle,
-  .userEmail {
+  .headerSubtitle {
     display: none;
   }
 
   .headerTitle {
-    margin-top: 0.35rem;
-    font-size: 1.25rem;
-  }
-
-  .userBadge {
-    max-width: 48%;
-    padding-right: 0.6rem;
+    margin-top: 0.25rem;
+    font-size: clamp(1.4rem, 5.5vw, 1.75rem);
   }
 
   .main {
-    padding: 1rem;
+    padding: 0.75rem 0.5rem;
   }
 
-  .statsGrid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
+  .statsGrid,
+  .quickActionsGrid,
+  .quickSearchRow,
   .quickSearchSection form > div:first-child,
   .quickActionsSection > section {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .quickSearchSection button {
+  .quickSearchButton,
+  .quickSearchAction {
     width: 100%;
-  }
-
-  .metricCard {
-    padding: 1rem;
-  }
-
-  .metricValue {
-    margin-top: 1rem;
   }
 
   .sectionHeader,
@@ -944,6 +1122,7 @@
 @media (forced-colors: active) {
   .sidebar,
   .header,
+  .sidebarHeader,
   .metricCard,
   .recentBookingsSection,
   .errorCard,
@@ -951,16 +1130,24 @@
   .quickActionsSection,
   .userBadge,
   .brandMark,
-  .emptyStateIllustration {
+  .emptyStateIllustration,
+  .actionIconPill {
     forced-color-adjust: auto;
     border-color: ButtonText;
   }
 
   .emptyStateAction,
   .errorAction,
+  .quickSearchButton,
   .quickSearchSection button,
-  .quickActionsSection a {
+  .quickActionsSection a,
+  .actionCard {
     border-color: ButtonText;
+  }
+
+  .headerAccent {
+    -webkit-text-fill-color: currentColor;
+    background: none;
   }
 }
 
@@ -978,8 +1165,10 @@
   .metricCard:hover,
   .emptyStateAction:hover,
   .errorAction:hover,
+  .quickSearchButton:hover,
   .quickSearchSection button:hover,
-  .quickActionsSection a:hover {
+  .quickActionsSection a:hover,
+  .actionCard:hover {
     transform: none !important;
   }
 }

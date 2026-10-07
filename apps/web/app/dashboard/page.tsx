@@ -29,6 +29,7 @@ export default async function DashboardPage(): Promise<JSX.Element> {
   const user = {
     name: session?.user?.name,
     email: session?.user?.email,
+    image: session?.user?.image,
   };
 
   let showProfileNavigation = isBookingReadinessEnabled();
@@ -49,25 +50,22 @@ export default async function DashboardPage(): Promise<JSX.Element> {
     isBookingReadinessEnabled: showProfileNavigation,
   });
 
-  const classes = styles || {};
+  const classes = styles ?? {};
 
   return (
     <DashboardShell user={user} showProfileNavigation={showProfileNavigation}>
       <section className={classes.quickSearchSection} aria-labelledby="quick-search-heading">
-        <div className={classes.quickSectionHeader}>
-          <h2 id="quick-search-heading" className={classes.quickSectionHeading}>
-            Quick Search
-          </h2>
-          <p className={classes.quickSectionDescription}>
-            Start a flight search with airport codes and your departure date.
-          </p>
-        </div>
+        <h2 id="quick-search-heading" className={classes.visuallyHidden}>
+          Quick Search
+        </h2>
         <DashboardQuickSearch />
       </section>
-      <DashboardStats stats={outcome.data.stats} />
-      <div className={classes.quickActionsSection}>
+
+      <div className={classes.dashboardColumns}>
+        <DashboardStats stats={outcome.data.stats} />
         <DashboardQuickActions actions={dashboardActions} />
       </div>
+
       <DashboardRecentBookings recentBookings={outcome.data.recentBookings} />
     </DashboardShell>
   );

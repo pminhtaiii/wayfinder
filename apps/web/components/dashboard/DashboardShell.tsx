@@ -1,90 +1,123 @@
 import Link from 'next/link';
+import { Calendar, Compass, LayoutDashboard, Plane, User, type LucideIcon } from 'lucide-react';
 import styles from '@/app/dashboard/dashboard.module.css';
 
 type DashboardShellProps = {
   user: {
     name?: string | null;
     email?: string | null;
+    image?: string | null;
   };
   showProfileNavigation?: boolean;
   children: React.ReactNode;
 };
 
-const navigationItems = [
-  { href: '/dashboard', label: 'Overview', shortLabel: 'Home' },
-  { href: '/search', label: 'Search flights', shortLabel: 'Search' },
-  { href: '/bookings', label: 'My bookings', shortLabel: 'Bookings' },
-] as const;
+type NavigationItem = {
+  href: string;
+  label: string;
+  shortLabel: string;
+  icon: LucideIcon;
+};
+
+const navigationItems: NavigationItem[] = [
+  { href: '/dashboard', label: 'Overview', shortLabel: 'Home', icon: LayoutDashboard },
+  { href: '/search', label: 'Search flights', shortLabel: 'Search', icon: Plane },
+  { href: '/bookings', label: 'My bookings', shortLabel: 'Bookings', icon: Calendar },
+];
 
 export function DashboardShell({
   user,
   showProfileNavigation = false,
   children,
 }: DashboardShellProps): JSX.Element {
+  const classes = styles ?? {};
   const displayName = user.name?.trim() || user.email?.trim() || 'Traveler';
   const avatarLabel = displayName.charAt(0).toLocaleUpperCase();
-  const visibleNavigationItems = showProfileNavigation
-    ? [...navigationItems, { href: '/profile', label: 'Traveler profile', shortLabel: 'Profile' }]
+  const visibleNavigationItems: NavigationItem[] = showProfileNavigation
+    ? [
+        ...navigationItems,
+        { href: '/profile', label: 'Traveler profile', shortLabel: 'Profile', icon: User },
+      ]
     : navigationItems;
 
   return (
-    <div className={styles.dashboardRoot}>
-      <aside className={styles.sidebar} aria-label="Dashboard navigation">
-        <Link className={styles.sidebarBrand} href="/dashboard">
-          <span className={styles.brandMark} aria-hidden="true">
-            W
-          </span>
-          <span>Wayfinder</span>
-        </Link>
-        <nav className={styles.sidebarNav}>
-          {visibleNavigationItems.map((item) => (
-            <Link
-              key={item.href}
-              className={`${styles.sidebarLink} ${item.href === '/dashboard' ? styles.sidebarLinkCurrent : ''}`}
-              href={item.href}
-              aria-current={item.href === '/dashboard' ? 'page' : undefined}
-            >
-              {item.label}
-            </Link>
-          ))}
+    <div className={classes.dashboardRoot}>
+      <aside className={classes.sidebar} aria-label="Dashboard navigation">
+        <div className={classes.sidebarHeader}>
+          <Link className={classes.sidebarBrand} href="/dashboard">
+            <span className={classes.brandMark} aria-hidden="true">
+              <Compass className={classes.brandIcon} />
+            </span>
+            <span className={classes.brandText}>
+              <span className={classes.brandTitle}>Wayfinder</span>
+              <span className={classes.brandSubtitle}>Intelligent Travel Desk</span>
+            </span>
+          </Link>
+        </div>
+        <nav className={classes.sidebarNav}>
+          {visibleNavigationItems.map((item) => {
+            const isCurrent = item.href === '/dashboard';
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                className={`${classes.sidebarLink} ${isCurrent ? classes.sidebarLinkCurrent : ''}`}
+                href={item.href}
+                aria-current={isCurrent ? 'page' : undefined}
+              >
+                <Icon className={classes.sidebarLinkIcon} aria-hidden="true" />
+                <span className={classes.sidebarLinkLabel}>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
       </aside>
 
-      <div className={styles.contentFrame}>
-        <header className={styles.header}>
-          <div className={styles.headerContext}>
-            <p className={styles.headerSubtitle}>Travel overview</p>
-            <h1 className={styles.headerTitle}>Dashboard</h1>
+      <div className={classes.contentFrame}>
+        <header className={classes.header}>
+          <div className={classes.headerContext}>
+            <p className={classes.headerSubtitle}>Travel overview</p>
+            <h1 className={classes.headerTitle}>
+              Find Your Way. <span className={classes.headerAccent}>Do More.</span>
+            </h1>
           </div>
-          <div className={styles.userBadge} aria-label={`Signed in as ${displayName}`}>
-            <span className={styles.userAvatar} aria-hidden="true">
-              {avatarLabel}
-            </span>
-            <span className={styles.userDetails}>
-              <span className={styles.userName}>{displayName}</span>
-              {user.name?.trim() && user.email?.trim() ? (
-                <span className={styles.userEmail}>{user.email}</span>
-              ) : null}
+          <div className={classes.userBadge} aria-label={`Signed in as ${displayName}`}>
+            <span className={classes.userAvatar} aria-hidden="true">
+              {user.image?.trim() ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={user.image}
+                  alt={displayName}
+                  className={classes.userAvatarImage}
+                />
+              ) : (
+                avatarLabel
+              )}
             </span>
           </div>
         </header>
 
-        <main id="main-content" className={styles.main}>
+        <main id="main-content" className={classes.main}>
           {children}
         </main>
       </div>
 
-      <nav className={styles.mobileNav} aria-label="Mobile dashboard navigation">
-        {visibleNavigationItems.map((item) => (
-          <Link
-            key={item.href}
-            className={`${styles.mobileNavLink} ${item.href === '/dashboard' ? styles.mobileNavLinkCurrent : ''}`}
-            href={item.href}
-            aria-current={item.href === '/dashboard' ? 'page' : undefined}
-          >
-            {item.shortLabel}
-          </Link>
-        ))}
+      <nav className={classes.mobileNav} aria-label="Mobile dashboard navigation">
+        {visibleNavigationItems.map((item) => {
+          const isCurrent = item.href === '/dashboard';
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              className={`${classes.mobileNavLink} ${isCurrent ? classes.mobileNavLinkCurrent : ''}`}
+              href={item.href}
+              aria-current={isCurrent ? 'page' : undefined}
+            >
+              <Icon className={classes.mobileNavIcon} aria-hidden="true" />
+              <span className={classes.mobileNavLabel}>{item.shortLabel}</span>
+            </Link>
+          );
+        })}
       </nav>
     </div>
   );
