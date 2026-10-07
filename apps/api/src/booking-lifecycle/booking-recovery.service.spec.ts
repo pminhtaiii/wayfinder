@@ -1470,6 +1470,7 @@ describe('BookingRecoveryService', () => {
       }
     });
 
+    // The duplicate copy was removed with user approval on 2026-10-08 (Asia/Saigon).
     it('keeps a stale booking pending when its payment intent ID is missing', async () => {
       const staleBookingId = 'b-missing-payment-intent';
       const staleDate = new Date(Date.now() - 20 * 60 * 1000);
@@ -1683,33 +1684,6 @@ describe('BookingRecoveryService', () => {
       expect(lockSpy).toHaveBeenNthCalledWith(2, 'b-2');
     });
 
-    it('keeps a stale booking pending when its payment intent ID is missing', async () => {
-      const staleBookingId = 'b-missing-payment-intent';
-      const staleDate = new Date(Date.now() - 20 * 60 * 1000);
-      mockPrisma.booking.findMany.mockResolvedValue([
-        {
-          id: staleBookingId,
-          status: BookingStatus.PROCESSING,
-          createdAt: staleDate,
-        },
-      ]);
-      mockPrisma.booking.findUnique.mockResolvedValue({
-        id: staleBookingId,
-        status: BookingStatus.PROCESSING,
-        createdAt: staleDate,
-        payment: { id: 'pay-missing-intent', stripePaymentIntentId: null },
-      });
-
-      await service.sweepStaleBookings();
-
-      expect(mockStripeService.retrievePaymentIntent).not.toHaveBeenCalled();
-      expect(mockStripeService.cancelPaymentIntent).not.toHaveBeenCalled();
-      expect(mockDuffelService.cancellation.cancelOrder).not.toHaveBeenCalled();
-      expect(mockRefundTransactionService.reserveTransaction).not.toHaveBeenCalled();
-      expect(mockBookingLifecycleService.failBooking).not.toHaveBeenCalled();
-      expect(mockPublisher.publish).not.toHaveBeenCalled();
-      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
-    });
     it('executes real lock flow (acquireLock with 300s and releaseLock) end-to-end without mocking reconcileBookingWithLock', async () => {
       const staleBookingId = 'b-sweep-lock-int';
       const staleDate = new Date(Date.now() - 20 * 60 * 1000);
