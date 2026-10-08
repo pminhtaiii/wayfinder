@@ -1,5 +1,4 @@
-import { randomBytes } from 'node:crypto';
-import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -12,6 +11,7 @@ export type HarnessApplicationOptions = {
   redisPrefix: string;
   stripeOrigin: string;
   stripeApiKey: string;
+  stripePublishableKey?: string;
   stripeWebhookSecret: string;
   supplierOrigin: string;
   supplierApiKey: string;
@@ -38,12 +38,23 @@ type ChildRecord = {
   name: string;
   child: ChildProcess;
   output: string;
+  registrationAttempted: boolean;
+  registered: boolean;
+  closed: boolean;
 };
 
 type OwnershipModule = {
   assertOwnedRunResources(application: HarnessApplicationOptions): Promise<void>;
+  ownedApplicationEnvironment(application: HarnessApplicationOptions): unknown;
+  registerApplicationProcess(application: HarnessApplicationOptions, child: ChildProcess): unknown;
+  stopApplicationProcess(application: HarnessApplicationOptions, child: ChildProcess): Promise<void>;
 };
 
+type OwnedApplicationEnvironments = {
+  api: NodeJS.ProcessEnv;
+  web: NodeJS.ProcessEnv;
+  secrets: string[];
+};
 type SensitiveRedactionModule = {
   redactSensitive(value: unknown): string;
 };
@@ -61,9 +72,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isOwnershipModule(value: unknown): value is OwnershipModule {
-  return isRecord(value) && typeof value['assertOwnedRunResources'] === 'function';
+  return (
+    isRecord(value) &&
+    typeof value['assertOwnedRunResources'] === 'function' &&
+    typeof value['ownedApplicationEnvironment'] === 'function' &&
+    typeof value['registerApplicationProcess'] === 'function' &&
+    typeof value['stopApplicationProcess'] === 'function'
+  );
 }
-
 function isSensitiveRedactionModule(value: unknown): value is SensitiveRedactionModule {
   return isRecord(value) && typeof value['redactSensitive'] === 'function';
 }
@@ -177,6 +193,10 @@ function validateApplicationOptions(
   if (!/^sk_test_[A-Za-z0-9_-]+$/.test(application.stripeApiKey)) {
     throw new Error('Stripe simulator key must be test-only');
   }
+  if (application.stripePublishableKey !== undefined && !/^pk_test_[A-Za-z0-9_-]+$/.test(application.stripePublishableKey)) {
+    throw new Error('Stripe browser key must be test-only');
+  }
+
   if (!/^whsec_[A-Za-z0-9_-]+$/.test(application.stripeWebhookSecret)) {
     throw new Error('Stripe webhook signing secret is malformed');
   }
@@ -195,7 +215,7 @@ function validateApplicationOptions(
   return { api, frontend, redisPort };
 }
 
-async function assertOwnedRunResources(application: HarnessApplicationOptions): Promise<void> {
+async function loadOwnershipModule(): Promise<OwnershipModule> {
   let loaded: unknown;
   try {
     const modulePath = path.resolve(__dirname, 'bootstrap');
@@ -206,13 +226,102 @@ async function assertOwnedRunResources(application: HarnessApplicationOptions): 
   if (!isOwnershipModule(loaded)) {
     throw new Error('T013 run ownership validator is unavailable');
   }
+  return loaded;
+}
+
+async function assertOwnedRunResources(application: HarnessApplicationOptions): Promise<void> {
+  const owner = await loadOwnershipModule();
   try {
-    await loaded.assertOwnedRunResources(application);
+    await owner.assertOwnedRunResources(application);
   } catch {
     throw new Error('Fulfillment run resources are not owned by this run');
   }
 }
 
+function registerApplicationProcess(
+  owner: OwnershipModule,
+  application: HarnessApplicationOptions,
+  child: ChildProcess,
+): void {
+  try {
+    owner.registerApplicationProcess(application, child);
+  } catch {
+    throw new Error('Fulfillment application process could not be registered to owned run');
+  }
+}
+
+async function stopOwnedApplicationProcess(
+  owner: OwnershipModule,
+  application: HarnessApplicationOptions,
+  child: ChildProcess,
+): Promise<void> {
+  try {
+    await owner.stopApplicationProcess(application, child);
+  } catch {
+    throw new Error('Fulfillment application process could not be safely stopped by its owner');
+  }
+}
+
+function readRuntimeEnvironment(value: unknown): NodeJS.ProcessEnv {
+  if (!isRecord(value)) throw new Error('Owned application environment is invalid');
+  const environment: NodeJS.ProcessEnv = {};
+  for (const [name, entry] of Object.entries(value)) {
+    if (typeof entry !== 'string') throw new Error('Owned application environment is invalid');
+    environment[name] = entry;
+  }
+  return environment;
+}
+
+async function loadOwnedApplicationEnvironments(
+  application: HarnessApplicationOptions,
+): Promise<OwnedApplicationEnvironments> {
+  const owner = await loadOwnershipModule();
+  const value = owner.ownedApplicationEnvironment(application);
+  if (!isRecord(value) || !Array.isArray(value['secrets'])) {
+    throw new Error('T013 owned application environment is unavailable');
+  }
+  const api = readRuntimeEnvironment(value['api']);
+  const web = readRuntimeEnvironment(value['web']);
+  const secrets: string[] = [];
+  for (const secret of value['secrets']) {
+    if (typeof secret !== 'string' || secret.length === 0) {
+      throw new Error('T013 owned application environment is invalid');
+    }
+    secrets.push(secret);
+  }
+  const publishableKey = application.stripePublishableKey;
+  if (typeof publishableKey !== 'string' || publishableKey.length === 0) {
+    throw new Error('Allocated Stripe browser key is missing');
+  }
+  const expectedApi: Record<string, string> = {
+    NODE_ENV: 'test',
+    FULFILLMENT_HARNESS_RUN_ID: application.runId,
+    PORT: new URL(application.apiUrl).port,
+    DATABASE_URL: application.databaseUrl,
+    REDIS_URL: application.redisUrl,
+    REDIS_KEY_PREFIX: application.redisPrefix,
+    STRIPE_API_URL: application.stripeOrigin,
+    STRIPE_SECRET_KEY: application.stripeApiKey,
+    STRIPE_WEBHOOK_SECRET: application.stripeWebhookSecret,
+    DUFFEL_API_URL: application.supplierOrigin,
+    DUFFEL_ACCESS_TOKEN: application.supplierApiKey,
+    FRONTEND_URL: new URL(application.frontendUrl).origin,
+  };
+  const expectedWeb: Record<string, string> = {
+    NODE_ENV: 'test',
+    NEXTAUTH_URL: new URL(application.frontendUrl).origin,
+    API_URL: new URL(application.apiUrl).origin,
+    NEXT_PUBLIC_API_URL: new URL(application.apiUrl).origin,
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: publishableKey,
+  };
+  for (const [name, expected] of Object.entries(expectedApi)) {
+    if (api[name] !== expected) throw new Error('T013 API environment does not match its allocation');
+  }
+  for (const [name, expected] of Object.entries(expectedWeb)) {
+    if (web[name] !== expected) throw new Error('T013 web environment does not match its allocation');
+  }
+  return { api, web, secrets };
+}
 async function loadSensitiveRedactor(): Promise<(value: unknown) => string> {
   let loaded: unknown;
   try {
@@ -227,74 +336,6 @@ async function loadSensitiveRedactor(): Promise<(value: unknown) => string> {
   }
   const module = loaded;
   return (value: unknown): string => module.redactSensitive(value);
-}
-
-function randomSecret(): string {
-  return randomBytes(32).toString('hex');
-}
-
-function runtimeEnvironment(values: Record<string, string>): NodeJS.ProcessEnv {
-  const environment: NodeJS.ProcessEnv = {};
-  for (const name of ['PATH', 'SystemRoot', 'WINDIR', 'TEMP', 'TMP', 'USERPROFILE', 'HOMEDRIVE', 'HOMEPATH']) {
-    const value = process.env[name];
-    if (value) environment[name] = value;
-  }
-  const root = path.resolve(__dirname, '../../../..');
-  const guardPath = path.resolve(root, 'tests', 'ci', 'node-network-guard.cjs').replace(/\\/g, '/');
-  environment.NODE_OPTIONS = '--require="' + guardPath + '"';
-  for (const [name, value] of Object.entries(values)) environment[name] = value;
-  return environment;
-}
-
-function applicationEnvironments(application: HarnessApplicationOptions): {
-  api: NodeJS.ProcessEnv;
-  web: NodeJS.ProcessEnv;
-  secrets: string[];
-} {
-  const secrets = {
-    jwtSecret: randomSecret(),
-    agentServiceApiKey: randomSecret(),
-    claimTokenSecret: randomSecret(),
-    attestationSecret: randomSecret(),
-    chatHandoffSecret: randomSecret(),
-    chatEncryptionKey: randomSecret(),
-    encryptionKey: randomSecret(),
-  };
-  const apiValues: Record<string, string> = {
-    NODE_ENV: 'test',
-    CI: 'true',
-    PORT: String(new URL(application.apiUrl).port),
-    DATABASE_URL: application.databaseUrl,
-    REDIS_URL: application.redisUrl,
-    REDIS_KEY_PREFIX: application.redisPrefix,
-    STRIPE_API_URL: application.stripeOrigin,
-    STRIPE_SECRET_KEY: application.stripeApiKey,
-    STRIPE_WEBHOOK_SECRET: application.stripeWebhookSecret,
-    DUFFEL_API_URL: application.supplierOrigin,
-    DUFFEL_ACCESS_TOKEN: application.supplierApiKey,
-    JWT_SECRET: secrets.jwtSecret,
-    AGENT_SERVICE_API_KEY: secrets.agentServiceApiKey,
-    CLAIM_TOKEN_SECRET: secrets.claimTokenSecret,
-    ATTESTATION_SECRET: secrets.attestationSecret,
-    CHAT_HANDOFF_SECRET: secrets.chatHandoffSecret,
-    CHAT_ENCRYPTION_KEY: secrets.chatEncryptionKey,
-    ENCRYPTION_KEY: secrets.encryptionKey,
-    FRONTEND_URL: application.frontendUrl,
-    FEATURE_FLAG_FULFILLMENT_RECOVERY: 'false',
-  };
-  const webValues: Record<string, string> = {
-    NODE_ENV: 'test',
-    CI: 'true',
-    NEXTAUTH_SECRET: secrets.jwtSecret,
-    NEXTAUTH_URL: application.frontendUrl,
-    API_URL: application.apiUrl,
-    NEXT_PUBLIC_API_URL: application.apiUrl,
-  };
-  return {
-    api: runtimeEnvironment(apiValues),
-    web: runtimeEnvironment(webValues),
-    secrets: Object.values(secrets),
-  };
 }
 
 function redactCapturedOutputWith(
@@ -332,6 +373,7 @@ function launchProcess(
   environment: NodeJS.ProcessEnv,
   secrets: readonly string[],
   redactSensitive: (value: unknown) => string,
+  onSpawn: (child: ChildProcess) => void,
 ): ChildRecord {
   const child = spawn(process.execPath, args, {
     cwd,
@@ -340,18 +382,29 @@ function launchProcess(
     stdio: 'pipe',
     windowsHide: true,
   });
-  const record: ChildRecord = { name, child, output: '' };
+  const record: ChildRecord = { name, child, output: '', registrationAttempted: false, registered: false, closed: false };
   child.stdout?.on('data', (chunk: unknown) => appendOutput(record, chunk, secrets, redactSensitive));
   child.stderr?.on('data', (chunk: unknown) => appendOutput(record, chunk, secrets, redactSensitive));
   child.once('spawn', () => {
     if (child.pid) spawnedProcessIds.add(child.pid);
+    record.registrationAttempted = true;
+    try {
+      onSpawn(child);
+      record.registered = true;
+    } catch {
+      record.registered = false;
+    }
+  });
+  child.once('close', () => {
+    record.closed = true;
+    if (child.pid) spawnedProcessIds.delete(child.pid);
   });
   return record;
 }
 
 function waitForSpawn(record: ChildRecord): Promise<void> {
   const child = record.child;
-  if (child.pid) return Promise.resolve();
+  if (record.registrationAttempted) return Promise.resolve();
   return new Promise((resolve, reject) => {
     const onSpawn = (): void => {
       cleanup();
@@ -376,8 +429,9 @@ function waitForSpawn(record: ChildRecord): Promise<void> {
   });
 }
 
-function waitForClose(child: ChildProcess, timeoutMs: number): Promise<void> {
-  if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve();
+function waitForClose(record: ChildRecord, timeoutMs: number): Promise<void> {
+  const child = record.child;
+  if (record.closed || child.exitCode !== null || child.signalCode !== null) return Promise.resolve();
   return new Promise((resolve) => {
     const timer = setTimeout(finish, timeoutMs);
     const onClose = (): void => finish();
@@ -390,32 +444,30 @@ function waitForClose(child: ChildProcess, timeoutMs: number): Promise<void> {
   });
 }
 
-function killRecordedProcess(record: ChildRecord, force: boolean): void {
-  const pid = record.child.pid;
-  if (!pid || record.child.exitCode !== null || record.child.signalCode !== null) return;
-  if (process.platform === 'win32') {
-    spawnSync('taskkill.exe', ['/PID', String(pid), '/T', '/F'], {
-      windowsHide: true,
-      stdio: 'ignore',
-    });
-  } else {
-    record.child.kill(force ? 'SIGKILL' : 'SIGTERM');
-  }
-}
-
-async function stopProcesses(records: ChildRecord[]): Promise<void> {
+async function stopProcesses(
+  records: ChildRecord[],
+  application: HarnessApplicationOptions,
+  owner: OwnershipModule | undefined,
+): Promise<void> {
   let failed = false;
   for (const record of [...records].reverse()) {
-    if (record.child.exitCode !== null || record.child.signalCode !== null) continue;
-    killRecordedProcess(record, false);
-    await waitForClose(record.child, 5000);
-    if (record.child.exitCode === null && record.child.signalCode === null) {
-      killRecordedProcess(record, true);
-      await waitForClose(record.child, 1000);
+    if (record.closed || record.child.pid === undefined || record.child.exitCode !== null || record.child.signalCode !== null) continue;
+    if (!owner || !record.registrationAttempted) {
+      failed = true;
+      continue;
     }
-    if (record.child.exitCode === null && record.child.signalCode === null) failed = true;
+    try {
+      await stopOwnedApplicationProcess(owner, application, record.child);
+      await waitForClose(record, 1000);
+    } catch {
+      failed = true;
+    }
+    if (!record.closed && record.child.exitCode === null && record.child.signalCode === null) failed = true;
   }
-  records.length = 0;
+  for (let index = records.length - 1; index >= 0; index--) {
+    const record = records[index];
+    if (record && (record.closed || record.child.pid === undefined || record.child.exitCode !== null || record.child.signalCode !== null)) records.splice(index, 1);
+  }
   if (failed) throw new Error('A recorded fulfillment application process did not stop');
 }
 
@@ -433,7 +485,7 @@ async function isHealthy(url: string, timeoutMs: number): Promise<boolean> {
 }
 
 function processFailure(records: ChildRecord[]): string | undefined {
-  const failed = records.find((record) => record.child.exitCode !== null || record.child.signalCode !== null);
+  const failed = records.find((record) => record.closed || record.child.exitCode !== null || record.child.signalCode !== null);
   if (!failed) return undefined;
   return failed.name + ' process exited before becoming healthy';
 }
@@ -452,15 +504,18 @@ export function createFulfillmentHarnessServer(options: {
   let startPromise: Promise<void> | undefined;
   let stopPromise: Promise<void> | undefined;
   let started = false;
+  let ownershipModule: OwnershipModule | undefined;
   let stopped = false;
 
   async function startProcesses(): Promise<void> {
     try {
       const validated = validateApplicationOptions(options.application, options.driver);
       await assertOwnedRunResources(options.application);
+      const owner = await loadOwnershipModule();
+      ownershipModule = owner;
       if (stopped) throw new Error('Fulfillment harness server was stopped');
       const redactSensitive = await loadSensitiveRedactor();
-      const environments = applicationEnvironments(options.application);
+      const environments = await loadOwnedApplicationEnvironments(options.application);
       const outputSecrets = [...secrets, ...environments.secrets];
       for (const environment of [environments.api, environments.web]) {
         if (
@@ -484,9 +539,11 @@ export function createFulfillmentHarnessServer(options: {
         environments.api,
         outputSecrets,
         redactSensitive,
+        (child) => registerApplicationProcess(owner, options.application, child),
       );
       records.push(apiRecord);
       await waitForSpawn(apiRecord);
+      if (!apiRecord.registered) throw new Error('Fulfillment application process could not be registered to owned run');
       if (stopped) throw new Error('Fulfillment harness server was stopped');
 
       const webRecord = launchProcess(
@@ -496,15 +553,17 @@ export function createFulfillmentHarnessServer(options: {
         environments.web,
         outputSecrets,
         redactSensitive,
+        (child) => registerApplicationProcess(owner, options.application, child),
       );
       records.push(webRecord);
       await waitForSpawn(webRecord);
+      if (!webRecord.registered) throw new Error('Fulfillment application process could not be registered to owned run');
       if (stopped) throw new Error('Fulfillment harness server was stopped');
       started = true;
     } catch (error) {
       stopped = true;
       try {
-        await stopProcesses(records);
+        await stopProcesses(records, options.application, ownershipModule);
       } catch {
         throw new Error('Fulfillment application startup failed and owned process cleanup failed');
       }
@@ -528,6 +587,8 @@ export function createFulfillmentHarnessServer(options: {
       if (!started) throw new Error('Fulfillment harness server did not start');
       const apiOrigin = new URL(options.application.apiUrl).origin;
       const frontendOrigin = new URL(options.application.frontendUrl).origin;
+      const apiListenerLine =
+        'Fulfillment harness API listening at http://127.0.0.1:' + new URL(options.application.apiUrl).port;
       const deadline = Date.now() + timeoutMs;
       while (Date.now() < deadline) {
         const failure = processFailure(records);
@@ -537,7 +598,10 @@ export function createFulfillmentHarnessServer(options: {
           isHealthy(new URL('/health', apiOrigin).toString(), Math.min(requestTimeoutMs, remaining)),
           isHealthy(new URL('/health/upstream', frontendOrigin).toString(), Math.min(requestTimeoutMs, remaining)),
         ]);
-        if (apiReady && frontendReady) return;
+        const apiBoundToLoopback = records.some(
+          (record) => record.name === 'NestJS API' && record.output.includes(apiListenerLine),
+        );
+        if (apiReady && frontendReady && apiBoundToLoopback) return;
         await new Promise((resolve) => setTimeout(resolve, Math.min(200, Math.max(1, deadline - Date.now()))));
       }
       const logs = records.map((record) => record.name + ': ' + record.output).join('\n').slice(-maximumLogCharacters);
@@ -548,7 +612,7 @@ export function createFulfillmentHarnessServer(options: {
       stopped = true;
       stopPromise = (async () => {
         if (startPromise) await startPromise.catch(() => undefined);
-        await stopProcesses(records);
+        await stopProcesses(records, options.application, ownershipModule);
         started = false;
       })();
       return stopPromise;
