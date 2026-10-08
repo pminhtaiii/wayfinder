@@ -220,6 +220,16 @@ Client Confirm ──► PaymentFulfillmentSaga ──► Stripe Adapter (Charge
 
 ---
 
+### Feature 030 durable journal foundation (Phase 2)
+
+The API now persists a FulfillmentWorkflow claim row, stable ProviderOperation identities, and per-dispatch ProviderAttempt records. Payment also has an internal RESERVED state, a nullable unique Stripe PaymentIntent ID, and nullable provider-operation/attempt links on PaymentEvent.
+
+FulfillmentWorkflowRepository claims and renews a workflow using PostgreSQL clock_timestamp(), owner tokens, and monotonic fences. Fenced transactions recheck ownership and lease expiry after their callback, so an expired callback rolls back. ProviderOperationService reserves Payment and records PREPARED operation/attempt state before dispatch; later provider evidence is append-only and cannot downgrade terminal outcomes.
+
+PaymentFulfillmentModule owns and exports the repository and operation service. PaymentService has an optional constructor-injected operation service and preserves the existing API projection: RESERVED appears as PENDING, and missing provider IDs are omitted.
+
+This is persistence, claim fencing, journal behavior, and dependency wiring only. Recovery remains disabled by default; requests are not yet routed through these journal operations, and no provider side effect is issued from their database callbacks.
+
 ## Project Structure
 
 ```text
