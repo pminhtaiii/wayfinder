@@ -274,6 +274,7 @@ export class PaymentFulfillmentSaga {
           pollUrl: '/api/bookings/payment/' + dto.paymentId + '/status',
         };
       }
+      const stripePaymentIntentId = payment.stripePaymentIntentId;
       if (dto.bookingId && typeof this.prisma.booking?.findUnique === 'function') {
         const requestedBooking = await this.prisma.booking.findUnique({
           where: { id: dto.bookingId },
@@ -371,7 +372,7 @@ export class PaymentFulfillmentSaga {
 
       if (recoveryPoint === 'started') {
         const authOutcome = await this.paymentGateway.authorizeHold(
-          payment.stripePaymentIntentId,
+          stripePaymentIntentId,
           control,
         );
 
@@ -414,7 +415,7 @@ export class PaymentFulfillmentSaga {
               action: 'payment_authorized',
               resourceType: 'Payment',
               resourceId: payment.id,
-              metadata: { stripePaymentIntentId: payment.stripePaymentIntentId },
+              metadata: { stripePaymentIntentId: stripePaymentIntentId },
             });
           }
         } else if (authOutcome.status !== 'captured') {
@@ -514,7 +515,7 @@ export class PaymentFulfillmentSaga {
             });
 
             try {
-              await this.paymentGateway.voidHold(payment.stripePaymentIntentId, control);
+              await this.paymentGateway.voidHold(stripePaymentIntentId, control);
             } catch (voidError: unknown) {
               if (isOwnershipLost(voidError)) {
                 throw voidError;
@@ -629,6 +630,13 @@ export class PaymentFulfillmentSaga {
             'Payment-bound ancillary selection could not be recovered',
           );
         }
+        if (!hasStripePaymentIntentId(recheckedPayment)) {
+          return {
+            status: 'PENDING',
+            message: 'Payment is waiting for a provider payment intent. Please poll status.',
+            pollUrl: '/api/bookings/payment/' + dto.paymentId + '/status',
+          };
+        }
 
         const orderPayment = recheckedPayment;
         const hasAncillaryBinding = payment.ancillarySelectionId !== null;
@@ -674,7 +682,7 @@ export class PaymentFulfillmentSaga {
           );
 
           try {
-            await this.paymentGateway.voidHold(payment.stripePaymentIntentId, control);
+            await this.paymentGateway.voidHold(stripePaymentIntentId, control);
           } catch (voidError: unknown) {
             if (isOwnershipLost(voidError)) {
               throw voidError;
@@ -772,7 +780,7 @@ export class PaymentFulfillmentSaga {
 
         try {
           captureOutcome = await this.paymentGateway.capturePayment(
-            payment.stripePaymentIntentId,
+            stripePaymentIntentId,
             `${idempotencyKey}-stripe-capture`,
             control,
           );
@@ -800,7 +808,7 @@ export class PaymentFulfillmentSaga {
           let reconcileOutcome: AuthorizeHoldOutcome;
           try {
             reconcileOutcome = await this.paymentGateway.authorizeHold(
-              payment.stripePaymentIntentId,
+              stripePaymentIntentId,
               control,
             );
           } catch (reconciliationError: unknown) {
@@ -897,7 +905,7 @@ export class PaymentFulfillmentSaga {
             }
 
             try {
-              await this.paymentGateway.voidHold(payment.stripePaymentIntentId, control);
+              await this.paymentGateway.voidHold(stripePaymentIntentId, control);
             } catch (voidError: unknown) {
               if (isOwnershipLost(voidError)) {
                 throw voidError;
@@ -1221,7 +1229,7 @@ export class PaymentFulfillmentSaga {
             await this.paymentMethodService.saveMethod(
               userId,
               payment.stripeCustomerId,
-              payment.stripePaymentIntentId,
+              stripePaymentIntentId,
             );
           } catch (methodError: unknown) {
             this.logger.warn(
@@ -1306,10 +1314,18 @@ export class PaymentFulfillmentSaga {
         return;
       }
 
+      if (!hasStripePaymentIntentId(payment)) {
+        this.logger.warn(
+          `[handleBackgroundError] Payment ${paymentId} has no provider intent; leaving recovery pending.`,
+        );
+        return;
+      }
+      const stripePaymentIntentId = payment.stripePaymentIntentId;
+
       let authOutcome: AuthorizeHoldOutcome;
       try {
         authOutcome = await this.paymentGateway.authorizeHold(
-          payment.stripePaymentIntentId,
+          stripePaymentIntentId,
           control,
         );
       } catch (gatewayErr: unknown) {
@@ -1398,7 +1414,7 @@ export class PaymentFulfillmentSaga {
 
         if (authOutcome.status === 'authorized') {
           try {
-            await this.paymentGateway.voidHold(payment.stripePaymentIntentId, control);
+            await this.paymentGateway.voidHold(stripePaymentIntentId, control);
           } catch (voidError: unknown) {
             if (isOwnershipLost(voidError)) {
               return;

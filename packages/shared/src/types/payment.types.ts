@@ -1,4 +1,5 @@
 export type PaymentStatus =
+  | 'PENDING'
   | 'CREATED'
   | 'AUTHORIZED'
   | 'SUCCEEDED'
@@ -10,6 +11,12 @@ export type PaymentStatus =
   | 'REFUNDED'
   | 'DISPUTED'
   | 'CHARGEBACK_LOST';
+
+export function toPublicPaymentStatus(
+  status: PaymentStatus | 'RESERVED',
+): PaymentStatus {
+  return status === 'RESERVED' ? 'PENDING' : status;
+}
 
 export type RefundStatus = 'REFUND_PENDING' | 'SUCCEEDED' | 'FAILED';
 
@@ -26,7 +33,7 @@ export type Payment = {
   ancillarySelectionVersion?: number | null;
   attemptNumber: number;
   idempotencyKeyId: string;
-  stripePaymentIntentId: string;
+  stripePaymentIntentId?: string;
   stripeCustomerId?: string | null;
   amount: number;
   currency: string;
