@@ -10,6 +10,8 @@ import { AuditModule } from '@/audit/audit.module';
 import { DomainEventsModule } from '@/domain-events/domain-events.module';
 import { SupplierSearchModule } from '@/supplier/search/supplier-search.module';
 import { PaymentFulfillmentSaga } from './payment-fulfillment.saga';
+import { FulfillmentWorkflowRepository } from './fulfillment-workflow.repository';
+import { ProviderOperationService } from './provider-operation.service';
 
 @Module({
   imports: [
@@ -24,7 +26,7 @@ import { PaymentFulfillmentSaga } from './payment-fulfillment.saga';
     DomainEventsModule,
     SupplierSearchModule,
   ],
-  providers: [PaymentFulfillmentSaga],
-  exports: [PaymentFulfillmentSaga],
+  providers: [FulfillmentWorkflowRepository, ProviderOperationService, PaymentFulfillmentSaga],
+  exports: [FulfillmentWorkflowRepository, ProviderOperationService, PaymentFulfillmentSaga],
 })
 export class PaymentFulfillmentModule {}
