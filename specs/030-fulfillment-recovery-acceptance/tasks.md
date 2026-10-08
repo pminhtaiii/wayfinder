@@ -21,7 +21,7 @@
 - [ ] T012 [P] Add protected driver, cross-run isolation, production exclusion, redaction and teardown tests in apps/api/test/fulfillment-harness/driver.spec.ts.
 - [ ] T013 Implement explicit signed event release, held responses, disposable DB/Redis bootstrap, restart barriers and cleanup in apps/api/test/fulfillment-harness/driver.ts and apps/api/test/fulfillment-harness/bootstrap.ts.
 - [ ] T014 Implement a test-only external Stripe browser client seam without replacing application UI in apps/web/tests/fixtures/fulfillment-stripe-client.ts.
-- [ ] T015 Implement virtual recovery scheduling (not DB lease time), finite fault scenarios and expected-variant manifest in apps/api/test/fulfillment-harness/scheduler.ts and apps/api/test/fulfillment-harness/scenarios.ts.
+- [X] T015 Implement virtual recovery scheduling (not DB lease time), finite fault scenarios and expected-variant manifest in apps/api/test/fulfillment-harness/scheduler.ts and apps/api/test/fulfillment-harness/scenarios.ts.
 - [ ] T016 Configure isolated real Next/Nest/provider startup and failure-on-missing-services in apps/web/tests/playwright.fulfillment.config.ts and apps/api/test/fulfillment-harness/server.ts.
 
 Foundation checkpoint: journal, one DB claim, provider transport fidelity and isolated driver exist. No external call is held inside a database transaction.
