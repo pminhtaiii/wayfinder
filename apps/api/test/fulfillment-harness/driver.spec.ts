@@ -204,7 +204,7 @@ function startLongLivedChild(): Promise<ChildProcess> {
 
 function processIsAlive(child: ChildProcess): boolean {
   const pid = child.pid;
-  if (!pid || child.exitCode !== null) return false;
+  if (!pid || child.exitCode !== null || child.signalCode !== null) return false;
   try {
     process.kill(pid, 0);
     return true;
@@ -217,7 +217,7 @@ function setChildPidForOwnershipTest(child: ChildProcess, pid: number): void {
   Object.defineProperty(child, 'pid', { configurable: true, enumerable: true, writable: true, value: pid });
 }
 async function stopUnownedChild(child: ChildProcess): Promise<void> {
-  if (child.exitCode !== null) return;
+  if (child.exitCode !== null || child.signalCode !== null) return;
   child.kill('SIGTERM');
   await new Promise<void>((resolve) => {
     const timeout = setTimeout(resolve, 3000);
@@ -832,8 +832,10 @@ describe('fulfillment harness driver security and isolation', () => {
     thirdRun = undefined;
     expect(report.terminatedProcessIds).toContain(ownedPid);
     expect(report.leakedResourceCount).toBe(0);
-    expect(ownedChild.exitCode).not.toBeNull();
+    expect(ownedChild.exitCode !== null || ownedChild.signalCode !== null).toBe(true);
+    expect(processIsAlive(ownedChild)).toBe(false);
     expect(unownedChild.exitCode).toBeNull();
+    expect(unownedChild.signalCode).toBeNull();
     expect(processIsAlive(unownedChild)).toBe(true);
   });
 });

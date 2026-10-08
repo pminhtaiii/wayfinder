@@ -80,7 +80,17 @@ function getAuthHeaders() {
     'User-Agent': 'CI-Diagnostic-Agent',
     Accept: 'application/vnd.github+json',
   };
-  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  if (!token) {
+    try {
+      token = execSync('gh auth token', {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim();
+    } catch {
+      // gh CLI not available or not logged in
+    }
+  }
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
