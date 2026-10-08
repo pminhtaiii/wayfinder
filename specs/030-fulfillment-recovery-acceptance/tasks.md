@@ -18,8 +18,8 @@
 - [x] T009 Wire providers and update nullable-ID/RESERVED readers before flag enablement in apps/api/src/payment-fulfillment/payment-fulfillment.module.ts, apps/api/src/payment/payment.service.ts, apps/api/src/booking-lifecycle/booking-recovery.service.ts and packages/shared/src/ (keep existing ready-intent responses compatible).
 - [x] T010 [P] Add ledger/transport contract tests for independent Stripe and supplier side effects in apps/api/test/fulfillment-harness/provider-transports.spec.ts.
 - [x] T011 Implement stateful transport simulators with realistic verified provider capabilities in apps/api/test/fulfillment-harness/stripe-server.ts and apps/api/test/fulfillment-harness/supplier-server.ts.
-- [ ] T012 [P] Add protected driver, cross-run isolation, production exclusion, redaction and teardown tests in apps/api/test/fulfillment-harness/driver.spec.ts.
-- [ ] T013 Implement explicit signed event release, held responses, disposable DB/Redis bootstrap, restart barriers and cleanup in apps/api/test/fulfillment-harness/driver.ts and apps/api/test/fulfillment-harness/bootstrap.ts.
+- [x] T012 [P] Add protected driver, cross-run isolation, production exclusion, redaction and teardown tests in apps/api/test/fulfillment-harness/driver.spec.ts.
+- [x] T013 Implement explicit signed event release, held responses, disposable DB/Redis bootstrap, restart barriers and cleanup in apps/api/test/fulfillment-harness/driver.ts and apps/api/test/fulfillment-harness/bootstrap.ts.
 - [X] T014 Implement a test-only external Stripe browser client seam without replacing application UI in apps/web/tests/fixtures/fulfillment-stripe-client.ts.
 - [X] T015 Implement virtual recovery scheduling (not DB lease time), finite fault scenarios and expected-variant manifest in apps/api/test/fulfillment-harness/scheduler.ts and apps/api/test/fulfillment-harness/scenarios.ts.
 - [ ] T016 Configure isolated real Next/Nest/provider startup and failure-on-missing-services in apps/web/tests/playwright.fulfillment.config.ts and apps/api/test/fulfillment-harness/server.ts.
