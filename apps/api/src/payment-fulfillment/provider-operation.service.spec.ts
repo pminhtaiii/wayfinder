@@ -963,4 +963,172 @@ describe('ProviderOperationService database journal', () => {
     expect(event.evidenceKind).toBe('HTTP_RESPONSE');
     expect(event.outcomeClass).toBe('NONFINAL');
   });
+
+  it('keeps confirmed attempt and operation facts terminal when later evidence is unresolved', async () => {
+    const fixture = getIntegrationFixture();
+    const booking = await createBookingIntentFixture(fixture.prismaA);
+    const claim = requireClaim(await fixture.repositoryA.acquireClaim(booking.bookingIntentId, sagaActor));
+    const reservation = await fixture.serviceA.reservePaymentAndIntentCreate(claim, {
+      idempotencyKeyId: booking.idempotencyKeyId,
+      attemptNumber: 1,
+      amount: 42_000,
+      currency: 'usd',
+      stripeCustomerId: null,
+    });
+    const attempt = await fixture.serviceA.prepareAttempt(claim, {
+      operationId: reservation.operation.id,
+      kind: 'DISPATCH',
+      requestFingerprint: 'sha256:confirmed-then-unresolved',
+    });
+    const providerObjectId = 'pi_monotonic_46';
+    const confirmedAt = new Date('2026-10-07T00:08:00.000Z');
+    const firstResult = await fixture.serviceA.recordOutcome(claim, {
+      attemptId: attempt.id,
+      outcome: 'CONFIRMED',
+      eventType: 'payment.intent.created',
+      providerObjectId,
+      amount: 42_000,
+      currency: 'usd',
+      observedAt: confirmedAt,
+      safeEvidence: {
+        providerStatus: 'requires_payment_method',
+        providerEventId: null,
+        evidenceSource: 'HTTP_RESPONSE',
+        linkage: {
+          bookingIntentMatched: true,
+          offerMatched: true,
+          passengerSetMatched: true,
+          itineraryMatched: true,
+        },
+      },
+    });
+    const laterObservedAt = new Date('2026-10-07T00:09:00.000Z');
+    const laterResult = await fixture.serviceA.recordOutcome(claim, {
+      attemptId: attempt.id,
+      outcome: 'UNRESOLVED',
+      eventType: 'payment.intent.observation_unavailable',
+      providerObjectId: null,
+      amount: null,
+      currency: null,
+      observedAt: laterObservedAt,
+      safeEvidence: {
+        providerStatus: 'processing',
+        providerEventId: null,
+        evidenceSource: 'AUTHORITATIVE_READ',
+        linkage: {
+          bookingIntentMatched: true,
+          offerMatched: true,
+          passengerSetMatched: true,
+          itineraryMatched: true,
+        },
+      },
+    });
+
+    const events = await fixture.prismaA.paymentEvent.findMany({
+      where: { providerOperationId: reservation.operation.id },
+      orderBy: { id: 'asc' },
+    });
+    const persistedAttempt = await fixture.prismaA.providerAttempt.findUnique({ where: { id: attempt.id } });
+    const operation = await fixture.prismaA.providerOperation.findUnique({ where: { id: reservation.operation.id } });
+    const payment = await fixture.prismaA.payment.findUnique({ where: { id: reservation.paymentId } });
+    if (!persistedAttempt || !operation || !payment) {
+      throw new Error('Terminal provider outcome rows were not persisted');
+    }
+    expect(events).toHaveLength(2);
+    expect(events[0].id).toBe(firstResult.paymentEventId);
+    expect(events[0].outcomeClass).toBe('CONFIRMED');
+    expect(events[1].id).toBe(laterResult.paymentEventId);
+    expect(events[1].id).not.toBe(events[0].id);
+    expect(events[1].outcomeClass).toBe('UNRESOLVED');
+    expect(events[1].providerAttemptId).toBe(attempt.id);
+    expect(events[1].providerOperationId).toBe(reservation.operation.id);
+    expect(persistedAttempt.status).toBe('CONFIRMED');
+    expect(persistedAttempt.normalizedOutcome).toBe('CONFIRMED');
+    expect(persistedAttempt.providerObjectId).toBe(providerObjectId);
+    expect(persistedAttempt.completedAt).toEqual(confirmedAt);
+    expect(operation.status).toBe('CONFIRMED');
+    expect(operation.providerObjectId).toBe(providerObjectId);
+    expect(operation.lastOutcome).toBe('CONFIRMED');
+    expect(operation.lastObservedAt).toEqual(confirmedAt);
+    expect(operation.firstUncertainAt).toBeNull();
+    expect(payment.status).toBe(PaymentStatus.CREATED);
+    expect(payment.stripePaymentIntentId).toBe(providerObjectId);
+    expect(payment.amount).toBe(42_000);
+    expect(laterResult.kind).toBe('EVIDENCE_ONLY');
+  });
+
+  it('does not downgrade a confirmed operation when its prepared reconciliation is unresolved', async () => {
+    const fixture = getIntegrationFixture();
+    const booking = await createBookingIntentFixture(fixture.prismaA);
+    const claim = requireClaim(await fixture.repositoryA.acquireClaim(booking.bookingIntentId, sagaActor));
+    const reservation = await fixture.serviceA.reservePaymentAndIntentCreate(claim, {
+      idempotencyKeyId: booking.idempotencyKeyId,
+      attemptNumber: 1,
+      amount: 42_000,
+      currency: 'usd',
+      stripeCustomerId: null,
+    });
+    const dispatchAttempt = await fixture.serviceA.prepareAttempt(claim, {
+      operationId: reservation.operation.id,
+      kind: 'DISPATCH',
+      requestFingerprint: 'sha256:dispatch-before-reconciliation',
+    });
+    const reconciliationAttempt = await fixture.serviceA.prepareAttempt(claim, {
+      operationId: reservation.operation.id,
+      kind: 'RECONCILIATION',
+      requestFingerprint: 'sha256:prepared-before-confirmation',
+    });
+    const providerObjectId = 'pi_monotonic_47';
+    const confirmedAt = new Date('2026-10-07T00:10:00.000Z');
+    const firstResult = await fixture.serviceA.recordOutcome(claim, {
+      attemptId: dispatchAttempt.id,
+      outcome: 'CONFIRMED',
+      eventType: 'payment.intent.created',
+      providerObjectId,
+      amount: 42_000,
+      currency: 'usd',
+      observedAt: confirmedAt,
+      safeEvidence: null,
+    });
+    const laterObservedAt = new Date('2026-10-07T00:11:00.000Z');
+    const laterResult = await fixture.serviceA.recordOutcome(claim, {
+      attemptId: reconciliationAttempt.id,
+      outcome: 'UNRESOLVED',
+      eventType: 'payment.intent.observation_unavailable',
+      providerObjectId: null,
+      amount: null,
+      currency: null,
+      observedAt: laterObservedAt,
+      safeEvidence: null,
+    });
+
+    const events = await fixture.prismaA.paymentEvent.findMany({
+      where: { providerOperationId: reservation.operation.id },
+      orderBy: { id: 'asc' },
+    });
+    const persistedReconciliation = await fixture.prismaA.providerAttempt.findUnique({
+      where: { id: reconciliationAttempt.id },
+    });
+    const operation = await fixture.prismaA.providerOperation.findUnique({ where: { id: reservation.operation.id } });
+    const payment = await fixture.prismaA.payment.findUnique({ where: { id: reservation.paymentId } });
+    if (!persistedReconciliation || !operation || !payment) {
+      throw new Error('Reconciliation outcome rows were not persisted');
+    }
+    expect(events).toHaveLength(2);
+    expect(events[0].id).toBe(firstResult.paymentEventId);
+    expect(events[1].id).toBe(laterResult.paymentEventId);
+    expect(events[1].outcomeClass).toBe('UNRESOLVED');
+    expect(events[1].providerAttemptId).toBe(reconciliationAttempt.id);
+    expect(persistedReconciliation.status).toBe('UNRESOLVED');
+    expect(persistedReconciliation.normalizedOutcome).toBe('UNRESOLVED');
+    expect(persistedReconciliation.completedAt).toEqual(laterObservedAt);
+    expect(operation.status).toBe('CONFIRMED');
+    expect(operation.providerObjectId).toBe(providerObjectId);
+    expect(operation.lastOutcome).toBe('CONFIRMED');
+    expect(operation.lastObservedAt).toEqual(confirmedAt);
+    expect(operation.firstUncertainAt).toBeNull();
+    expect(payment.status).toBe(PaymentStatus.CREATED);
+    expect(payment.stripePaymentIntentId).toBe(providerObjectId);
+    expect(laterResult.kind).toBe('ADVANCED');
+  });
 });

@@ -399,7 +399,7 @@ export class ProviderOperationService {
       throw new BadRequestException('Safe provider evidence contains an invalid status or event ID');
     }
 
-    const appendEvidence = async (tx: Prisma.TransactionClient, advanceState: boolean): Promise<bigint> => {
+    const appendEvidence = async (tx: Prisma.TransactionClient, advanceState: boolean): Promise<{ paymentEventId: bigint; stateAdvanced: boolean }> => {
       const workflow = await tx.fulfillmentWorkflow.findUnique({
         where: { id: claim.workflowId },
         select: { bookingIntentId: true, currentPaymentId: true, firstUncertainAt: true },
@@ -475,9 +475,20 @@ export class ProviderOperationService {
       });
 
       if (!advanceState) {
-        return event.id;
+        return { paymentEventId: event.id, stateAdvanced: false };
       }
 
+      const terminalAttempt =
+        attempt.status === ProviderAttemptStatus.CONFIRMED ||
+        attempt.status === ProviderAttemptStatus.DEFINITIVE_FAILURE ||
+        attempt.status === ProviderAttemptStatus.ABANDONED_BEFORE_DISPATCH;
+      if (terminalAttempt) {
+        return { paymentEventId: event.id, stateAdvanced: false };
+      }
+      const terminalOperation =
+        attempt.operation.status === ProviderOperationStatus.CONFIRMED ||
+        attempt.operation.status === ProviderOperationStatus.DEFINITIVE_FAILURE ||
+        attempt.operation.status === ProviderOperationStatus.COMPENSATED;
       const uncertain = input.outcome === 'NONFINAL' || input.outcome === 'UNRESOLVED';
       const attemptStatus =
         input.outcome === 'CONFIRMED'
@@ -502,20 +513,23 @@ export class ProviderOperationService {
           completedAt: input.observedAt,
         },
       });
-      await tx.providerOperation.update({
-        where: { id: attempt.operation.id },
-        data: {
-          status: operationStatus,
-          providerObjectId: input.providerObjectId ?? undefined,
-          lastOutcome: input.outcome,
-          lastObservedAt: input.observedAt,
-          firstUncertainAt:
-            uncertain && attempt.operation.firstUncertainAt === null
-              ? input.observedAt
-              : undefined,
-        },
-      });
+      if (!terminalOperation) {
+        await tx.providerOperation.update({
+          where: { id: attempt.operation.id },
+          data: {
+            status: operationStatus,
+            providerObjectId: input.providerObjectId ?? undefined,
+            lastOutcome: input.outcome,
+            lastObservedAt: input.observedAt,
+            firstUncertainAt:
+              uncertain && attempt.operation.firstUncertainAt === null
+                ? input.observedAt
+                : undefined,
+          },
+        });
+      }
       if (
+        !terminalOperation &&
         attempt.operation.provider === 'STRIPE' &&
         attempt.operation.purpose === 'PAYMENT_INTENT_CREATE'
       ) {
@@ -551,21 +565,23 @@ export class ProviderOperationService {
           }
         }
       }
-      if (uncertain && workflow.firstUncertainAt === null) {
+      if (!terminalOperation && uncertain && workflow.firstUncertainAt === null) {
         await tx.fulfillmentWorkflow.update({
           where: { id: claim.workflowId },
           data: { firstUncertainAt: input.observedAt },
         });
       }
-      return event.id;
+      return { paymentEventId: event.id, stateAdvanced: true };
     };
 
     const result = await this.workflows.runFencedTransaction(claim, (tx) => appendEvidence(tx, true));
     if (result.kind === 'APPLIED') {
-      return { kind: 'ADVANCED', paymentEventId: result.value };
+      return result.value.stateAdvanced
+        ? { kind: 'ADVANCED', paymentEventId: result.value.paymentEventId }
+        : { kind: 'EVIDENCE_ONLY', paymentEventId: result.value.paymentEventId };
     }
-    const paymentEventId = await this.prisma.$transaction((tx) => appendEvidence(tx, false));
-    return { kind: 'EVIDENCE_ONLY', paymentEventId };
+    const recorded = await this.prisma.$transaction((tx) => appendEvidence(tx, false));
+    return { kind: 'EVIDENCE_ONLY', paymentEventId: recorded.paymentEventId };
   }
   private async getOrCreateOperationInTransaction(
     tx: Prisma.TransactionClient,
