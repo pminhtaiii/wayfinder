@@ -243,6 +243,7 @@ model Booking {
   notificationOutbox       NotificationOutbox[]    @relation("BookingNotificationOutbox")
   disruptionAuditEvents    DisruptionAuditEvent[]  @relation("BookingDisruptionAuditEvents")
   agentProjection          BookingAgentProjection?
+  fulfillmentWorkflow      FulfillmentWorkflow? @relation("FulfillmentWorkflowBooking")
 
   @@index([userId])
   @@index([userId, status])
@@ -287,6 +288,7 @@ model BookingIntent {
   paymentAttemptCount         Int                      @default(0)
   payments                    Payment[]
   booking                     Booking?
+  fulfillmentWorkflow         FulfillmentWorkflow?
   ancillaryVersion            Int                      @default(0)
   currentAncillarySelectionId String?                  @unique
   currentAncillarySelection   AncillarySelection?      @relation("BookingIntentCurrentAncillarySelection", fields: [currentAncillarySelectionId], references: [id], onDelete: SetNull)
@@ -541,6 +543,7 @@ enum PaymentStatus {
   REFUNDED
   DISPUTED
   CHARGEBACK_LOST
+  RESERVED
 }
 
 enum RefundStatus {
@@ -574,13 +577,14 @@ model Payment {
   id                        String              @id @default(uuid())
   bookingIntentId           String
   bookingIntent             BookingIntent       @relation(fields: [bookingIntentId], references: [id])
+  fulfillmentWorkflowId     String?
   ancillarySelectionId      String?
   ancillarySelectionVersion Int?
   ancillarySelection        AncillarySelection? @relation("PaymentAncillarySelection", fields: [ancillarySelectionId, bookingIntentId, ancillarySelectionVersion], references: [id, bookingIntentId, version], onDelete: Restrict)
   attemptNumber             Int // 1 or 2 (Database-level CHECK constraint attemptNumber IN (1, 2) enforced in migration)
   idempotencyKeyId          String
   idempotencyKey            IdempotencyKey      @relation(fields: [idempotencyKeyId], references: [id])
-  stripePaymentIntentId     String              @unique
+  stripePaymentIntentId     String?             @unique
   stripeCustomerId          String?
   amount                    Int // smallest currency unit (cents)
   currency                  String // ISO 4217 (e.g., "usd")
@@ -592,6 +596,9 @@ model Payment {
   updatedAt                 DateTime            @updatedAt
 
   paymentEvents                  PaymentEvent[]
+  fulfillmentWorkflow            FulfillmentWorkflow?  @relation("WorkflowPaymentAttempts", fields: [fulfillmentWorkflowId], references: [id], onDelete: SetNull)
+  currentForWorkflows             FulfillmentWorkflow[] @relation("WorkflowCurrentPayment")
+  providerOperations              ProviderOperation[]
   ledgerEntries                  LedgerEntry[]
   refunds                        Refund[]
   booking                        Booking?
@@ -601,6 +608,7 @@ model Payment {
   @@index([stripeCustomerId])
   @@index([status])
   @@index([ancillarySelectionId])
+  @@index([fulfillmentWorkflowId])
   @@map("payments")
 }
 
@@ -638,10 +646,23 @@ model PaymentEvent {
   source         PaymentEventSource // WEBHOOK, API, CRON, SYSTEM
   stripeEventId  String?            @unique // webhook deduplication — nullable for non-webhook events
   metadata       Json? // raw payload
+  providerOperationId String?
+  providerAttemptId   String?
+  provider            ProviderKind?
+  evidenceKind        ProviderEvidenceKind?
+  outcomeClass        ProviderOutcomeClass?
+  bookingIntentMatched Boolean?
+  offerMatched         Boolean?
+  passengerSetMatched Boolean?
+  itineraryMatched    Boolean?
   createdAt      DateTime           @default(now())
   createdBy      String // user ID, "system", or service name
+  providerOperation ProviderOperation? @relation(fields: [providerOperationId], references: [id], onDelete: SetNull)
+  providerAttempt   ProviderAttempt?   @relation(fields: [providerAttemptId], references: [id], onDelete: SetNull)
 
   @@index([paymentId, createdAt])
+  @@index([providerOperationId])
+  @@index([providerAttemptId])
   @@index([eventType])
   @@map("payment_events")
 }
@@ -1019,4 +1040,156 @@ model ChatHandoff {
   @@index([expiresAt, consumedAt])
   @@index([claimExpiresAt, consumedAt])
   @@map("chat_handoffs")
+}
+enum FulfillmentWorkflowState {
+  AUTHORIZING
+  READY_FOR_SUPPLIER
+  SUPPLIER_UNCERTAIN
+  SUPPLIER_CONFIRMED
+  CAPTURE_UNCERTAIN
+  COMPENSATING
+  COMPLETED
+  DEFINITIVE_FAILURE
+}
+
+enum WorkflowActorType {
+  SAGA
+  RECOVERY
+  OPERATOR
+}
+
+enum ProviderKind {
+  STRIPE
+  DUFFEL
+}
+
+enum ProviderEvidenceKind {
+  HTTP_RESPONSE
+  AUTHORITATIVE_READ
+  WEBHOOK
+  CANDIDATE_DISCOVERY
+}
+
+enum ProviderOutcomeClass {
+  CONFIRMED
+  DEFINITIVE_FAILURE
+  NONFINAL
+  UNRESOLVED
+}
+
+enum ProviderOperationPurpose {
+  PAYMENT_INTENT_CREATE
+  AUTHORIZATION
+  ORDER_CREATE
+  CAPTURE
+  ORDER_CANCEL
+  AUTHORIZATION_RELEASE
+  REFUND
+  RECONCILE
+}
+
+enum ProviderOperationStatus {
+  NOT_STARTED
+  PREPARED
+  UNRESOLVED
+  CONFIRMED
+  DEFINITIVE_FAILURE
+  COMPENSATED
+}
+
+enum ProviderAttemptKind {
+  DISPATCH
+  RECONCILIATION
+}
+
+enum ProviderAttemptStatus {
+  PREPARED
+  RESPONSE_RECEIVED
+  CONFIRMED
+  DEFINITIVE_FAILURE
+  UNRESOLVED
+  ABANDONED_BEFORE_DISPATCH
+}
+
+model FulfillmentWorkflow {
+  id                String                   @id @default(uuid())
+  bookingIntentId   String                   @unique
+  bookingId         String?                  @unique
+  currentPaymentId  String?
+  state             FulfillmentWorkflowState @default(AUTHORIZING)
+  currentCheckpoint String?
+  version           Int                      @default(0)
+  firstUncertainAt  DateTime?
+  escalatedAt       DateTime?
+  nextReconcileAt   DateTime?
+  lastReconciledAt  DateTime?
+  ownerToken        String?
+  fence             BigInt                   @default(0)
+  leaseExpiresAt    DateTime?
+  renewedAt         DateTime?
+  actorType         WorkflowActorType?
+  actorId           String?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  bookingIntent   BookingIntent @relation(fields: [bookingIntentId], references: [id], onDelete: Restrict)
+  booking         Booking?      @relation("FulfillmentWorkflowBooking", fields: [bookingId], references: [id], onDelete: SetNull)
+  currentPayment  Payment?      @relation("WorkflowCurrentPayment", fields: [currentPaymentId], references: [id], onDelete: SetNull)
+  paymentAttempts Payment[]     @relation("WorkflowPaymentAttempts")
+  operations      ProviderOperation[]
+
+  @@index([state, nextReconcileAt])
+  @@index([firstUncertainAt])
+  @@map("fulfillment_workflows")
+}
+
+model ProviderOperation {
+  id               String                   @id @default(uuid())
+  workflowId       String
+  paymentId        String?
+  provider         ProviderKind
+  purpose          ProviderOperationPurpose
+  logicalSequence  Int                      @default(1)
+  status           ProviderOperationStatus  @default(NOT_STARTED)
+  providerObjectId String?
+  linkedOrderId    String?
+  firstUncertainAt DateTime?
+  lastOutcome      ProviderOutcomeClass?
+  lastObservedAt   DateTime?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  workflow      FulfillmentWorkflow @relation(fields: [workflowId], references: [id], onDelete: Restrict)
+  payment       Payment?            @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  attempts      ProviderAttempt[]
+  paymentEvents PaymentEvent[]
+
+  @@unique([workflowId, provider, purpose, logicalSequence])
+  @@index([workflowId, status])
+  @@index([paymentId])
+  @@map("provider_operations")
+}
+
+model ProviderAttempt {
+  id                    String                @id @default(uuid())
+  operationId           String
+  kind                  ProviderAttemptKind
+  status                ProviderAttemptStatus @default(PREPARED)
+  claimFence            BigInt
+  startedAt             DateTime              @default(now())
+  dispatchedAt          DateTime?
+  completedAt           DateTime?
+  providerRequestId     String?
+  providerObjectId      String?
+  requestFingerprint    String?
+  normalizedFailureCode String?
+  normalizedOutcome     ProviderOutcomeClass?
+  createdAt             DateTime              @default(now())
+
+  operation     ProviderOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  paymentEvents PaymentEvent[]
+
+  @@index([operationId, startedAt])
+  @@index([claimFence])
+  @@map("provider_attempts")
 }
