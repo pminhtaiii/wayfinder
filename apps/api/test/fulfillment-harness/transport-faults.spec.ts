@@ -551,19 +551,46 @@ describe('finite provider fault transport behavior', () => {
     { outcome: 'UNLINKED_CANDIDATE', expectedCount: 1 },
   ];  it.each(candidateCases)('returns real Duffel order-list candidate fixtures for $outcome', async ({ outcome, expectedCount }) => {
     const bookingIntentId = 'supplier-candidates-' + outcome;
-    await createSupplierOrder(bookingIntentId);
+    const userId = 'icu_candidates_' + outcome;
+    await createSupplierOrder(bookingIntentId + '-unrelated', [userId]);
+    const order = await createSupplierOrder(bookingIntentId, [userId]);
     const before = await currentSupplier().inspect(runId);
     await currentSupplier().selectFault(runId, {
       provider: 'DUFFEL', purpose: 'RECONCILE', bookingIntentId, outcome,
     });
     const candidates = await currentDuffelClient().orders.list({
-      'passenger_name[]': ['Test Traveler'],
+      user_id: userId,
     });
     expect(candidates.data).toHaveLength(expectedCount);
     expect((await currentSupplier().inspect(runId)).sideEffectCount).toBe(before.sideEffectCount);
+    if (expectedCount > 0) {
+      expect(candidates.data[0]?.id).toBe(order.orderId);
+    }
     if (outcome === 'UNLINKED_CANDIDATE') {
       expect(candidates.data[0]?.metadata.bookingIntentId).toBe('unlinked-candidate-fixture');
     }
+  });
+
+  it('preserves retrieve-only faults while applying a later list fault', async () => {
+    const bookingIntentId = 'supplier-list-preserves-retrieve';
+    const order = await createSupplierOrder(bookingIntentId);
+    const outcomes: SimulatorFaultOutcome[] = ['PROCESSING', 'ZERO_CANDIDATES', 'UNAVAILABLE'];
+    for (const outcome of outcomes) {
+      await currentSupplier().selectFault(runId, {
+        provider: 'DUFFEL', purpose: 'RECONCILE', bookingIntentId, outcome,
+      });
+    }
+
+    const candidates = await currentDuffelClient().orders.list({
+      booking_reference: order.bookingReference,
+    });
+    expect(candidates.data).toHaveLength(0);
+    await expect(currentDuffelClient().orders.get(order.orderId)).resolves.toMatchObject({
+      data: { id: order.orderId },
+    });
+    await expect(currentDuffelClient().orders.get(order.orderId)).rejects.toMatchObject({
+      errors: [expect.objectContaining({ code: 'provider_unavailable' })],
+    });
   });
 
   const supplierReadCases: ReadFaultCase[] = [

@@ -237,6 +237,87 @@ describe('FulfillmentWorkflowRepository database claims', () => {
     expect(renewedClaim.leaseExpiresAt.getTime()).toBeGreaterThan(claim.leaseExpiresAt.getTime());
   });
 
+  it.each(['America/Los_Angeles', 'Asia/Tokyo'])(
+    'uses UTC lease timestamps with the session in %s',
+    async (timeZone) => {
+      const fixture = getClaimFixture();
+      const bookingIntentId = randomUUID();
+      const actor: WorkflowActor = { kind: 'SAGA', actorId: 'timezone-saga' };
+      await createWorkflowFixture(fixture.prismaA, bookingIntentId);
+      const baseDatabaseUrl = process.env.DATABASE_URL;
+      if (!baseDatabaseUrl) {
+        throw new Error('DATABASE_URL must target the fulfillment_recovery_test database');
+      }
+      const databaseUrl = new URL(baseDatabaseUrl);
+      databaseUrl.searchParams.set('schema', fixture.schemaName);
+      databaseUrl.searchParams.set('connection_limit', '1');
+      const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl.toString() } } });
+      let module: TestingModule | undefined;
+      try {
+        await prisma.$queryRaw`SELECT set_config('TimeZone', ${timeZone}, false)`;
+        module = await createRepositoryModule(prisma);
+        const repository = module.get(FulfillmentWorkflowRepository);
+        const startedAt = Date.now();
+        const claim = await repository.acquireClaim(bookingIntentId, actor, 60_000);
+        if (!claim) {
+          throw new Error('Initial workflow claim was not acquired');
+        }
+        const acquired = await prisma.fulfillmentWorkflow.findUniqueOrThrow({
+          where: { bookingIntentId },
+        });
+        expect(claim.leaseExpiresAt.getTime()).toBeGreaterThanOrEqual(startedAt + 60_000);
+        expect(claim.leaseExpiresAt.getTime()).toBeLessThanOrEqual(Date.now() + 60_000);
+        for (const timestamp of [acquired.renewedAt, acquired.updatedAt]) {
+          expect(timestamp?.getTime()).toBeGreaterThanOrEqual(startedAt);
+          expect(timestamp?.getTime()).toBeLessThanOrEqual(Date.now());
+        }
+        expect(await repository.acquireClaim(bookingIntentId, actor)).toBeNull();
+        expect(await repository.runFencedTransaction(claim, async () => 'written')).toEqual({
+          kind: 'APPLIED', value: 'written',
+        });
+
+        const renewalStartedAt = Date.now();
+        const renewedClaim = await repository.renewClaim(claim, 120_000);
+        if (!renewedClaim) {
+          throw new Error('Active workflow claim was not renewed');
+        }
+        const renewed = await prisma.fulfillmentWorkflow.findUniqueOrThrow({
+          where: { bookingIntentId },
+        });
+        expect(renewedClaim.leaseExpiresAt.getTime()).toBeGreaterThanOrEqual(renewalStartedAt + 120_000);
+        expect(renewedClaim.leaseExpiresAt.getTime()).toBeLessThanOrEqual(Date.now() + 120_000);
+        for (const timestamp of [renewed.renewedAt, renewed.updatedAt]) {
+          expect(timestamp?.getTime()).toBeGreaterThanOrEqual(renewalStartedAt);
+          expect(timestamp?.getTime()).toBeLessThanOrEqual(Date.now());
+        }
+        expect(await repository.runFencedTransaction(renewedClaim, async (tx) => {
+          await tx.fulfillmentWorkflow.update({
+            where: { bookingIntentId },
+            data: { leaseExpiresAt: new Date(Date.now() - 1_000) },
+          });
+          return 'expired during write';
+        })).toEqual({ kind: 'FENCED_OUT' });
+        expect((await prisma.fulfillmentWorkflow.findUniqueOrThrow({
+          where: { bookingIntentId },
+        })).leaseExpiresAt).toEqual(renewedClaim.leaseExpiresAt);
+
+        await prisma.fulfillmentWorkflow.update({
+          where: { bookingIntentId },
+          data: { leaseExpiresAt: new Date(Date.now() - 1_000) },
+        });
+        expect(await repository.renewClaim(renewedClaim)).toBeNull();
+        const write = jest.fn(async () => 'should not run');
+        expect(await repository.runFencedTransaction(renewedClaim, write)).toEqual({ kind: 'FENCED_OUT' });
+        expect(write).not.toHaveBeenCalled();
+        const takeover = await repository.acquireClaim(bookingIntentId, actor);
+        expect(takeover?.fence).toBe(renewedClaim.fence + 1n);
+      } finally {
+        await module?.close();
+        await prisma.$disconnect();
+      }
+    },
+  );
+
   it('takes over an expired lease with a higher fence', async () => {
     const fixture = getClaimFixture();
     const bookingIntentId = randomUUID();

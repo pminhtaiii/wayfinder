@@ -216,6 +216,13 @@ test('starts real owner-allocated apps and tears them down through the run-scope
   test.setTimeout(180_000);
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) throw new Error('DATABASE_URL is required for the T016 real-app smoke');
+  let adminDatabaseUrl = process.env.FULFILLMENT_HARNESS_ADMIN_DATABASE_URL;
+  if (!adminDatabaseUrl) {
+    const fallbackUrl = new URL(databaseUrl);
+    fallbackUrl.pathname = '/fulfillment_recovery_test';
+    fallbackUrl.searchParams.delete('schema');
+    adminDatabaseUrl = fallbackUrl.toString();
+  }
 
   const initialProcessIds = spawnedChildProcessIds();
   let driverServer: FulfillmentHarnessDriverServer | undefined;
@@ -224,7 +231,10 @@ test('starts real owner-allocated apps and tears them down through the run-scope
   let driverTeardownCompleted = false;
 
   try {
-    const owner = await startFulfillmentHarnessDriver({ databaseUrl, bindAddress: '127.0.0.1' });
+    const owner = await startFulfillmentHarnessDriver({
+      databaseUrl: adminDatabaseUrl,
+      bindAddress: '127.0.0.1',
+    });
     driverServer = owner;
     const allocation = await owner.driver.allocate({
       scenario: 't016-real-startup',
