@@ -318,6 +318,67 @@ describe('FulfillmentWorkflowRepository database claims', () => {
     expect(workflow?.version).toBe(0);
   });
 
+  it('rejects a stale owner token when its fence still matches', async () => {
+    const fixture = getClaimFixture();
+    const bookingIntentId = randomUUID();
+    const actor: WorkflowActor = { kind: 'SAGA', actorId: 'stale-token-saga' };
+    await createWorkflowFixture(fixture.prismaA, bookingIntentId);
+
+    const claim = await fixture.repositoryA.acquireClaim(bookingIntentId, actor, 10_000);
+    if (claim === null) {
+      throw new Error('Initial workflow claim was not acquired');
+    }
+    const staleTokenClaim = { ...claim, ownerToken: claim.ownerToken + '-stale' };
+    let callbackInvoked = false;
+    const result = await fixture.repositoryB.runFencedTransaction(staleTokenClaim, async (tx) => {
+      callbackInvoked = true;
+      await tx.fulfillmentWorkflow.update({
+        where: { id: claim.workflowId },
+        data: { version: { increment: 1 } },
+      });
+      return 'written';
+    });
+    const workflow = await fixture.prismaA.fulfillmentWorkflow.findUnique({
+      where: { bookingIntentId },
+      select: { version: true },
+    });
+
+    expect(staleTokenClaim.fence).toBe(claim.fence);
+    expect(result).toEqual({ kind: 'FENCED_OUT' });
+    expect(callbackInvoked).toBe(false);
+    expect(workflow?.version).toBe(0);
+  });
+
+  it('rejects a stale fence when the owner token still matches', async () => {
+    const fixture = getClaimFixture();
+    const bookingIntentId = randomUUID();
+    const actor: WorkflowActor = { kind: 'SAGA', actorId: 'stale-fence-saga' };
+    await createWorkflowFixture(fixture.prismaA, bookingIntentId);
+
+    const claim = await fixture.repositoryA.acquireClaim(bookingIntentId, actor, 10_000);
+    if (claim === null) {
+      throw new Error('Initial workflow claim was not acquired');
+    }
+    const staleFenceClaim = { ...claim, fence: claim.fence + 1n };
+    let callbackInvoked = false;
+    const result = await fixture.repositoryB.runFencedTransaction(staleFenceClaim, async (tx) => {
+      callbackInvoked = true;
+      await tx.fulfillmentWorkflow.update({
+        where: { id: claim.workflowId },
+        data: { version: { increment: 1 } },
+      });
+      return 'written';
+    });
+    const workflow = await fixture.prismaA.fulfillmentWorkflow.findUnique({
+      where: { bookingIntentId },
+      select: { version: true },
+    });
+
+    expect(staleFenceClaim.ownerToken).toBe(claim.ownerToken);
+    expect(result).toEqual({ kind: 'FENCED_OUT' });
+    expect(callbackInvoked).toBe(false);
+    expect(workflow?.version).toBe(0);
+  });
   it('rejects mismatched workflow and booking-intent scope before callback', async () => {
     const fixture = getClaimFixture();
     const bookingIntentId = randomUUID();
@@ -350,6 +411,7 @@ describe('FulfillmentWorkflowRepository database claims', () => {
     expect(callbackInvoked).toBe(false);
   });
 
+  // Human-approved 2026-10-08: assert the fenced callback write ran before lease-expiry rollback.
   // Human-approved 2026-10-08: move the callback-expiry case into its fixture describe without changing its assertions.
   it('rolls back local writes when the lease expires during a fenced callback', async () => {
     const fixture = getClaimFixture();
@@ -362,11 +424,13 @@ describe('FulfillmentWorkflowRepository database claims', () => {
       throw new Error('Initial workflow claim was not acquired');
     }
 
+    let callbackInvoked = false;
     const result = await fixture.repositoryA.runFencedTransaction(claim, async (tx) => {
       await tx.fulfillmentWorkflow.update({
         where: { id: claim.workflowId },
         data: { version: { increment: 1 } },
       });
+      callbackInvoked = true;
       await new Promise<void>((resolve) => setTimeout(resolve, 400));
       return 'written';
     });
@@ -375,6 +439,7 @@ describe('FulfillmentWorkflowRepository database claims', () => {
       select: { version: true },
     });
 
+    expect(callbackInvoked).toBe(true);
     expect(result).toEqual({ kind: 'FENCED_OUT' });
     expect(workflow?.version).toBe(0);
   });
