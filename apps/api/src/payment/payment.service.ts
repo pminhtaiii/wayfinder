@@ -17,7 +17,9 @@ import { AuditService } from '@/audit/audit.service';
 import { CreatePaymentDto } from '@/payment/dto/create-payment.dto';
 import { PaymentResponseDto } from '@/payment/dto/payment-response.dto';
 import { Prisma } from '@prisma/client';
+import { toPublicPaymentStatus } from '@shared/types/payment.types';
 import { AncillaryPaymentValidationService } from '@/payment/ancillary-payment-validation.service';
+import { ProviderOperationService } from '@/payment-fulfillment/provider-operation.service';
 import type { ValidatedAncillaryPayment } from '@/payment/ancillary-payment-validation.service';
 
 function majorUnitsToMinorBigInt(amount: string): bigint {
@@ -148,6 +150,8 @@ export class PaymentService {
     private readonly auditService: AuditService,
     @Optional()
     private readonly ancillaryPaymentValidation?: AncillaryPaymentValidationService,
+    @Optional()
+    private readonly _providerOperationService?: ProviderOperationService,
   ) {}
 
   /**
@@ -875,7 +879,7 @@ export class PaymentService {
 
     return {
       paymentId: payment.id,
-      status: payment.status,
+      status: toPublicPaymentStatus(payment.status),
       amount: payment.amount,
       currency: payment.currency,
       bookingIntentStatus: payment.bookingIntent.status,

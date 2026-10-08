@@ -2,6 +2,11 @@ import { BadRequestException } from '@nestjs/common';
 import { PaymentStatus } from '@prisma/client';
 
 const ALLOWED_TRANSITIONS: Record<PaymentStatus, Set<PaymentStatus>> = {
+  [PaymentStatus.RESERVED]: new Set([
+    PaymentStatus.CREATED,
+    PaymentStatus.FAILED,
+    PaymentStatus.CANCELLED,
+  ]),
   [PaymentStatus.CREATED]: new Set([
     PaymentStatus.AUTHORIZED,
     PaymentStatus.FAILED,

@@ -1,6 +1,7 @@
 import { BookingFailureReason, BookingStatus, Prisma } from '@prisma/client';
 import { CurrentItineraryDto, BookingDisruptionDto } from '@shared/disruption-types';
 import type { FlightSnapshotDto } from '@shared/booking-types';
+import type { PaymentStatus as SharedPaymentStatus } from '@shared/types/payment.types';
 
 export class BookingListItemResponseDto {
   id!: string;
@@ -25,7 +26,7 @@ export class BookingListResponseDto {
 export class BookingDetailResponseDto extends BookingListItemResponseDto {
   duffelOrderId!: string | null;
   passengerSnapshot!: Prisma.JsonValue | null;
-  payment!: { id: string; status: string; stripePaymentIntentId: string } | null;
+  payment!: { id: string; status: SharedPaymentStatus; stripePaymentIntentId?: string } | null;
   bookingIntent!: { id: string; offerId: string };
   cancellationDeadline!: string | null;
   cancellationRefundable!: boolean | null;

@@ -1,11 +1,19 @@
 {
-  "moduleFileExtensions": ["js", "json", "ts"],
+  "moduleFileExtensions": [
+    "js",
+    "json",
+    "ts"
+  ],
   "rootDir": ".",
   "testEnvironment": "node",
   "testTimeout": 30000,
   "testMatch": [
+    "**/src/payment-fulfillment/fulfillment-workflow.repository.spec.ts",
     "**/src/disruption/sync/supplier-sync.service.spec.ts",
-    "**/test/**/*.e2e-spec.ts"
+    "**/test/**/*.e2e-spec.ts",
+    "**/src/payment-fulfillment/provider-operation.service.spec.ts",
+    "**/test/fulfillment-harness/scheduler.spec.ts",
+    "**/test/fulfillment-harness/driver.spec.ts"
   ],
   "testPathIgnorePatterns": [
     "[.-]performance\\.e2e-spec\\.ts$",

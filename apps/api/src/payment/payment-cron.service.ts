@@ -7,6 +7,7 @@ import { StripeService } from '../common/stripe.service';
 import { enforceTransition } from './payment-state-machine';
 import { PaymentMethodService } from './payment-method.service';
 import { PaymentRefundService } from './payment-refund.service';
+import { hasStripePaymentIntentId } from '@/payment-fulfillment/stripe-payment-intent-reference';
 
 @Injectable()
 export class PaymentCronService {
@@ -83,6 +84,10 @@ export class PaymentCronService {
 
       for (const payment of payments) {
         try {
+          if (!hasStripePaymentIntentId(payment)) {
+            continue;
+          }
+
           const stripePaymentIntent = await this.stripeService.retrievePaymentIntent(
             payment.stripePaymentIntentId,
           );

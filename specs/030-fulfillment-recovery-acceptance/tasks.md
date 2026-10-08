@@ -9,20 +9,20 @@
 - [X] T002 Implement recovery enrollment/configuration and validated lease/expiry policy in apps/api/src/payment-fulfillment/fulfillment-recovery.config.ts and apps/api/src/app.module.ts.
 
 ## Phase 2: Foundation and Controlled Harness
-- [ ] T003 [P] Add clean/legacy migration and Payment reservation reader tests in apps/api/test/fulfillment-recovery-migration.e2e-spec.ts.
-- [ ] T004 [P] Add acquire/renew/fence/takeover race tests using actual DB time in apps/api/src/payment-fulfillment/fulfillment-workflow.repository.spec.ts.
-- [ ] T005 [P] Add stable-operation/distinct-attempt/immutable-evidence tests in apps/api/src/payment-fulfillment/provider-operation.service.spec.ts.
-- [ ] T006 Add workflow/operation/attempt schema, nullable unique Stripe intent ID, internal RESERVED status and PaymentEvent links with an additive migration in apps/api/prisma/schema.prisma and apps/api/prisma/migrations/20261007000000_fulfillment_recovery/migration.sql.
-- [ ] T007 Implement single workflow claim and fenced state writes using DB time in apps/api/src/payment-fulfillment/fulfillment-workflow.repository.ts.
-- [ ] T008 Implement stable identities, atomic Payment reservation, pre-dispatch PREPARED and immutable late evidence in apps/api/src/payment-fulfillment/provider-operation.service.ts.
-- [ ] T009 Wire providers and update nullable-ID/RESERVED readers before flag enablement in apps/api/src/payment-fulfillment/payment-fulfillment.module.ts, apps/api/src/payment/payment.service.ts, apps/api/src/booking-lifecycle/booking-recovery.service.ts and packages/shared/src/ (keep existing ready-intent responses compatible).
-- [ ] T010 [P] Add ledger/transport contract tests for independent Stripe and supplier side effects in apps/api/test/fulfillment-harness/provider-transports.spec.ts.
-- [ ] T011 Implement stateful transport simulators with realistic verified provider capabilities in apps/api/test/fulfillment-harness/stripe-server.ts and apps/api/test/fulfillment-harness/supplier-server.ts.
-- [ ] T012 [P] Add protected driver, cross-run isolation, production exclusion, redaction and teardown tests in apps/api/test/fulfillment-harness/driver.spec.ts.
-- [ ] T013 Implement explicit signed event release, held responses, disposable DB/Redis bootstrap, restart barriers and cleanup in apps/api/test/fulfillment-harness/driver.ts and apps/api/test/fulfillment-harness/bootstrap.ts.
-- [ ] T014 Implement a test-only external Stripe browser client seam without replacing application UI in apps/web/tests/fixtures/fulfillment-stripe-client.ts.
-- [ ] T015 Implement virtual recovery scheduling (not DB lease time), finite fault scenarios and expected-variant manifest in apps/api/test/fulfillment-harness/scheduler.ts and apps/api/test/fulfillment-harness/scenarios.ts.
-- [ ] T016 Configure isolated real Next/Nest/provider startup and failure-on-missing-services in apps/web/tests/playwright.fulfillment.config.ts and apps/api/test/fulfillment-harness/server.ts.
+- [x] T003 [P] Add clean/legacy migration and Payment reservation reader tests in apps/api/test/fulfillment-recovery-migration.e2e-spec.ts.
+- [x] T004 [P] Add acquire/renew/fence/takeover race tests using actual DB time in apps/api/src/payment-fulfillment/fulfillment-workflow.repository.spec.ts.
+- [x] T005 [P] Add stable-operation/distinct-attempt/immutable-evidence tests in apps/api/src/payment-fulfillment/provider-operation.service.spec.ts.
+- [x] T006 Add workflow/operation/attempt schema, nullable unique Stripe intent ID, internal RESERVED status and PaymentEvent links with an additive migration in apps/api/prisma/schema.prisma and apps/api/prisma/migrations/20261007000000_fulfillment_recovery/migration.sql.
+- [x] T007 Implement single workflow claim and fenced state writes using DB time in apps/api/src/payment-fulfillment/fulfillment-workflow.repository.ts.
+- [x] T008 Implement stable identities, atomic Payment reservation, pre-dispatch PREPARED and immutable late evidence in apps/api/src/payment-fulfillment/provider-operation.service.ts.
+- [x] T009 Wire providers and update nullable-ID/RESERVED readers before flag enablement in apps/api/src/payment-fulfillment/payment-fulfillment.module.ts, apps/api/src/payment/payment.service.ts, apps/api/src/booking-lifecycle/booking-recovery.service.ts and packages/shared/src/ (keep existing ready-intent responses compatible).
+- [x] T010 [P] Add ledger/transport contract tests for independent Stripe and supplier side effects in apps/api/test/fulfillment-harness/provider-transports.spec.ts.
+- [x] T011 Implement stateful transport simulators with realistic verified provider capabilities in apps/api/test/fulfillment-harness/stripe-server.ts and apps/api/test/fulfillment-harness/supplier-server.ts.
+- [x] T012 [P] Add protected driver, cross-run isolation, production exclusion, redaction and teardown tests in apps/api/test/fulfillment-harness/driver.spec.ts.
+- [x] T013 Implement explicit signed event release, held responses, disposable DB/Redis bootstrap, restart barriers and cleanup in apps/api/test/fulfillment-harness/driver.ts and apps/api/test/fulfillment-harness/bootstrap.ts.
+- [X] T014 Implement a test-only external Stripe browser client seam without replacing application UI in apps/web/tests/fixtures/fulfillment-stripe-client.ts.
+- [X] T015 Implement virtual recovery scheduling (not DB lease time), finite fault scenarios and expected-variant manifest in apps/api/test/fulfillment-harness/scheduler.ts and apps/api/test/fulfillment-harness/scenarios.ts.
+- [x] T016 Configure isolated real Next/Nest/provider startup and failure-on-missing-services in apps/web/tests/playwright.fulfillment.config.ts and apps/api/test/fulfillment-harness/server.ts.
 
 Foundation checkpoint: journal, one DB claim, provider transport fidelity and isolated driver exist. No external call is held inside a database transaction.
 

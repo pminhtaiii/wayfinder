@@ -308,11 +308,11 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: flight_booking
+          POSTGRES_DB: fulfillment_recovery_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d flight_booking"
+          --health-cmd "pg_isready -U postgres -d fulfillment_recovery_test"
           --health-interval 10s --health-timeout 5s --health-retries 5
       redis:
         image: redis:7-alpine
@@ -322,7 +322,7 @@ jobs:
           --health-cmd "redis-cli ping"
           --health-interval 10s --health-timeout 5s --health-retries 5
     env:
-      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/flight_booking?schema=public
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fulfillment_recovery_test?schema=public
       REDIS_URL: redis://127.0.0.1:6379/0
       NODE_ENV: test
       DUFFEL_ACCESS_TOKEN: duffel_test_ci_not_a_secret

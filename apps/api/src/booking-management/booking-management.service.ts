@@ -5,6 +5,7 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { BookingLifecycleService } from '@/booking-lifecycle/booking-lifecycle.service';
 import { BookingWithRelations } from '@/booking-lifecycle/booking-lifecycle.types';
 import { FlightSegmentSnapshotDto } from '@shared/booking-types';
+import { toPublicPaymentStatus } from '@shared/types/payment.types';
 import {
   BookingDisruptionDto,
   CurrentItineraryDto,
@@ -293,8 +294,11 @@ export class BookingManagementService {
       payment: booking.payment
         ? {
             id: booking.payment.id,
-            status: booking.payment.status,
-            stripePaymentIntentId: booking.payment.stripePaymentIntentId,
+            status: toPublicPaymentStatus(booking.payment.status),
+            ...(typeof booking.payment.stripePaymentIntentId === 'string' &&
+            booking.payment.stripePaymentIntentId.trim().length > 0
+              ? { stripePaymentIntentId: booking.payment.stripePaymentIntentId }
+              : {}),
           }
         : null,
       bookingIntent: {

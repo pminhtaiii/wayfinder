@@ -17,7 +17,7 @@ Selector checks cover all 206 required API suites exactly once. Local verificati
 Overall status:
 
 ```text
-FEATURES 001-028 100% COMPLETE / FEATURE 029 COMPLETE / FEATURE 030 PHASE 1 (T001-T002) COMPLETE; LATER PHASES PENDING
+FEATURES 001-028 100% COMPLETE / FEATURE 029 COMPLETE / FEATURE 030 PHASE 2 FOUNDATION AND CONTROLLED HARNESS COMPLETE; ACCEPTANCE VERIFICATION IN PROGRESS (T001-T016 DONE; T017+ OPEN)
 ```
 
 Feature 029 was developed on `codex/029-duffel-provider-narrowing` and PR [#371](https://github.com/pminhtaiii/wayfinder/pull/371) merged into `development` at `8efbfc5aff4eea7179ef83529d11898b7e8477fb`. Exact-source CI run [37278447237](https://github.com/pminhtaiii/wayfinder/actions/runs/37278447237) passed on source HEAD `791947c365c95e2721893c90cc3d92a433938117`; the API unit job passed 135/135 suites, including the database-backed supplier-sync suite, and API E2E passed 71/71 suites. The local T055 API invocation remains partial at 134/135 suites and 2,367/2,385 tests; remote CI covers the omitted suite but does not change the local result. Earlier Slice 6.2 verification remains recorded under PR [#370](https://github.com/pminhtaiii/wayfinder/pull/370), run [37188540602](https://github.com/pminhtaiii/wayfinder/actions/runs/37188540602), source `551c3890cd37f65ded2adf900244fc9ca0d76dd8`. PR #368 closed without merging; PRs #369 and #370 are historical merged slices.
@@ -28,13 +28,15 @@ Feature 029 was developed on `codex/029-duffel-provider-narrowing` and PR [#371]
 
 Feature 029 implementation tasks T001–T057 and convergence tasks T058–T067 are complete and merged. The boundary census found zero unexplained runtime hits. T093 full real-flow Playwright acceptance passed with exit code 0: one Chromium test completed in 4.9 minutes against a fresh disposable database after 25 migrations and seeding 4,562 airports, including SGN and HAN. The documented timeout values were set in the Playwright process, application source and test assertions were unchanged, and only runner-owned PostgreSQL and Redis containers were stopped. Exact-final-source CI run [37278447237](https://github.com/pminhtaiii/wayfinder/actions/runs/37278447237) passed the API unit job (135/135 suites, including the database-backed supplier-sync suite) and API E2E job (71/71 suites). The local API run remains partial (134/135 suites, 2,367/2,385 tests); remote CI provides coverage for the omitted suite without changing the local result. Feature 029 acceptance is complete. See the [Feature 029 verification record](../specs/029-duffel-provider-narrowing/verification.md) for the final T093 result and historical attempts.
 
-## Feature 030 - Safe Booking Fulfillment Recovery (Phase 1 checkpoint)
+## Feature 030 — Safe Booking Fulfillment Recovery (Phase 2 checkpoint)
 
-Phase 1 setup tasks T001 and T002 are complete on codex/030-fulfillment-recovery-acceptance; T001 received an independent PASS review. T002 validates recovery configuration at API startup. The switch defaults to false, timing values use positive safe-integer parsing with reviewed lease/renewal/escalation defaults, and enabling configuration requires an explicit positive pre-create authorization margin.
+Phase 1 setup T001–T002 and the original Phase 2 foundation/harness tasks T003–T016 are committed and reviewed. T005 and T008 are now checked in the task ledger to match their implementation reports. The recovery flag remains false, and the production booking path does not yet use the journal for recovery.
 
-Verification: recovery configuration 10/10, chat-handoff configuration 5/5, AppModule component suite 21/21, API typecheck passed, and API package lint passed. T002's report records the exact commands and the test-only supplier token required for the AppModule wiring fixture.
+Guarded local pre-PR lanes passed: API unit 119/2,173; contract 2/8; component 22/276; shared types 111; CI workflow contract 24/24; API partition 216/216; performance unit 1/3. The focused task gates also include 49/49 provider transport tests, 12/12 driver tests, 2/2 isolated browser fixture tests, 8/8 virtual scheduler tests, and 17/17 real Next/Nest startup and health tests. API/web typechecks and lints and production builds passed.
 
-Only configuration validation is delivered. T003 onward, database persistence, provider calls, recovery workflow and payment routing, controlled acceptance harness, rollout gates, and feature-wide acceptance remain pending. The flag does not activate any workflow in Phase 1 and remains false by default. Existing uncommitted Balance mapping work in the original checkout is outside this scope.
+The full API integration lane is still unresolved. Its earlier run passed 69/72 suites and 687/701 tests. Eleven driver bootstrap failures from the run-scoped URL mismatch have a strict separate-admin-URL fix, but the full lane was not rerun. Focused diagnosis found one Agent Gateway fixture flag-ordering failure and two passenger confirmation cases that reached the existing 25-second PENDING timeout; the flag-order correction is active, and the internal passenger wait remains undiagnosed. No assertions, timeout, or safety guards were weakened.
+
+T017 onward, T053/T054, final convergence, dual-axis code review, and PR CI remain open. Do not mark Feature 030 complete. See the [Phase 2 verification record](../specs/030-fulfillment-recovery-acceptance/verification-phase2.md) for the detailed evidence and limits.
 
 Detailed phase-by-phase execution, live task checklists, and exit gates are tracked in [active-feature.md](./active-feature.md).
 

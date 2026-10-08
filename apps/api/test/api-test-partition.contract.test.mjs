@@ -49,7 +49,13 @@ const legacySource = new Set(await listTests('jest.config.json'));
 const legacyE2e = new Set(await listTests('test/jest-e2e.json'));
 assert.ok(legacySource.size > 0, 'Legacy API unit selection must not be empty.');
 assert.ok(legacyE2e.size > 0, 'Legacy API E2E selection must not be empty.');
-const legacy = new Set([...legacySource, ...legacyE2e]);
+const harnessOnly = new Set([
+  'test/fulfillment-harness/provider-transports.spec.ts',
+  'test/fulfillment-harness/transport-faults.spec.ts',
+  'test/fulfillment-harness/scheduler.spec.ts',
+  'test/fulfillment-harness/driver.spec.ts',
+].map((testPath) => resolve(apiRoot, testPath).replaceAll('\\', '/')));
+const legacy = new Set([...legacySource, ...legacyE2e, ...harnessOnly]);
 const categories = {
   unit: await listTests('jest-unit.json'),
   contract: await listTests('jest-contract.json'),

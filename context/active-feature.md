@@ -166,10 +166,24 @@ Exit gate:
 boundary census clean (0 unexplained leaks); domain orchestrators consume canonical offers; agent security performance gate green; dedicated test db isolation verified
 ```
 
-## Feature 030 Phase 1 checkpoint (2026-10-07)
+## Feature 030 Phase 2 checkpoint (2026-10-08)
 
-Safe booking fulfillment recovery has completed Phase 1 setup tasks T001 and T002 on codex/030-fulfillment-recovery-acceptance. T001's immutable default-off and invalid-configuration tests were independently reviewed with a PASS verdict. T002 adds a feature-owned Zod configuration schema and composes it into root startup validation; recovery defaults to false, durations parse to positive safe integers, renewal must be shorter than the lease, and enablement requires an explicit positive authorization margin.
+Phase 1 setup T001–T002 and original Phase 2 tasks T003–T016 are implemented and committed. The task ledger now marks T005 and T008 complete to match their reviewed implementation and test reports. This is a foundation and controlled-harness checkpoint, not full Feature 030 acceptance.
 
-Verification: focused recovery configuration 10/10, existing chat-handoff configuration 5/5, AppModule component configuration and wiring 21/21, API typecheck and package lint passed. See .superpowers/sdd/2026-10-07-feature-030-phase-1/task-2-report.md for commands and results.
+The production recovery flag remains false. Durable journal services are wired but the production booking path is not yet routed through recovery operations; no live recovery, payment checkout, reconciliation, or operator flow is claimed. See the [Phase 2 verification record](../specs/030-fulfillment-recovery-acceptance/verification-phase2.md) for task evidence, local gates, and remaining limits.
 
-This checkpoint covers configuration validation only. T003 onward, persistence, provider integration, workflow execution, payment routing, the controlled harness, and feature acceptance remain pending. The validated flag does not activate a recovery workflow in this phase; keep it false until later phase gates and provider thresholds are verified. Existing uncommitted Balance mapping work in the original checkout remains outside this implementation.
+Verified task slices:
+- T003/T006: six migration and reservation-reader integration cases passed; Prisma validation/generation, API typecheck, and lint passed.
+- T004/T007: 20 real-PostgreSQL claim, renewal, takeover, fence, and callback-expiry rollback cases passed.
+- T005/T008: 35 provider-operation, workflow, and migration integration cases passed after the monotonic-outcome fix; the 119-suite / 2,173-test API unit run and API typecheck/lint passed.
+- T009: nullable-ID/RESERVED compatibility coverage passed 192 tests and real Nest module-composition coverage passed 3 tests; API typecheck, lint, build, and 212-entry partition checks passed.
+- T010/T011: guarded Stripe/supplier transport tests passed 49/49; API partition covered 216 suites exactly once.
+- T012/T013: guarded driver/bootstrap tests passed 12/12 with owned schema/Redis cleanup and zero reported leaks.
+- T014: isolated Stripe browser fixture passed 2/2; T015 virtual scheduler passed 8/8 and kept a real five-second DB lease unchanged during a 15-minute virtual advance.
+- T016: real Nest and Next startup/health/teardown smoke passed 17/17; API/web typechecks and lints, API build, and production-artifact exclusion checks passed.
+
+Current guarded local pre-PR gates passed: CI workflow contract 24/24; API unit 119 suites / 2,173 tests; API contract 2 suites / 8 tests; API component 22 suites / 276 tests after correcting the test environment; shared types 111 tests; API partition 216/216; and performance unit 1 suite / 3 tests. API and web production builds passed. These results do not turn the full API integration lane green.
+
+Integration remains unresolved. The earlier full run passed 69/72 suites and 687/701 tests; 11 T013 driver failures were caused by using the run-scoped application database URL where the driver requires its separate unscoped admin URL. T013 now uses that separate URL while retaining strict app URL validation, but the full lane has not been rerun. Focused diagnostics then found one Agent Gateway fixture returning FEATURE_DISABLED because its flag is set after AppModule loads, and two passenger confirmation cases returning PENDING at about 25 seconds, matching the existing 25-second safety timeout. The approved fixture startup-order correction is active; the internal wait behind the passenger timeout remains undiagnosed. Safety guards, timeout, and assertions remain intact.
+
+T017 and later user-story, rollout, convergence, and acceptance tasks remain open. T053/T054 and final convergence, dual-axis review, and PR CI have not run. Do not mark Feature 030 complete or enable recovery.

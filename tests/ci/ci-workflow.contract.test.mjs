@@ -877,3 +877,36 @@ test('ci-status processes security aggregates correctly', () => {
   assertContains(summary, /^        if:\s+always\(\)\s*$/m, 'must download always');
   assertContains(summary, /^        continue-on-error:\s+true\s*$/m, 'download must continue on error');
 });
+
+test('API integration job provisions the database required by its recovery fixtures', () => {
+  const apiIntegration = jobBlock(workflow(), 'api-integration-tests');
+  const databaseName = 'fulfillment_recovery_test';
+  const postgresDatabase = apiIntegration.match(/^\s+POSTGRES_DB:\s+([A-Za-z0-9_]+)$/m);
+  const postgresHealthDatabase = apiIntegration.match(/--health-cmd "pg_isready -U postgres -d ([A-Za-z0-9_]+)"/);
+  const databaseUrl = apiIntegration.match(/^\s+DATABASE_URL:\s+(\S+)$/m);
+  assert.equal(postgresDatabase?.[1], databaseName, 'PostgreSQL must create the recovery fixture database');
+  assert.equal(postgresHealthDatabase?.[1], databaseName, 'PostgreSQL health check must target the created database');
+  assert.ok(databaseUrl, 'integration job must set DATABASE_URL');
+  const parsedDatabaseUrl = new URL(databaseUrl[1]);
+  assert.equal(parsedDatabaseUrl.pathname, '/' + databaseName);
+  assert.equal(parsedDatabaseUrl.searchParams.get('schema'), 'public');
+  assert.match(apiIntegration, /image: redis:7-alpine/, 'integration job must provide its disposable Redis service');
+  assert.match(apiIntegration, /REDIS_URL: redis:\/\/127\.0\.0\.1:6379\/0/);
+
+  const integrationConfig = JSON.parse(
+    readFileSync(resolve(root, 'apps/api/jest-integration.json'), 'utf8'),
+  );
+  for (const selection of [
+    '**/test/**/*.e2e-spec.ts',
+    '**/test/fulfillment-harness/scheduler.spec.ts',
+    '**/test/fulfillment-harness/driver.spec.ts',
+  ]) {
+    assert.ok(integrationConfig.testMatch.includes(selection), 'integration selector must include ' + selection);
+  }
+  const migrationPath = 'test/fulfillment-recovery-migration.e2e-spec.ts';
+  assert.equal(
+    integrationConfig.testPathIgnorePatterns.some((pattern) => new RegExp(pattern).test(migrationPath)),
+    false,
+    'integration selector must not exclude the recovery migration fixture',
+  );
+});

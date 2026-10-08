@@ -7,6 +7,16 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
   try {
+    const harnessRunId = process.env.FULFILLMENT_HARNESS_RUN_ID;
+    const testHarnessStartup = process.env.NODE_ENV === 'test' && harnessRunId !== undefined;
+    if (
+      process.env.NODE_ENV === 'test' &&
+      harnessRunId !== undefined &&
+      !/^run-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(harnessRunId)
+    ) {
+      throw new Error('Fulfillment harness run ID is invalid');
+    }
+
     const app = await NestFactory.create(AppModule, { rawBody: true });
 
     const expressApp = app.getHttpAdapter().getInstance();
@@ -52,7 +62,25 @@ async function bootstrap() {
     app.useGlobalFilters(new HttpExceptionFilter());
 
     const port = process.env.PORT || 3001;
-    await app.listen(port);
+    if (testHarnessStartup) {
+      await app.listen(port, '127.0.0.1');
+      const address: unknown = app.getHttpServer().address();
+      if (
+        typeof address !== 'object' ||
+        address === null ||
+        !('address' in address) ||
+        typeof address.address !== 'string' ||
+        !('port' in address) ||
+        typeof address.port !== 'number' ||
+        address.address !== '127.0.0.1' ||
+        address.port !== Number(port)
+      ) {
+        throw new Error('Fulfillment harness API did not bind to its allocated loopback address');
+      }
+      logger.log('Fulfillment harness API listening at http://' + address.address + ':' + address.port);
+    } else {
+      await app.listen(port);
+    }
     logger.log(`API application running on: http://localhost:${port}/api`);
   } catch (error) {
     logger.error('Error bootstrapping NestJS application:', error);

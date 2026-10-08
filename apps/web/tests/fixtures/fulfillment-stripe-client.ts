@@ -1,0 +1,98 @@
+import type { Page } from '@playwright/test';
+
+export async function installFulfillmentStripeClient(
+  page: Page,
+  providerOrigin: string,
+  publishableKey: string,
+): Promise<void> {
+  const origin = new URL(providerOrigin);
+  if (origin.protocol !== 'http:' || origin.hostname !== '127.0.0.1' || origin.origin !== providerOrigin) {
+    throw new Error('Fulfillment Stripe fixture requires a plain loopback origin');
+  }
+
+  const script = [
+    '(function () {',
+    '  const providerOrigin = ' + JSON.stringify(providerOrigin) + ';',
+    '  const expectedPublishableKey = ' + JSON.stringify(publishableKey) + ';',
+    '  const request = async function (path, body) {',
+    '    const response = await fetch(providerOrigin + path, {',
+    '      method: \'POST\',',
+    '      headers: { \'Content-Type\': \'application/json\' },',
+    '      body: JSON.stringify(body)',
+    '    });',
+    '    const result = await response.json();',
+    '    return response.ok ? result : { error: { message: \'Fixture request failed\' } };',
+    '  };',
+    '  const tokenize = function (card) {',
+    '    if (!card || typeof card !== \'object\') {',
+    '      return { error: { message: \'Card details are required\' } };',
+    '    }',
+    '    return { token: { id: \'tok_fixture_1\' } };',
+    '  };',
+    '  window.Stripe = function (publishableKey) {',
+    '    if (publishableKey !== expectedPublishableKey) {',
+    '      throw new Error(\'Unexpected fixture publishable key\');',
+    '    }',
+    '    return {',
+    '      elements: function () {',
+    '        return {',
+    '          create: function (type) {',
+    '            if (type !== \'card\') {',
+    '              throw new Error(\'Only card Elements are available in this fixture\');',
+    '            }',
+    '            return {',
+    '              mount: function (target) {',
+    '                const element = document.querySelector(target);',
+    '                if (element) element.setAttribute(\'data-stripe-element\', \'card\');',
+    '              },',
+    '              unmount: function () {},',
+    '              destroy: function () {}',
+    '            };',
+    '          }',
+    '        };',
+    '      },',
+    '      createToken: async function (card) {',
+    '        return tokenize(card);',
+    '      },',
+    '      confirmCardPayment: async function (clientSecret, options) {',
+    '        if (typeof clientSecret !== \'string\') {',
+    '          return { error: { message: \'A payment intent secret is required\' } };',
+    '        }',
+    '        const card = options && options.payment_method && options.payment_method.card;',
+    '        const tokenized = tokenize(card);',
+    '        if (tokenized.error) return tokenized;',
+    '        const paymentIntent = await request(\'/v1/payment_intents/confirm\', {',
+    '          payment_method: tokenized.token.id',
+    '        });',
+    '        return paymentIntent.error ? paymentIntent : { paymentIntent: paymentIntent };',
+    '      },',
+    '      retrievePaymentIntent: async function (clientSecret) {',
+    '        if (typeof clientSecret !== \'string\') {',
+    '          return { error: { message: \'A payment intent secret is required\' } };',
+    '        }',
+    '        const paymentIntentId = clientSecret.split(\'_secret_\')[0];',
+    '        const paymentIntent = await request(\'/v1/payment_intents/retrieve\', {',
+    '          payment_intent_id: paymentIntentId',
+    '        });',
+    '        return paymentIntent.error ? paymentIntent : { paymentIntent: paymentIntent };',
+    '      },',
+    '      redirectToCheckout: async function (options) {',
+    '        if (!options || typeof options.sessionId !== \'string\') {',
+    '          return { error: { message: \'A checkout session is required\' } };',
+    '        }',
+    '        return {};',
+    '      }',
+    '    };',
+    '  };',
+    '})();',
+  ].join('\n');
+
+  await page.route('https://js.stripe.com/v3', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/javascript',
+      body: script,
+    });
+  });
+  await page.addScriptTag({ url: 'https://js.stripe.com/v3' });
+}

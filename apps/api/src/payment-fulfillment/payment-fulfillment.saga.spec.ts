@@ -377,6 +377,36 @@ describe('PaymentFulfillmentSaga', () => {
     saga.timeoutMs = 1000;
   });
 
+  describe('nullable Stripe payment intent ID', () => {
+    it('keeps confirmation pending without invoking provider gateways', async () => {
+      currentPaymentState.stripePaymentIntentId = null;
+
+      const result = await saga.executeConfirmPayment(dto, idempotencyKey, userId);
+
+      expect(result).toEqual(expect.objectContaining({ status: 'PENDING' }));
+      expect(mockPaymentGateway.authorizeHold).not.toHaveBeenCalled();
+      expect(mockFulfillmentGateway.createOrder).not.toHaveBeenCalled();
+      expect(mockPrisma.payment.updateMany).not.toHaveBeenCalled();
+    });
+  });
+  describe('rechecked payment Stripe ID', () => {
+    it('keeps confirmation pending if the independently reloaded payment has no provider ID', async () => {
+      mockPrisma.payment.findUnique
+        .mockResolvedValueOnce({ ...basePayment })
+        .mockResolvedValueOnce({
+          ...basePayment,
+          status: 'AUTHORIZED',
+          stripePaymentIntentId: null,
+        });
+
+      const result = await saga.executeConfirmPayment(dto, idempotencyKey, userId);
+
+      expect(result).toEqual(expect.objectContaining({ status: 'PENDING' }));
+      expect(mockFulfillmentGateway.createOrder).not.toHaveBeenCalled();
+      expect(mockPaymentGateway.capturePayment).not.toHaveBeenCalled();
+      expect(mockPaymentGateway.voidHold).not.toHaveBeenCalled();
+    });
+  });
   describe('4-Stage Happy Path Pipeline', () => {
     it('normalizes the loaded raw snapshot and passes it in createBooking slot six', async () => {
       const rawOfferSnapshot = {
@@ -2013,6 +2043,27 @@ describe('PaymentFulfillmentSaga', () => {
       expect(mockPaymentGateway.voidHold).not.toHaveBeenCalled();
     });
 
+    it('returns pending without provider or compensation calls when the reloaded payment has no Stripe ID', async () => {
+      mockPrisma.payment.findUnique.mockResolvedValueOnce({
+        ...basePayment,
+        status: 'AUTHORIZED',
+        stripePaymentIntentId: null,
+      });
+
+      await saga.handleBackgroundError(
+        paymentId,
+        idempotencyKey,
+        userId,
+        ownership,
+        new Error('background crash'),
+      );
+
+      expect(mockPaymentGateway.authorizeHold).not.toHaveBeenCalled();
+      expect(mockPaymentGateway.voidHold).not.toHaveBeenCalled();
+      expect(mockFulfillmentGateway.cancelOrder).not.toHaveBeenCalled();
+      expect(mockPrisma.payment.updateMany).not.toHaveBeenCalled();
+      expect(mockBookingLifecycle.updateToFailed).not.toHaveBeenCalled();
+    });
     it('when Stripe retrieval returns status === succeeded, logs/updates recovery point to captured, returns early, and does NOT compensate', async () => {
       mockPrisma.payment.findUnique.mockResolvedValueOnce({
         ...basePayment,

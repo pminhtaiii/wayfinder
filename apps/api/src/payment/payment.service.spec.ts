@@ -232,6 +232,31 @@ describe('PaymentService', () => {
       });
     });
 
+    it('maps a reserved payment to the public pending status', async () => {
+      mockPrisma.payment.findUnique.mockResolvedValueOnce({
+        id: 'pay-reserved',
+        status: 'RESERVED',
+        amount: 5000,
+        currency: 'usd',
+        attemptNumber: 1,
+        bookingIntent: {
+          id: 'intent-123',
+          userId: 'user-123',
+          status: 'AWAITING_PAYMENT',
+        },
+      });
+
+      const result = await service.getPaymentStatus('pay-reserved', 'user-123');
+
+      expect(result).toEqual({
+        paymentId: 'pay-reserved',
+        status: 'PENDING',
+        amount: 5000,
+        currency: 'usd',
+        bookingIntentStatus: 'AWAITING_PAYMENT',
+        attemptNumber: 1,
+      });
+    });
     it('throws NotFoundException when payment does not exist', async () => {
       mockPrisma.payment.findUnique.mockResolvedValueOnce(null);
 

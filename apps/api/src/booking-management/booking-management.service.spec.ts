@@ -384,6 +384,22 @@ describe('BookingManagementService', () => {
       ...overrides,
     });
 
+    it('projects a reserved payment as pending without a provider ID', async () => {
+      const booking = mockDetailBooking({
+        payment: {
+          id: 'pay-reserved',
+          status: 'RESERVED',
+          stripePaymentIntentId: null,
+          ancillarySelection: null,
+        },
+      });
+      prisma.booking.findUnique.mockResolvedValue(booking);
+
+      const detail = await service.getBookingDetail('booking-1', 'user-1');
+
+      expect(detail.payment).toEqual({ id: 'pay-reserved', status: 'PENDING' });
+      expect(detail.payment).not.toHaveProperty('stripePaymentIntentId');
+    });
     it('throws NotFoundException if booking not found', async () => {
       prisma.booking.findUnique.mockResolvedValue(null);
 
