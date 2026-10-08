@@ -786,6 +786,10 @@ export function FlightSearchForm({ flights }: Props) {
 - Minimal `app/api/` usage — only for NextAuth.js auth routes and Stripe webhook receivers
 - Never put business logic in the Next.js layer — it belongs in NestJS services
 
+### Feature 030 controlled browser harness (test only)
+
+The installed workspace Playwright runner is reused; this checkpoint adds no npm package. The T016 project selects the installed Chrome channel used by the passing real-app smoke. The launcher validates explicit loopback origins and allocated ports, separate application/driver credentials, and run-scoped database/Redis targets before it starts the actual app processes.
+
 ---
 
 ## Python Redis (redis.asyncio)

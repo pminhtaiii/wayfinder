@@ -228,7 +228,7 @@ FulfillmentWorkflowRepository claims and renews a workflow using PostgreSQL cloc
 
 PaymentFulfillmentModule owns and exports the repository and operation service. PaymentService has an optional constructor-injected operation service and preserves the existing API projection: RESERVED appears as PENDING, and missing provider IDs are omitted.
 
-This is persistence, claim fencing, journal behavior, and dependency wiring only. Recovery remains disabled by default; requests are not yet routed through these journal operations, and no provider side effect is issued from their database callbacks.
+This is persistence, claim fencing, journal behavior, and dependency wiring only. Recovery remains disabled by default; production requests are not yet routed through these journal operations, and no provider side effect is issued from their database callbacks. The test-only controlled harness is implemented through T010–T016: isolated provider simulators and driver credentials, per-run database/Redis resources, virtual scheduling, and owned real Next/Nest startup, health checks, and teardown. Its passing startup smoke does not establish customer checkout or recovery acceptance; see the [Phase 2 verification record](../specs/030-fulfillment-recovery-acceptance/verification-phase2.md).
 
 ## Project Structure
 

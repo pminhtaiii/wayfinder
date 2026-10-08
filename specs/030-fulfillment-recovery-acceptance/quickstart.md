@@ -1,6 +1,6 @@
 # Quickstart: fulfillment recovery acceptance
 
-This is a planning artifact. The current payment page has disabled card inputs and a disabled Pay Now placeholder in apps/web/app/checkout/[intentId]/payment/page.tsx. The controlled recovery harness, payment UI wiring, configuration and scenarios below must be implemented before this acceptance flow can run.
+This document describes the remaining Feature 030 customer payment/recovery acceptance flow and live-sandbox gates. Phase 1 setup and Phase 2 tasks T003–T016 are implemented; scoped test evidence, integration failures, and limits are recorded in [Phase 2 verification](verification-phase2.md). T016 verifies real Next/Nest service health and owned startup/teardown, not customer checkout or recovery. The production recovery flag remains false, and customer payment, reconciliation, operator, and rollout work beginning at T017 remains planned.
 
 Read [acceptance matrix](acceptance-matrix.md), [harness contract](contracts/controlled-test-harness.md), [provider operations](contracts/provider-operations.md) and [data model](data-model.md).
 
@@ -28,16 +28,16 @@ pnpm --filter @api/backend exec prisma migrate deploy
 
 Feature migration/legacy fixtures are planned and must preserve source rows. Credentials must be supplied by an isolated runner configuration; never dump .env or environment objects.
 
-## Planned controlled run
+## Planned customer payment and recovery run (T017+)
 
-PLANNED files: apps/web/tests/playwright.fulfillment.config.ts, apps/web/tests/fulfillment-recovery.spec.ts and an isolated backend test bootstrap/driver. These paths are proposed deliverables, not existing commands. After implementation, the intended direct command is:
+The Phase 2 harness now includes apps/web/tests/playwright.fulfillment.config.ts, the isolated backend bootstrap/driver, and a real Next/Nest startup smoke. The customer acceptance spec apps/web/tests/fulfillment-recovery.spec.ts and production payment/recovery flow remain planned under T017 and later. Once that spec exists, the intended direct browser command is:
 
 ~~~powershell
 Set-Location -LiteralPath (Join-Path $repositoryRoot 'apps\web')
 node node_modules\@playwright\test\cli.js test tests\fulfillment-recovery.spec.ts --config=tests\playwright.fulfillment.config.ts
 ~~~
 
-The configuration must own startup and cleanup of real Next/Nest, PostgreSQL/Redis, recovery worker and stateful Stripe/supplier transport simulators. It must check service readiness and target isolation before navigation; do not silently reuse a developer server. Enable the feature only inside the disposable run. Generate run secrets; application provider credentials cannot access driver routes. Default external egress must be blocked.
+The Phase 2 launcher owns startup and cleanup of the real Next/Nest processes, allocated database schema and Redis namespace, and provider simulators; it checks service readiness and target isolation before navigation. The remaining customer-flow cases must enable recovery only inside the disposable run, use generated run secrets, keep application provider credentials away from driver routes, and retain the guarded egress boundary.
 
 1. Allocate run-scoped database, Redis, provider ledgers, scheduler and generated customer/operations identities. Apply additive migrations; initialize a controlled offer with authoritative supplier balance price distinct from traveler payment.
 2. Register the scenario through the protected driver protocol, then sign in through actual customer authentication. Search, select, fill passengers, choose ancillaries, review and pay through the wired payment UI.
