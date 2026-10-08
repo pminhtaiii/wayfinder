@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { CacheService } from '@/cache/cache.service';
 import { StripePaymentAdapter } from '@/common/stripe-payment.adapter';
 import { StripeService } from '@/common/stripe.service';
@@ -117,10 +117,18 @@ async function createSupplierOrder(
   );
 }
 
-function requireLedger<TLedger extends RedactedLedger>(
+function requireLedger(
   ledger: RedactedLedger,
-  provider: TLedger['provider'],
-): TLedger {
+  provider: 'STRIPE',
+): Extract<RedactedLedger, { provider: 'STRIPE' }>;
+function requireLedger(
+  ledger: RedactedLedger,
+  provider: 'DUFFEL',
+): Extract<RedactedLedger, { provider: 'DUFFEL' }>;
+function requireLedger(
+  ledger: RedactedLedger,
+  provider: RedactedLedger['provider'],
+): RedactedLedger {
   if (ledger.provider !== provider) {
     throw new Error('simulator returned the wrong provider ledger');
   }
@@ -241,7 +249,7 @@ describe('real provider transport contracts', () => {
     const voided = await testHarness.paymentGateway.voidHold(secondIntent.id, invocationControl);
     expect(voided).toMatchObject({ success: true, status: 'canceled' });
 
-    const ledger = requireLedger<Extract<RedactedLedger, { provider: 'STRIPE' }>>(
+    const ledger = requireLedger(
       await testHarness.stripe.inspect(runId),
       'STRIPE',
     );
@@ -265,6 +273,24 @@ describe('real provider transport contracts', () => {
     );
     expect(ledger.refunds).toHaveLength(1);
     expect(ledger.sideEffectCount).toBeGreaterThanOrEqual(6);
+  });
+
+  it('checks one Stripe SDK request and side effect for a payment-intent create', async () => {
+    const testHarness = currentHarness();
+    const before = requireLedger(await testHarness.stripe.inspect(runId), 'STRIPE');
+    const created = await testHarness.stripeService.createPaymentIntent(
+      12500,
+      'usd',
+      undefined,
+      { bookingIntentId: 'stripe-exact-count-booking' },
+      'stripe-exact-count-create',
+      'pm_card_visa',
+    );
+    const after = requireLedger(await testHarness.stripe.inspect(runId), 'STRIPE');
+
+    expect(after.requestsReceived - before.requestsReceived).toBe(1);
+    expect(after.sideEffectCount - before.sideEffectCount).toBe(1);
+    expect(after.paymentIntents.filter((intent) => intent.id === created.id)).toHaveLength(1);
   });
 
   it('replays a Stripe create only for the same idempotency key and request body', async () => {
@@ -322,7 +348,7 @@ describe('real provider transport contracts', () => {
     );
     expect(cancellation).toMatchObject({ success: true, orderId: firstOrder.orderId });
 
-    const supplierLedger = requireLedger<Extract<RedactedLedger, { provider: 'DUFFEL' }>>(
+    const supplierLedger = requireLedger(
       await testHarness.supplier.inspect(runId),
       'DUFFEL',
     );
@@ -336,7 +362,7 @@ describe('real provider transport contracts', () => {
     expect(supplierLedger.orders[0].status).toBe('CANCELLED');
     expect(supplierLedger.sideEffectCount).toBeGreaterThanOrEqual(3);
 
-    const stripeLedger = requireLedger<Extract<RedactedLedger, { provider: 'STRIPE' }>>(
+    const stripeLedger = requireLedger(
       await testHarness.stripe.inspect(runId),
       'STRIPE',
     );
@@ -350,6 +376,22 @@ describe('real provider transport contracts', () => {
     expect(supplierLedger.orders[0].balanceCurrency).not.toBe(
       stripeLedger.paymentIntents[0].currency.toUpperCase(),
     );
+  });
+
+  it('checks exact Duffel transport deltas for one adapter order create', async () => {
+    const testHarness = currentHarness();
+    const offerId = await supplierOfferId(testHarness);
+    const before = requireLedger(await testHarness.supplier.inspect(runId), 'DUFFEL');
+    const order = await createSupplierOrder(
+      testHarness,
+      offerId,
+      'supplier-exact-count-booking',
+    );
+    const after = requireLedger(await testHarness.supplier.inspect(runId), 'DUFFEL');
+
+    expect(after.requestsReceived - before.requestsReceived).toBe(2);
+    expect(after.sideEffectCount - before.sideEffectCount).toBe(1);
+    expect(after.orders.filter((candidate) => candidate.id === order.orderId)).toHaveLength(1);
   });
 
   it('does not deduplicate supplier creates by an idempotency header', async () => {
@@ -385,7 +427,7 @@ describe('real provider transport contracts', () => {
       invocationControl,
     );
 
-    const ledger = requireLedger<Extract<RedactedLedger, { provider: 'STRIPE' }>>(
+    const ledger = requireLedger(
       await testHarness.stripe.inspect(runId),
       'STRIPE',
     );
@@ -487,7 +529,7 @@ describe('real provider transport contracts', () => {
       invocationControl,
     );
 
-    const ledger = requireLedger<Extract<RedactedLedger, { provider: 'STRIPE' }>>(
+    const ledger = requireLedger(
       await testHarness.stripe.inspect(runId),
       'STRIPE',
     );

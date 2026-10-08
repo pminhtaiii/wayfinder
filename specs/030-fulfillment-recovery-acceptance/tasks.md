@@ -16,8 +16,8 @@
 - [x] T007 Implement single workflow claim and fenced state writes using DB time in apps/api/src/payment-fulfillment/fulfillment-workflow.repository.ts.
 - [ ] T008 Implement stable identities, atomic Payment reservation, pre-dispatch PREPARED and immutable late evidence in apps/api/src/payment-fulfillment/provider-operation.service.ts.
 - [x] T009 Wire providers and update nullable-ID/RESERVED readers before flag enablement in apps/api/src/payment-fulfillment/payment-fulfillment.module.ts, apps/api/src/payment/payment.service.ts, apps/api/src/booking-lifecycle/booking-recovery.service.ts and packages/shared/src/ (keep existing ready-intent responses compatible).
-- [ ] T010 [P] Add ledger/transport contract tests for independent Stripe and supplier side effects in apps/api/test/fulfillment-harness/provider-transports.spec.ts.
-- [ ] T011 Implement stateful transport simulators with realistic verified provider capabilities in apps/api/test/fulfillment-harness/stripe-server.ts and apps/api/test/fulfillment-harness/supplier-server.ts.
+- [x] T010 [P] Add ledger/transport contract tests for independent Stripe and supplier side effects in apps/api/test/fulfillment-harness/provider-transports.spec.ts.
+- [x] T011 Implement stateful transport simulators with realistic verified provider capabilities in apps/api/test/fulfillment-harness/stripe-server.ts and apps/api/test/fulfillment-harness/supplier-server.ts.
 - [ ] T012 [P] Add protected driver, cross-run isolation, production exclusion, redaction and teardown tests in apps/api/test/fulfillment-harness/driver.spec.ts.
 - [ ] T013 Implement explicit signed event release, held responses, disposable DB/Redis bootstrap, restart barriers and cleanup in apps/api/test/fulfillment-harness/driver.ts and apps/api/test/fulfillment-harness/bootstrap.ts.
 - [X] T014 Implement a test-only external Stripe browser client seam without replacing application UI in apps/web/tests/fixtures/fulfillment-stripe-client.ts.

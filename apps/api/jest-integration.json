@@ -11,7 +11,9 @@
     "**/src/payment-fulfillment/fulfillment-workflow.repository.spec.ts",
     "**/src/disruption/sync/supplier-sync.service.spec.ts",
     "**/test/**/*.e2e-spec.ts",
-    "**/src/payment-fulfillment/provider-operation.service.spec.ts"
+    "**/src/payment-fulfillment/provider-operation.service.spec.ts",
+    "**/test/fulfillment-harness/scheduler.spec.ts",
+    "**/test/fulfillment-harness/driver.spec.ts"
   ],
   "testPathIgnorePatterns": [
     "[.-]performance\\.e2e-spec\\.ts$",
