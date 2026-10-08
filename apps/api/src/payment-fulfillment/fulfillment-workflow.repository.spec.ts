@@ -216,4 +216,266 @@ describe('FulfillmentWorkflowRepository database claims', () => {
 
     expect(claims).toHaveLength(1);
   });
+  it('renews an active claim without changing its fence', async () => {
+    const fixture = getClaimFixture();
+    const bookingIntentId = randomUUID();
+    const actor: WorkflowActor = { kind: 'SAGA', actorId: 'renewal-saga' };
+    await createWorkflowFixture(fixture.prismaA, bookingIntentId);
+
+    const claim = await fixture.repositoryA.acquireClaim(bookingIntentId, actor, 10_000);
+    if (claim === null) {
+      throw new Error('Initial workflow claim was not acquired');
+    }
+
+    const renewedClaim = await fixture.repositoryB.renewClaim(claim, 60_000);
+    if (renewedClaim === null) {
+      throw new Error('Active workflow claim was not renewed');
+    }
+
+    expect(renewedClaim.ownerToken).toBe(claim.ownerToken);
+    expect(renewedClaim.fence).toBe(claim.fence);
+    expect(renewedClaim.leaseExpiresAt.getTime()).toBeGreaterThan(claim.leaseExpiresAt.getTime());
+  });
+
+  it('takes over an expired lease with a higher fence', async () => {
+    const fixture = getClaimFixture();
+    const bookingIntentId = randomUUID();
+    const actor: WorkflowActor = { kind: 'SAGA', actorId: 'original-saga' };
+    const takeoverActor: WorkflowActor = { kind: 'RECOVERY', actorId: 'takeover-recovery' };
+    await createWorkflowFixture(fixture.prismaA, bookingIntentId);
+
+    const originalClaim = await fixture.repositoryA.acquireClaim(bookingIntentId, actor, 200);
+    if (originalClaim === null) {
+      throw new Error('Initial workflow claim was not acquired');
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, 400));
+
+    const takeoverClaim = await fixture.repositoryB.acquireClaim(bookingIntentId, takeoverActor, 10_000);
+    if (takeoverClaim === null) {
+      throw new Error('Expired workflow claim was not taken over');
+    }
+
+    expect(takeoverClaim.ownerToken).not.toBe(originalClaim.ownerToken);
+    expect(takeoverClaim.fence).toBeGreaterThan(originalClaim.fence);
+  });
+
+  it('rejects an expired claim before invoking a fenced write', async () => {
+    const fixture = getClaimFixture();
+    const bookingIntentId = randomUUID();
+    const actor: WorkflowActor = { kind: 'SAGA', actorId: 'expired-saga' };
+    await createWorkflowFixture(fixture.prismaA, bookingIntentId);
+
+    const claim = await fixture.repositoryA.acquireClaim(bookingIntentId, actor, 200);
+    if (claim === null) {
+      throw new Error('Initial workflow claim was not acquired');
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, 400));
+
+    let callbackInvoked = false;
+    const result = await fixture.repositoryB.runFencedTransaction(claim, async () => {
+      callbackInvoked = true;
+      return 'written';
+    });
+
+    expect(result).toEqual({ kind: 'FENCED_OUT' });
+    expect(callbackInvoked).toBe(false);
+  });
+
+  it('rejects the stale token and fence after takeover without writing workflow state', async () => {
+    const fixture = getClaimFixture();
+    const bookingIntentId = randomUUID();
+    const originalActor: WorkflowActor = { kind: 'SAGA', actorId: 'stale-saga' };
+    const takeoverActor: WorkflowActor = { kind: 'RECOVERY', actorId: 'current-recovery' };
+    await createWorkflowFixture(fixture.prismaA, bookingIntentId);
+
+    const staleClaim = await fixture.repositoryA.acquireClaim(bookingIntentId, originalActor, 200);
+    if (staleClaim === null) {
+      throw new Error('Initial workflow claim was not acquired');
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, 400));
+    const currentClaim = await fixture.repositoryB.acquireClaim(bookingIntentId, takeoverActor, 10_000);
+    if (currentClaim === null) {
+      throw new Error('Expired workflow claim was not taken over');
+    }
+
+    let callbackInvoked = false;
+    const result = await fixture.repositoryA.runFencedTransaction(staleClaim, async (tx) => {
+      callbackInvoked = true;
+      await tx.fulfillmentWorkflow.update({
+        where: { id: staleClaim.workflowId },
+        data: { version: { increment: 1 } },
+      });
+      return 'written';
+    });
+    const workflow = await fixture.prismaB.fulfillmentWorkflow.findUnique({
+      where: { bookingIntentId },
+      select: { version: true },
+    });
+
+    expect(currentClaim.fence).toBeGreaterThan(staleClaim.fence);
+    expect(result).toEqual({ kind: 'FENCED_OUT' });
+    expect(callbackInvoked).toBe(false);
+    expect(workflow?.version).toBe(0);
+  });
+
+  it('rejects mismatched workflow and booking-intent scope before callback', async () => {
+    const fixture = getClaimFixture();
+    const bookingIntentId = randomUUID();
+    const actor: WorkflowActor = { kind: 'SAGA', actorId: 'scope-saga' };
+    await createWorkflowFixture(fixture.prismaA, bookingIntentId);
+
+    const claim = await fixture.repositoryA.acquireClaim(bookingIntentId, actor, 10_000);
+    if (claim === null) {
+      throw new Error('Initial workflow claim was not acquired');
+    }
+
+    let callbackInvoked = false;
+    const wrongWorkflowScope = await fixture.repositoryB.runFencedTransaction(
+      { ...claim, workflowId: randomUUID() },
+      async () => {
+        callbackInvoked = true;
+        return 'written';
+      },
+    );
+    const wrongIntentScope = await fixture.repositoryB.runFencedTransaction(
+      { ...claim, bookingIntentId: randomUUID() },
+      async () => {
+        callbackInvoked = true;
+        return 'written';
+      },
+    );
+
+    expect(wrongWorkflowScope).toEqual({ kind: 'FENCED_OUT' });
+    expect(wrongIntentScope).toEqual({ kind: 'FENCED_OUT' });
+    expect(callbackInvoked).toBe(false);
+  });
+
+  // Human-approved 2026-10-08: move the callback-expiry case into its fixture describe without changing its assertions.
+  it('rolls back local writes when the lease expires during a fenced callback', async () => {
+    const fixture = getClaimFixture();
+    const bookingIntentId = randomUUID();
+    const actor: WorkflowActor = { kind: 'SAGA', actorId: 'slow-saga' };
+    await createWorkflowFixture(fixture.prismaA, bookingIntentId);
+
+    const claim = await fixture.repositoryA.acquireClaim(bookingIntentId, actor, 200);
+    if (claim === null) {
+      throw new Error('Initial workflow claim was not acquired');
+    }
+
+    const result = await fixture.repositoryA.runFencedTransaction(claim, async (tx) => {
+      await tx.fulfillmentWorkflow.update({
+        where: { id: claim.workflowId },
+        data: { version: { increment: 1 } },
+      });
+      await new Promise<void>((resolve) => setTimeout(resolve, 400));
+      return 'written';
+    });
+    const workflow = await fixture.prismaB.fulfillmentWorkflow.findUnique({
+      where: { bookingIntentId },
+      select: { version: true },
+    });
+
+    expect(result).toEqual({ kind: 'FENCED_OUT' });
+    expect(workflow?.version).toBe(0);
+  });
+
+  it('uses the default lease duration when none is supplied', async () => {
+    const fixture = getClaimFixture();
+    const bookingIntentId = randomUUID();
+    const actor: WorkflowActor = { kind: 'SAGA', actorId: 'default-lease-saga' };
+    await createWorkflowFixture(fixture.prismaA, bookingIntentId);
+
+    const claim = await fixture.repositoryA.acquireClaim(bookingIntentId, actor);
+    if (claim === null) {
+      throw new Error('Default workflow claim was not acquired');
+    }
+    const workflow = await fixture.prismaB.fulfillmentWorkflow.findUnique({
+      where: { bookingIntentId },
+      select: { leaseExpiresAt: true, updatedAt: true },
+    });
+    if (workflow?.leaseExpiresAt === null || workflow?.leaseExpiresAt === undefined) {
+      throw new Error('Default workflow lease expiry was not persisted');
+    }
+
+    const persistedLeaseMs = workflow.leaseExpiresAt.getTime() - workflow.updatedAt.getTime();
+    expect(persistedLeaseMs).toBeGreaterThan(175_000);
+    expect(persistedLeaseMs).toBeLessThanOrEqual(180_000);
+  });
+
+  it('requires positive integer lease durations for acquisition and renewal', async () => {
+    const fixture = getClaimFixture();
+    const bookingIntentId = randomUUID();
+    const actor: WorkflowActor = { kind: 'SAGA', actorId: 'invalid-lease-saga' };
+    await createWorkflowFixture(fixture.prismaA, bookingIntentId);
+
+    await expect(fixture.repositoryA.acquireClaim(bookingIntentId, actor, 0)).rejects.toThrow(RangeError);
+    await expect(fixture.repositoryA.acquireClaim(bookingIntentId, actor, 1.5)).rejects.toThrow(RangeError);
+
+    const claim = await fixture.repositoryA.acquireClaim(bookingIntentId, actor, 10_000);
+    if (claim === null) {
+      throw new Error('Initial workflow claim was not acquired');
+    }
+    await expect(fixture.repositoryB.renewClaim(claim, 0)).rejects.toThrow(RangeError);
+    await expect(fixture.repositoryB.renewClaim(claim, 1.5)).rejects.toThrow(RangeError);
+  });
+
+  it('does not renew an expired claim', async () => {
+    const fixture = getClaimFixture();
+    const bookingIntentId = randomUUID();
+    const actor: WorkflowActor = { kind: 'SAGA', actorId: 'expired-renewal-saga' };
+    await createWorkflowFixture(fixture.prismaA, bookingIntentId);
+
+    const claim = await fixture.repositoryA.acquireClaim(bookingIntentId, actor, 200);
+    if (claim === null) {
+      throw new Error('Initial workflow claim was not acquired');
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, 400));
+
+    const renewedClaim = await fixture.repositoryB.renewClaim(claim, 10_000);
+
+    expect(renewedClaim).toBeNull();
+  });
+
+  it('commits writes for the current owner while its lease is active', async () => {
+    const fixture = getClaimFixture();
+    const bookingIntentId = randomUUID();
+    const actor: WorkflowActor = { kind: 'SAGA', actorId: 'current-owner-saga' };
+    await createWorkflowFixture(fixture.prismaA, bookingIntentId);
+
+    const claim = await fixture.repositoryA.acquireClaim(bookingIntentId, actor, 10_000);
+    if (claim === null) {
+      throw new Error('Initial workflow claim was not acquired');
+    }
+    const result = await fixture.repositoryA.runFencedTransaction(claim, async (tx) => {
+      await tx.fulfillmentWorkflow.update({
+        where: { id: claim.workflowId },
+        data: { version: { increment: 1 } },
+      });
+      return 'written';
+    });
+    const workflow = await fixture.prismaB.fulfillmentWorkflow.findUnique({
+      where: { bookingIntentId },
+      select: { version: true },
+    });
+
+    expect(result).toEqual({ kind: 'APPLIED', value: 'written' });
+    expect(workflow?.version).toBe(1);
+  });
+
+  it('allows only one claimant when both clients find the workflow row missing', async () => {
+    const fixture = getClaimFixture();
+    const bookingIntentId = randomUUID();
+    const sagaActor: WorkflowActor = { kind: 'SAGA', actorId: 'missing-row-saga' };
+    const recoveryActor: WorkflowActor = { kind: 'RECOVERY', actorId: 'missing-row-recovery' };
+    await createWorkflowFixture(fixture.prismaA, bookingIntentId);
+    await fixture.prismaA.fulfillmentWorkflow.delete({ where: { bookingIntentId } });
+
+    const results = await Promise.all([
+      fixture.repositoryA.acquireClaim(bookingIntentId, sagaActor),
+      fixture.repositoryB.acquireClaim(bookingIntentId, recoveryActor),
+    ]);
+    const claims = results.filter((claim): claim is WorkflowClaim => claim !== null);
+
+    expect(claims).toHaveLength(1);
+  });
 });

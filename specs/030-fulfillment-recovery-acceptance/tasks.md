@@ -10,10 +10,10 @@
 
 ## Phase 2: Foundation and Controlled Harness
 - [x] T003 [P] Add clean/legacy migration and Payment reservation reader tests in apps/api/test/fulfillment-recovery-migration.e2e-spec.ts.
-- [ ] T004 [P] Add acquire/renew/fence/takeover race tests using actual DB time in apps/api/src/payment-fulfillment/fulfillment-workflow.repository.spec.ts.
+- [x] T004 [P] Add acquire/renew/fence/takeover race tests using actual DB time in apps/api/src/payment-fulfillment/fulfillment-workflow.repository.spec.ts.
 - [ ] T005 [P] Add stable-operation/distinct-attempt/immutable-evidence tests in apps/api/src/payment-fulfillment/provider-operation.service.spec.ts.
 - [x] T006 Add workflow/operation/attempt schema, nullable unique Stripe intent ID, internal RESERVED status and PaymentEvent links with an additive migration in apps/api/prisma/schema.prisma and apps/api/prisma/migrations/20261007000000_fulfillment_recovery/migration.sql.
-- [ ] T007 Implement single workflow claim and fenced state writes using DB time in apps/api/src/payment-fulfillment/fulfillment-workflow.repository.ts.
+- [x] T007 Implement single workflow claim and fenced state writes using DB time in apps/api/src/payment-fulfillment/fulfillment-workflow.repository.ts.
 - [ ] T008 Implement stable identities, atomic Payment reservation, pre-dispatch PREPARED and immutable late evidence in apps/api/src/payment-fulfillment/provider-operation.service.ts.
 - [ ] T009 Wire providers and update nullable-ID/RESERVED readers before flag enablement in apps/api/src/payment-fulfillment/payment-fulfillment.module.ts, apps/api/src/payment/payment.service.ts, apps/api/src/booking-lifecycle/booking-recovery.service.ts and packages/shared/src/ (keep existing ready-intent responses compatible).
 - [ ] T010 [P] Add ledger/transport contract tests for independent Stripe and supplier side effects in apps/api/test/fulfillment-harness/provider-transports.spec.ts.
