@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 export type HarnessApplicationOptions = {
   runId: string;
@@ -43,6 +44,10 @@ type OwnershipModule = {
   assertOwnedRunResources(application: HarnessApplicationOptions): Promise<void>;
 };
 
+type SensitiveRedactionModule = {
+  redactSensitive(value: unknown): string;
+};
+
 const spawnedProcessIds = new Set<number>();
 const maximumLogCharacters = 8192;
 const requestTimeoutMs = 1000;
@@ -57,6 +62,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isOwnershipModule(value: unknown): value is OwnershipModule {
   return isRecord(value) && typeof value['assertOwnedRunResources'] === 'function';
+}
+
+function isSensitiveRedactionModule(value: unknown): value is SensitiveRedactionModule {
+  return isRecord(value) && typeof value['redactSensitive'] === 'function';
 }
 
 function parseLoopbackOrigin(value: string, name: string): LoopbackOrigin {
@@ -176,7 +185,10 @@ function validateApplicationOptions(
   }
 
   for (const [name, value] of Object.entries(application)) {
-    if (name.toLowerCase().includes('driver') || value === driver.driverToken) {
+    if (
+      name.toLowerCase().includes('driver') ||
+      (typeof value === 'string' && value.includes(driver.driverToken))
+    ) {
       throw new Error('Driver credentials cannot be included in application options');
     }
   }
@@ -201,6 +213,22 @@ async function assertOwnedRunResources(application: HarnessApplicationOptions): 
   }
 }
 
+async function loadSensitiveRedactor(): Promise<(value: unknown) => string> {
+  let loaded: unknown;
+  try {
+    const repositoryRoot = path.resolve(__dirname, '../../../..');
+    const helperPath = path.resolve(repositoryRoot, 'tests', 'smoke', 'helpers', 'test-utils.mjs');
+    loaded = await import(pathToFileURL(helperPath).href);
+  } catch {
+    throw new Error('Centralized diagnostic redaction helper is unavailable');
+  }
+  if (!isSensitiveRedactionModule(loaded)) {
+    throw new Error('Centralized diagnostic redaction helper is unavailable');
+  }
+  const module = loaded;
+  return (value: unknown): string => module.redactSensitive(value);
+}
+
 function randomSecret(): string {
   return randomBytes(32).toString('hex');
 }
@@ -221,8 +249,17 @@ function runtimeEnvironment(values: Record<string, string>): NodeJS.ProcessEnv {
 function applicationEnvironments(application: HarnessApplicationOptions): {
   api: NodeJS.ProcessEnv;
   web: NodeJS.ProcessEnv;
+  secrets: string[];
 } {
-  const jwtSecret = randomSecret();
+  const secrets = {
+    jwtSecret: randomSecret(),
+    agentServiceApiKey: randomSecret(),
+    claimTokenSecret: randomSecret(),
+    attestationSecret: randomSecret(),
+    chatHandoffSecret: randomSecret(),
+    chatEncryptionKey: randomSecret(),
+    encryptionKey: randomSecret(),
+  };
   const apiValues: Record<string, string> = {
     NODE_ENV: 'test',
     CI: 'true',
@@ -235,44 +272,57 @@ function applicationEnvironments(application: HarnessApplicationOptions): {
     STRIPE_WEBHOOK_SECRET: application.stripeWebhookSecret,
     DUFFEL_API_URL: application.supplierOrigin,
     DUFFEL_ACCESS_TOKEN: application.supplierApiKey,
-    JWT_SECRET: jwtSecret,
-    AGENT_SERVICE_API_KEY: randomSecret(),
-    CLAIM_TOKEN_SECRET: randomSecret(),
-    ATTESTATION_SECRET: randomSecret(),
-    CHAT_HANDOFF_SECRET: randomSecret(),
-    CHAT_ENCRYPTION_KEY: randomSecret(),
-    ENCRYPTION_KEY: randomSecret(),
+    JWT_SECRET: secrets.jwtSecret,
+    AGENT_SERVICE_API_KEY: secrets.agentServiceApiKey,
+    CLAIM_TOKEN_SECRET: secrets.claimTokenSecret,
+    ATTESTATION_SECRET: secrets.attestationSecret,
+    CHAT_HANDOFF_SECRET: secrets.chatHandoffSecret,
+    CHAT_ENCRYPTION_KEY: secrets.chatEncryptionKey,
+    ENCRYPTION_KEY: secrets.encryptionKey,
     FRONTEND_URL: application.frontendUrl,
     FEATURE_FLAG_FULFILLMENT_RECOVERY: 'false',
   };
   const webValues: Record<string, string> = {
     NODE_ENV: 'test',
     CI: 'true',
-    NEXTAUTH_SECRET: jwtSecret,
+    NEXTAUTH_SECRET: secrets.jwtSecret,
     NEXTAUTH_URL: application.frontendUrl,
     API_URL: application.apiUrl,
     NEXT_PUBLIC_API_URL: application.apiUrl,
   };
-  return { api: runtimeEnvironment(apiValues), web: runtimeEnvironment(webValues) };
+  return {
+    api: runtimeEnvironment(apiValues),
+    web: runtimeEnvironment(webValues),
+    secrets: Object.values(secrets),
+  };
 }
 
-function redact(value: string, secrets: readonly string[]): string {
+function redactCapturedOutputWith(
+  value: string,
+  secrets: readonly string[],
+  redactSensitive: (value: unknown) => string,
+): string {
   let safe = value;
   for (const secret of secrets) {
     if (secret.length > 0) safe = safe.split(secret).join('[redacted]');
   }
-  return safe
-    .replace(/\bsk_(?:live|test)_[A-Za-z0-9_-]+/gi, '[redacted]')
-    .replace(/\bpk_(?:live|test)_[A-Za-z0-9_-]+/gi, '[redacted]')
-    .replace(/\bwhsec_[A-Za-z0-9_-]+/gi, '[redacted]')
-    .replace(/\bduffel_(?:live|test)_[A-Za-z0-9_-]+/gi, '[redacted]')
-    .replace(/authorization\s*:\s*bearer\s+[^\s,]+/gi, 'authorization: Bearer [redacted]')
-    .replace(/client_secret(?:=|:)[^\s&]+/gi, 'client_secret=[redacted]');
+  return redactSensitive(safe);
 }
 
-function appendOutput(record: ChildRecord, chunk: unknown, secrets: readonly string[]): void {
+export async function redactCapturedOutput(value: string, secrets: readonly string[]): Promise<string> {
+  const redactSensitive = await loadSensitiveRedactor();
+  return redactCapturedOutputWith(value, secrets, redactSensitive);
+}
+
+function appendOutput(
+  record: ChildRecord,
+  chunk: unknown,
+  secrets: readonly string[],
+  redactSensitive: (value: unknown) => string,
+): void {
   const value = typeof chunk === 'string' ? chunk : Buffer.isBuffer(chunk) ? chunk.toString('utf8') : '';
-  record.output = (record.output + redact(value, secrets)).slice(-maximumLogCharacters);
+  const safe = redactCapturedOutputWith(value, secrets, redactSensitive);
+  record.output = (record.output + safe).slice(-maximumLogCharacters);
 }
 
 function launchProcess(
@@ -281,6 +331,7 @@ function launchProcess(
   cwd: string,
   environment: NodeJS.ProcessEnv,
   secrets: readonly string[],
+  redactSensitive: (value: unknown) => string,
 ): ChildRecord {
   const child = spawn(process.execPath, args, {
     cwd,
@@ -290,8 +341,8 @@ function launchProcess(
     windowsHide: true,
   });
   const record: ChildRecord = { name, child, output: '' };
-  child.stdout?.on('data', (chunk: unknown) => appendOutput(record, chunk, secrets));
-  child.stderr?.on('data', (chunk: unknown) => appendOutput(record, chunk, secrets));
+  child.stdout?.on('data', (chunk: unknown) => appendOutput(record, chunk, secrets, redactSensitive));
+  child.stderr?.on('data', (chunk: unknown) => appendOutput(record, chunk, secrets, redactSensitive));
   child.once('spawn', () => {
     if (child.pid) spawnedProcessIds.add(child.pid);
   });
@@ -408,9 +459,15 @@ export function createFulfillmentHarnessServer(options: {
       const validated = validateApplicationOptions(options.application, options.driver);
       await assertOwnedRunResources(options.application);
       if (stopped) throw new Error('Fulfillment harness server was stopped');
+      const redactSensitive = await loadSensitiveRedactor();
       const environments = applicationEnvironments(options.application);
+      const outputSecrets = [...secrets, ...environments.secrets];
       for (const environment of [environments.api, environments.web]) {
-        if (Object.values(environment).includes(options.driver.driverToken)) {
+        if (
+          Object.values(environment).some(
+            (value) => typeof value === 'string' && value.includes(options.driver.driverToken),
+          )
+        ) {
           throw new Error('Driver credentials cannot enter application processes');
         }
       }
@@ -425,7 +482,8 @@ export function createFulfillmentHarnessServer(options: {
         ['-r', 'ts-node/register', '-r', 'tsconfig-paths/register', apiEntry],
         apiRoot,
         environments.api,
-        secrets,
+        outputSecrets,
+        redactSensitive,
       );
       records.push(apiRecord);
       await waitForSpawn(apiRecord);
@@ -436,7 +494,8 @@ export function createFulfillmentHarnessServer(options: {
         [nextCli, 'dev', '--hostname', '127.0.0.1', '--port', String(validated.frontend.port)],
         webRoot,
         environments.web,
-        secrets,
+        outputSecrets,
+        redactSensitive,
       );
       records.push(webRecord);
       await waitForSpawn(webRecord);

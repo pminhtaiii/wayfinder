@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import {
   createFulfillmentHarnessServer,
+  redactCapturedOutput,
   spawnedChildProcessIds,
   type HarnessApplicationOptions,
   type HarnessDriverOptions,
@@ -154,4 +155,38 @@ test('rejects a public driver origin before spawning application processes', asy
 
 test('rejects resources without an allocation owner before spawning', async () => {
   await expectRejectedBeforeSpawn(applicationWith(), driver, /ownership|owned/i);
+});
+
+test('rejects a driver token embedded in an application URL before spawning', async () => {
+  const databaseUrl =
+    application.databaseUrl + '&driver_token=' + encodeURIComponent(driver.driverToken);
+  await expectRejectedBeforeSpawn(
+    applicationWith({ databaseUrl }),
+    driver,
+    /driver credentials/i,
+  );
+});
+
+test('redacts captured application output with the centralized sanitizer', async () => {
+  const applicationSecret = 'app_secret_canary_20261008';
+  const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzZWNyZXQifQ.signature';
+  const password = 'Password-Canary-20261008';
+  const passport = 'P1234567';
+  const diagnostic =
+    'Authorization: Bearer ' +
+    jwt +
+    '; runtime=' +
+    applicationSecret +
+    '; {"password":"' +
+    password +
+    '","passportNumber":"' +
+    passport +
+    '"}; card 4111 1111 1111 1111';
+
+  const sanitized = await redactCapturedOutput(diagnostic, [applicationSecret]);
+
+  for (const canary of [applicationSecret, jwt, password, passport, '4111 1111 1111 1111']) {
+    expect(sanitized).not.toContain(canary);
+  }
+  expect(sanitized).toContain('[redacted]');
 });
