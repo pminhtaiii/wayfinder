@@ -201,4 +201,68 @@ describe('fulfillment recovery migration compatibility', () => {
       await fixture.dispose();
     }
   });
+
+  it('adds operation and attempt tables with workflow claim and event evidence columns', async () => {
+    const fixture = await createMigrationFixture();
+    try {
+      const tables = await fixture.inspectionPrisma.$queryRawUnsafe<
+        Array<{ tableName: string }>
+      >(
+        'SELECT table_name AS "tableName" FROM information_schema.tables WHERE table_schema = $1 AND table_name IN ($2, $3, $4) ORDER BY table_name',
+        fixture.schemaName,
+        'fulfillment_workflows',
+        'provider_attempts',
+        'provider_operations',
+      );
+      expect(tables.map((row) => row.tableName)).toEqual([
+        'fulfillment_workflows',
+        'provider_attempts',
+        'provider_operations',
+      ]);
+
+      const columns = await fixture.inspectionPrisma.$queryRawUnsafe<
+        Array<{ tableName: string; columnName: string }>
+      >(
+        'SELECT table_name AS "tableName", column_name AS "columnName" FROM information_schema.columns WHERE table_schema = $1 AND table_name IN ($2, $3, $4, $5)',
+        fixture.schemaName,
+        'fulfillment_workflows',
+        'provider_operations',
+        'provider_attempts',
+        'payment_events',
+      );
+      const columnNames = columns.map((row) => row.tableName + '.' + row.columnName);
+      expect(columnNames).toEqual(
+        expect.arrayContaining([
+          'fulfillment_workflows.bookingIntentId',
+          'fulfillment_workflows.bookingId',
+          'fulfillment_workflows.currentPaymentId',
+          'fulfillment_workflows.ownerToken',
+          'fulfillment_workflows.fence',
+          'fulfillment_workflows.leaseExpiresAt',
+          'fulfillment_workflows.actorType',
+          'provider_operations.workflowId',
+          'provider_operations.provider',
+          'provider_operations.purpose',
+          'provider_operations.logicalSequence',
+          'provider_operations.status',
+          'provider_attempts.operationId',
+          'provider_attempts.kind',
+          'provider_attempts.claimFence',
+          'provider_attempts.startedAt',
+          'provider_attempts.requestFingerprint',
+          'payment_events.providerOperationId',
+          'payment_events.providerAttemptId',
+          'payment_events.provider',
+          'payment_events.evidenceKind',
+          'payment_events.outcomeClass',
+          'payment_events.bookingIntentMatched',
+          'payment_events.offerMatched',
+          'payment_events.passengerSetMatched',
+          'payment_events.itineraryMatched',
+        ]),
+      );
+    } finally {
+      await fixture.dispose();
+    }
+  });
 });
