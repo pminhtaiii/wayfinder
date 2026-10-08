@@ -11,7 +11,8 @@
     "**/test/supplier-order-services.e2e-spec.ts",
     "**/test/supplier-ancillary.e2e-spec.ts",
     "**/test/ancillary-catalog.e2e-spec.ts",
-    "**/test/payment-fulfillment-safety.e2e-spec.ts"
+    "**/test/payment-fulfillment-safety.e2e-spec.ts",
+    "**/test/fulfillment-harness/provider-transports.spec.ts"
   ],
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
