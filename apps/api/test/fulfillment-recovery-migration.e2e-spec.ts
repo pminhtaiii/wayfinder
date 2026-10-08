@@ -95,6 +95,7 @@ async function createMigrationFixture(): Promise<MigrationFixture> {
   }
 }
 
+// Human-approved 2026-10-08: raw fixture inserts supply Prisma @updatedAt columns explicitly.
 async function createPaymentFixture(
   prisma: PrismaClient,
   stripePaymentIntentId: string | null,
@@ -106,13 +107,13 @@ async function createPaymentFixture(
   const paymentId = randomUUID();
 
   await prisma.$executeRawUnsafe(
-    'INSERT INTO "users" ("id", "email", "password") VALUES ($1, $2, $3)',
+    'INSERT INTO "users" ("id", "email", "password", "updatedAt") VALUES ($1, $2, $3, CURRENT_TIMESTAMP)',
     userId,
     'migration-' + suffix + '@example.test',
     'test-only-password',
   );
   await prisma.$executeRawUnsafe(
-    'INSERT INTO "booking_intents" ("id", "userId", "supplierOfferId", "originalPrice", "confirmedPrice", "pricedAt", "origin", "destination", "departureDate", "adults", "rawOfferSnapshot", "intentExpiresAt") VALUES ($1, $2, $3, $4, $4, $5, $6, $7, $8, 1, $9::jsonb, $10)',
+    'INSERT INTO "booking_intents" ("id", "userId", "supplierOfferId", "originalPrice", "confirmedPrice", "pricedAt", "origin", "destination", "departureDate", "adults", "rawOfferSnapshot", "intentExpiresAt", "updatedAt") VALUES ($1, $2, $3, $4, $4, $5, $6, $7, $8, 1, $9::jsonb, $10, CURRENT_TIMESTAMP)',
     bookingIntentId,
     userId,
     'supplier-' + suffix,
@@ -134,7 +135,7 @@ async function createPaymentFixture(
     new Date('2030-01-01T00:00:00.000Z'),
   );
   await prisma.$executeRawUnsafe(
-    'INSERT INTO "payments" ("id", "bookingIntentId", "attemptNumber", "idempotencyKeyId", "stripePaymentIntentId", "amount", "currency") VALUES ($1, $2, 1, $3, $4, 12500, $5)',
+    'INSERT INTO "payments" ("id", "bookingIntentId", "attemptNumber", "idempotencyKeyId", "stripePaymentIntentId", "amount", "currency", "updatedAt") VALUES ($1, $2, 1, $3, $4, 12500, $5, CURRENT_TIMESTAMP)',
     paymentId,
     bookingIntentId,
     idempotencyKeyId,
@@ -178,6 +179,24 @@ describe('fulfillment recovery migration compatibility', () => {
       await createPaymentFixture(fixture.prisma, null);
       await createPaymentFixture(fixture.prisma, 'pi_feature030_unique');
       await expect(createPaymentFixture(fixture.prisma, 'pi_feature030_unique')).rejects.toThrow();
+    } finally {
+      await fixture.dispose();
+    }
+  });
+
+  it('stores an uncreated reservation without fabricating a Stripe ID', async () => {
+    const fixture = await createMigrationFixture();
+    try {
+      await createPaymentFixture(fixture.prisma, null);
+      await fixture.prisma.$executeRawUnsafe(
+        "UPDATE \"payments\" SET \"status\" = 'RESERVED' WHERE \"stripePaymentIntentId\" IS NULL",
+      );
+      const payments = await fixture.prisma.$queryRawUnsafe<
+        Array<{ stripePaymentIntentId: string | null; status: string }>
+      >('SELECT "stripePaymentIntentId", "status" FROM "payments"');
+      expect(payments).toHaveLength(1);
+      expect(payments[0]?.stripePaymentIntentId).toBeNull();
+      expect(payments[0]?.status).toBe('RESERVED');
     } finally {
       await fixture.dispose();
     }
