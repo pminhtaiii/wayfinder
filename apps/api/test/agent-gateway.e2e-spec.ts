@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from '@/app.module';
 import { PrismaService } from '@/prisma/prisma.service';
 import { DuffelSearchAdapter } from '@/supplier/search/duffel-search.adapter';
 import * as crypto from 'crypto';
@@ -26,6 +25,7 @@ describe('Agent Gateway (E2E)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let cryptoService: ChatMessageCryptoService;
+  const previousBookingReadinessFlag = process.env.FEATURE_FLAG_BOOKING_READINESS;
 
   const apiKey = 'test-agent-api-key';
 
@@ -38,6 +38,8 @@ describe('Agent Gateway (E2E)', () => {
     process.env.CHAT_ENCRYPTION_KEY = crypto.randomBytes(32).toString('hex');
     process.env.FEATURE_FLAG_BOOKING_READINESS = 'true';
 
+    // Human-approved fixture correction (2026-10-08): AppModule snapshots validated env during import.
+    const { AppModule } = await import('@/app.module');
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -246,7 +248,17 @@ describe('Agent Gateway (E2E)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    try {
+      if (app) {
+        await app.close();
+      }
+    } finally {
+      if (previousBookingReadinessFlag === undefined) {
+        delete process.env.FEATURE_FLAG_BOOKING_READINESS;
+      } else {
+        process.env.FEATURE_FLAG_BOOKING_READINESS = previousBookingReadinessFlag;
+      }
+    }
   });
 
   beforeEach(async () => {
@@ -924,7 +936,7 @@ describe('Agent Gateway (E2E)', () => {
     });
 
     it('should reject request with passenger missing type', async () => {
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post('/agent-gateway/bookings/readiness')
         .set('X-Agent-API-Key', apiKey)
         .set('X-User-Claim', token)
