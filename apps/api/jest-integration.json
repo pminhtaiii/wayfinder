@@ -4,6 +4,7 @@
   "testEnvironment": "node",
   "testTimeout": 30000,
   "testMatch": [
+    "**/src/payment-fulfillment/fulfillment-workflow.repository.spec.ts",
     "**/src/disruption/sync/supplier-sync.service.spec.ts",
     "**/test/**/*.e2e-spec.ts"
   ],
