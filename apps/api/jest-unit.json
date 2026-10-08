@@ -16,7 +16,8 @@
     "compatibility\\.spec\\.ts$",
     "performance\\.spec\\.ts$",
     "supplier-sync\\.service\\.spec\\.ts$",
-    "fulfillment-workflow\\.repository\\.spec\\.ts$"
+    "fulfillment-workflow\\.repository\\.spec\\.ts$",
+    "provider-operation\\.service\\.spec\\.ts$"
   ],
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
