@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flight Booking Chatbot — Sketch 002</title>
+<link rel="stylesheet" href="../themes/default.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-sans); background: var(--color-bg); color: var(--color-text); height: 100vh; display: flex; flex-direction: column; }
+
+  /* ── Top bar ── */
+  .topbar { display: flex; align-items: center; height: 56px; background: var(--color-surface); border-bottom: 1px solid var(--color-border); padding: 0 20px; flex-shrink: 0; }
+  .topbar-brand { font-size: 17px; font-weight: 700; color: var(--color-primary); display: flex; align-items: center; gap: 8px; }
+  .topbar-brand svg { width: 24px; height: 24px; }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .topbar-link { font-size: 13px; color: var(--color-text-secondary); text-decoration: none; cursor: pointer; padding: 6px 12px; border-radius: 6px; transition: all 0.15s; }
+  .topbar-link:hover { background: var(--color-bg); }
+  .topbar-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+
+  /* ── Variant tabs ── */
+  #variant-nav { position: fixed; top: 56px; left: 0; right: 0; z-index: 9998; background: var(--color-surface); border-bottom: 1px solid var(--color-border); padding: 6px 16px; display: flex; gap: 6px; }
+  .variant-tab { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-secondary); transition: all 0.15s; font-family: var(--font-sans); }
+  .variant-tab:hover { border-color: var(--color-primary); color: var(--color-primary); }
+  .variant-tab.active { background: #F3F0FF; border-color: var(--color-primary); color: var(--color-primary); }
+
+  .variant { display: none; flex: 1; overflow: hidden; }
+  .variant.active { display: flex; }
+
+  /* ── Variant A: Full Chat ── */
+  .chat-full { flex: 1; flex-direction: column; padding-top: 100px; height: 100vh; }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 24px 0; display: flex; flex-direction: column; gap: 16px; }
+  .chat-container { max-width: 800px; margin: 0 auto; width: 100%; padding: 0 24px; }
+  .msg { display: flex; gap: 12px; max-width: 100%; }
+  .msg-user { flex-direction: row-reverse; }
+  .msg-avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+  .msg-avatar-ai { background: var(--color-primary); color: white; }
+  .msg-avatar-user { background: #E7EAF3; color: var(--color-text-secondary); }
+  .msg-bubble { padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.6; max-width: 600px; }
+  .msg-ai .msg-bubble { background: var(--color-surface); border: 1px solid var(--color-border); border-bottom-left-radius: 4px; }
+  .msg-user .msg-bubble { background: var(--color-primary); color: white; border-bottom-right-radius: 4px; }
+
+  /* ── Flight card inside chat ── */
+  .chat-flight-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 16px; margin-top: 8px; }
+  .chat-flight-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .chat-flight-airline { display: flex; align-items: center; gap: 10px; }
+  .chat-flight-logo { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: white; }
+  .chat-flight-name { font-size: 14px; font-weight: 600; }
+  .chat-flight-num { font-size: 12px; color: var(--color-text-muted); }
+  .chat-flight-route { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+  .chat-flight-time { text-align: center; }
+  .chat-flight-time-val { font-size: 16px; font-weight: 600; }
+  .chat-flight-time-code { font-size: 11px; color: var(--color-text-muted); }
+  .chat-flight-dur { flex: 1; text-align: center; }
+  .chat-flight-dur-line { height: 1px; background: var(--color-border); position: relative; margin: 0 12px; }
+  .chat-flight-dur-line::before { content: ''; position: absolute; right: 0; top: -3px; width: 6px; height: 6px; border-radius: 50%; background: var(--color-text-muted); }
+  .chat-flight-dur-text { font-size: 11px; color: var(--color-text-muted); margin-top: 3px; }
+  .chat-flight-stops { font-size: 11px; color: var(--color-success); font-weight: 500; }
+  .chat-flight-stops.stop { color: var(--color-warning); }
+  .chat-flight-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-border); }
+  .chat-flight-price { font-size: 18px; font-weight: 700; }
+  .chat-flight-price span { font-size: 12px; font-weight: 400; color: var(--color-text-muted); }
+  .match-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
+  .match-pill.strong { background: var(--color-success-bg); color: var(--color-success); }
+  .match-pill.fair { background: var(--color-info-bg); color: var(--color-info); }
+  .match-pill.weak { background: #FFF7ED; color: #EA580C; }
+  .match-pill-bar { width: 32px; height: 3px; background: rgba(0,0,0,0.1); border-radius: 9999px; overflow: hidden; }
+  .match-pill-bar-fill { height: 100%; border-radius: 9999px; }
+
+  /* ── Inline action buttons ── */
+  .chat-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .chat-action { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); font-family: var(--font-sans); }
+  .chat-action:hover { border-color: var(--color-primary); color: var(--color-primary); }
+  .chat-action.primary { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+  .chat-action.primary:hover { background: var(--color-primary-hover); }
+
+  /* ── Typing indicator ── */
+  .typing { display: flex; gap: 4px; align-items: center; padding: 8px 0; }
+  .typing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-text-muted); animation: typing 1.4s infinite; }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typing { 0%, 60%, 100% { opacity: 0.3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-4px); } }
+
+  /* ── Chat input ── */
+  .chat-input-area { padding: 16px 0 24px; }
+  .chat-input-wrapper { display: flex; gap: 8px; align-items: end; max-width: 800px; margin: 0 auto; }
+  .chat-input { flex: 1; padding: 12px 16px; border: 1px solid var(--color-border); border-radius: 12px; font-size: 14px; font-family: var(--font-sans); resize: none; min-height: 44px; max-height: 120px; color: var(--color-text); background: var(--color-surface); }
+  .chat-input::placeholder { color: var(--color-text-muted); }
+  .chat-input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(124,92,252,0.1); }
+  .chat-send { width: 44px; height: 44px; border-radius: 12px; background: var(--color-primary); color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
+  .chat-send:hover { background: var(--color-primary-hover); }
+  .chat-send svg { width: 18px; height: 18px; }
+
+  /* ── Quick actions ── */
+  .quick-actions { display: flex; gap: 8px; margin-top: 8px; max-width: 800px; margin-left: auto; margin-right: auto; flex-wrap: wrap; }
+  .quick-action { padding: 6px 14px; border: 1px solid var(--color-border); border-radius: 9999px; font-size: 12px; color: var(--color-text-secondary); cursor: pointer; transition: all 0.15s; background: var(--color-surface); font-family: var(--font-sans); }
+  .quick-action:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+  /* ── Booking confirmation card ── */
+  .booking-confirm { background: linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%); border: 1px solid #BBF7D0; border-radius: 12px; padding: 20px; margin-top: 8px; }
+  .booking-confirm-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .booking-confirm-check { width: 28px; height: 28px; background: var(--color-success); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+  .booking-confirm-title { font-size: 15px; font-weight: 600; color: var(--color-success); }
+  .booking-confirm-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; }
+  .booking-confirm-label { color: var(--color-text-muted); }
+  .booking-confirm-value { font-weight: 500; }
+
+  /* ── Variant B: Split view ── */
+  .split-view { flex: 1; padding-top: 100px; height: 100vh; }
+  .split-container { max-width: 1200px; margin: 0 auto; width: 100%; padding: 0 24px; display: grid; grid-template-columns: 1fr 360px; gap: 24px; height: calc(100vh - 100px); }
+  .split-chat { display: flex; flex-direction: column; height: 100%; }
+  .split-sidebar { display: flex; flex-direction: column; gap: 16px; overflow-y: auto; padding: 8px 0; }
+
+  /* ── Trip summary card ── */
+  .trip-summary { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; box-shadow: var(--shadow-card); }
+  .trip-summary-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .trip-step { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--color-border); }
+  .trip-step:last-child { border-bottom: none; }
+  .trip-step-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .trip-step-text { font-size: 13px; }
+  .trip-step-sub { font-size: 11px; color: var(--color-text-muted); }
+  .trip-step-status { margin-left: auto; font-size: 11px; font-weight: 500; }
+
+  /* ── Passenger info card ── */
+  .passenger-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 16px; }
+  .passenger-card-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+  .passenger-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
+  .passenger-label { color: var(--color-text-muted); }
+
+  /* ── Variant C: Compact widget ── */
+  .widget-view { flex: 1; padding-top: 100px; height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .widget-container { display: flex; gap: 32px; align-items: end; }
+  .widget-bg { width: 600px; height: 500px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; box-shadow: var(--shadow-card); padding: 32px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+  .widget-bg h2 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+  .widget-bg p { font-size: 14px; color: var(--color-text-muted); margin-bottom: 24px; }
+  .widget-bg-stats { display: flex; gap: 32px; }
+  .widget-bg-stat { text-align: center; }
+  .widget-bg-stat-num { font-size: 28px; font-weight: 700; color: var(--color-primary); }
+  .widget-bg-stat-label { font-size: 12px; color: var(--color-text-muted); }
+  .widget-chat { width: 400px; height: 560px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); display: flex; flex-direction: column; overflow: hidden; }
+  .widget-chat-header { padding: 16px; border-bottom: 1px solid var(--color-border); display: flex; align-items: center; gap: 10px; }
+  .widget-chat-header-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .widget-chat-header-text { font-size: 14px; font-weight: 600; }
+  .widget-chat-header-sub { font-size: 11px; color: var(--color-success); }
+  .widget-chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .widget-chat-input { padding: 12px 16px; border-top: 1px solid var(--color-border); display: flex; gap: 8px; }
+  .widget-chat-input input { flex: 1; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 8px; font-size: 13px; font-family: var(--font-sans); }
+  .widget-chat-input input:focus { outline: none; border-color: var(--color-primary); }
+  .widget-msg { font-size: 13px; line-height: 1.5; }
+  .widget-msg-ai { background: var(--color-bg); padding: 10px 14px; border-radius: 12px; border-bottom-left-radius: 4px; align-self: flex-start; max-width: 90%; }
+  .widget-msg-user { background: var(--color-primary); color: white; padding: 10px 14px; border-radius: 12px; border-bottom-right-radius: 4px; align-self: flex-end; max-width: 85%; }
+  .widget-mini-card { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 10px; padding: 12px; margin-top: 6px; font-size: 12px; }
+  .widget-mini-route { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .widget-mini-time { font-weight: 600; font-size: 13px; }
+  .widget-mini-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--color-border); }
+  .widget-mini-price { font-weight: 700; font-size: 14px; }
+  .widget-mini-btn { padding: 5px 12px; background: var(--color-primary); color: white; border: none; border-radius: 6px; font-size: 11px; font-weight: 500; cursor: pointer; font-family: var(--font-sans); }
+
+  /* ── Sketch toolbar ── */
+  #sketch-tools { position: fixed; bottom: 12px; right: 12px; z-index: 9999; font-family: system-ui; font-size: 12px; background: rgba(0,0,0,0.75); color: white; padding: 8px 12px; border-radius: 8px; opacity: 0.4; transition: opacity 0.2s; }
+  #sketch-tools:hover { opacity: 1; }
+  #sketch-tools select { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 8px; }
+</style>
+</head>
+<body>
+
+<!-- ── Top bar ── -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <svg viewBox="0 0 28 28" fill="none"><path d="M14 2L26 8V20L14 26L2 20V8L14 2Z" fill="currentColor" opacity="0.2"/><path d="M14 2L26 8L14 14L2 8L14 2Z" fill="currentColor"/><path d="M2 20L14 26L26 20V8L14 14V26" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+    SkyBook AI
+  </div>
+  <div class="topbar-right">
+    <span class="topbar-link">My Bookings</span>
+    <span class="topbar-link">Profile</span>
+    <div class="topbar-avatar">JD</div>
+  </div>
+</div>
+
+<!-- ── Variant tabs ── -->
+<div id="variant-nav">
+  <button class="variant-tab" onclick="showVariant('a')">A: Full-Page Chat</button>
+  <button class="variant-tab active" onclick="showVariant('b')">B: Chat + Sidebar ★ Selected</button>
+  <button class="variant-tab" onclick="showVariant('c')">C: Floating Widget</button>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- VARIANT A: FULL-PAGE CHAT -->
+<!-- ════════════════════════════════════════════ -->
+<div id="variant-a" class="variant">
+  <div class="chat-full">
+    <div class="chat-messages">
+      <div class="chat-container">
+
+        <!-- AI greeting -->
+        <div class="msg msg-ai">
+          <div class="msg-avatar msg-avatar-ai">AI</div>
+          <div class="msg-bubble">
+            Hi John! I'm your flight booking assistant. Where would you like to fly? Just tell me your destination and dates — I'll find the best matches for you.
+          </div>
+        </div>
+
+        <!-- User request -->
+        <div class="msg msg-user">
+          <div class="msg-avatar msg-avatar-user">JD</div>
+          <div class="msg-bubble">
+            I need to fly from New York to Los Angeles around July 15th, coming back July 22nd. 2 adults. Prefer non-stop if possible.
+          </div>
+        </div>
+
+        <!-- AI searching -->
+        <div class="msg msg-ai">
+          <div class="msg-avatar msg-avatar-ai">AI</div>
+          <div>
+            <div class="msg-bubble">
+              Searching flights from JFK to LAX, Jul 15 – Jul 22 for 2 adults. Let me find the best options for you...
+            </div>
+            <div class="typing" style="padding: 8px 0 0 0;">
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI results -->
+        <div class="msg msg-ai">
+          <div class="msg-avatar msg-avatar-ai">AI</div>
+          <div>
+            <div class="msg-bubble">
+              Found 12 flights — <strong>5 strong matches</strong> for your preferences. Here are the top 3:
+            </div>
+
+            <!-- Flight card 1 -->
+            <div class="chat-flight-card">
+              <div class="chat-flight-header">
+                <div class="chat-flight-airline">
+                  <div class="chat-flight-logo" style="background:#003366;">AA</div>
+                  <div>
+                    <div class="chat-flight-name">American Airlines</div>
+                    <div class="chat-flight-num">AA 1042</div>
+                  </div>
+                </div>
+                <div class="match-pill strong">
+                  <div class="match-pill-bar"><div class="match-pill-bar-fill" style="width:92%;background:var(--color-success);"></div></div>
+                  92 match
+                </div>
+              </div>
+              <div class="chat-flight-route">
+                <div class="chat-flight-time">
+                  <div class="chat-flight-time-val">08:30</div>
+                  <div class="chat-flight-time-code">JFK</div>
+                </div>
+                <div class="chat-flight-dur">
+                  <div class="chat-flight-dur-text">5h 30m · Non-stop</div>
+                  <div class="chat-flight-dur-line"></div>
+                </div>
+                <div class="chat-flight-time">
+                  <div class="chat-flight-time-val">11:00</div>
+                  <div class="chat-flight-time-code">LAX</div>
+                </div>
+              </div>
+              <div class="chat-flight-footer">
+                <div class="chat-flight-price">$342 <span>per person</span></div>
+                <div style="display:flex;gap:6px;">
+                  <button class="chat-action primary" onclick="showBookingConfirm(this)">Book This Flight</button>
+                  <button class="chat-action">Details</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Flight card 2 -->
+            <div class="chat-flight-card">
+              <div class="chat-flight-header">
+                <div class="chat-flight-airline">
+                  <div class="chat-flight-logo" style="background:#C8102E;">DL</div>
+                  <div>
+                    <div class="chat-flight-name">Delta Air Lines</div>
+                    <div class="chat-flight-num">DL 487</div>
+                  </div>
+                </div>
+                <div class="match-pill strong">
+                  <div class="match-pill-bar"><div class="match-pill-bar-fill" style="width:87%;background:var(--color-success);"></div></div>
+                  87 match
+                </div>
+              </div>
+              <div class="chat-flight-route">
+                <div class="chat-flight-time">
+                  <div class="chat-flight-time-val">10:15</div>
+                  <div class="chat-flight-time-code">JFK</div>
+                </div>
+                <div class="chat-flight-dur">
+                  <div class="chat-flight-dur-text">5h 45m · Non-stop</div>
+                  <div class="chat-flight-dur-line"></div>
+                </div>
+                <div class="chat-flight-time">
+                  <div class="chat-flight-time-val">13:00</div>
+                  <div class="chat-flight-time-code">LAX</div>
+                </div>
+              </div>
+              <div class="chat-flight-footer">
+                <div class="chat-flight-price">$318 <span>per person</span></div>
+                <div style="display:flex;gap:6px;">
+                  <button class="chat-action primary">Book This Flight</button>
+                  <button class="chat-action">Details</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Flight card 3 -->
+            <div class="chat-flight-card">
+              <div class="chat-flight-header">
+                <div class="chat-flight-airline">
+                  <div class="chat-flight-logo" style="background:#FF6600;">B6</div>
+                  <div>
+                    <div class="chat-flight-name">JetBlue Airways</div>
+                    <div class="chat-flight-num">B6 2019</div>
+                  </div>
+                </div>
+                <div class="match-pill strong">
+                  <div class="match-pill-bar"><div class="match-pill-bar-fill" style="width:84%;background:var(--color-success);"></div></div>
+                  84 match
+                </div>
+              </div>
+              <div class="chat-flight-route">
+                <div class="chat-flight-time">
+                  <div class="chat-flight-time-val">06:45</div>
+                  <div class="chat-flight-time-code">JFK</div>
+                </div>
+                <div class="chat-flight-dur">
+                  <div class="chat-flight-dur-text">5h 55m · Non-stop</div>
+                  <div class="chat-flight-dur-line"></div>
+                </div>
+                <div class="chat-flight-time">
+                  <div class="chat-flight-time-val">09:40</div>
+                  <div class="chat-flight-time-code">LAX</div>
+                </div>
+              </div>
+              <div class="chat-flight-footer">
+                <div class="chat-flight-price">$289 <span>per person</span></div>
+                <div style="display:flex;gap:6px;">
+                  <button class="chat-action primary">Book This Flight</button>
+                  <button class="chat-action">Details</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="chat-actions">
+              <button class="chat-action">Show more flights</button>
+              <button class="chat-action">Filter by price</button>
+              <button class="chat-action">Sort by cheapest</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- User picks one -->
+        <div class="msg msg-user">
+          <div class="msg-avatar msg-avatar-user">JD</div>
+          <div class="msg-bubble">
+            The American Airlines one looks great. Can you book that for me and my wife?
+          </div>
+        </div>
+
+        <!-- AI booking confirmation -->
+        <div class="msg msg-ai">
+          <div class="msg-avatar msg-avatar-ai">AI</div>
+          <div>
+            <div class="msg-bubble">
+              Great choice! I'm booking AA 1042 for 2 passengers. Here's your confirmation:
+            </div>
+            <div class="booking-confirm">
+              <div class="booking-confirm-header">
+                <div class="booking-confirm-check">&#10003;</div>
+                <div class="booking-confirm-title">Booking Confirmed</div>
+              </div>
+              <div class="booking-confirm-row">
+                <span class="booking-confirm-label">Flight</span>
+                <span class="booking-confirm-value">AA 1042 · JFK → LAX</span>
+              </div>
+              <div class="booking-confirm-row">
+                <span class="booking-confirm-label">Date</span>
+                <span class="booking-confirm-value">Jul 15, 2026 · 08:30 – 11:00</span>
+              </div>
+              <div class="booking-confirm-row">
+                <span class="booking-confirm-label">Passengers</span>
+                <span class="booking-confirm-value">2 Adults</span>
+              </div>
+              <div class="booking-confirm-row">
+                <span class="booking-confirm-label">PNR</span>
+                <span class="booking-confirm-value" style="font-family:monospace;">X7K9M2</span>
+              </div>
+              <div class="booking-confirm-row">
+                <span class="booking-confirm-label">Total</span>
+                <span class="booking-confirm-value" style="font-size:16px;color:var(--color-success);">$684</span>
+              </div>
+            </div>
+            <div class="chat-actions">
+              <button class="chat-action primary">Proceed to Payment</button>
+              <button class="chat-action">View Booking Details</button>
+              <button class="chat-action">Add Hotel in LA</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Input area -->
+    <div class="chat-input-area">
+      <div class="chat-container">
+        <div class="quick-actions">
+          <button class="quick-action" onclick="setInput('Search flights to Tokyo')">Search flights to Tokyo</button>
+          <button class="quick-action" onclick="setInput('Show my upcoming bookings')">My bookings</button>
+          <button class="quick-action" onclick="setInput('Find hotels near LAX')">Find hotels</button>
+          <button class="quick-action" onclick="setInput('What is my match score?')">Match score</button>
+        </div>
+        <div class="chat-input-wrapper" style="margin-top:8px;">
+          <textarea class="chat-input" id="chat-input-a" placeholder="Ask me anything about flights, bookings, or travel..." rows="1"></textarea>
+          <button class="chat-send" onclick="sendMessage('a')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- VARIANT B: CHAT + SIDEBAR -->
+<!-- ════════════════════════════════════════════ -->
+<div id="variant-b" class="variant active">
+  <div class="split-view">
+    <div class="split-container">
+      <!-- Chat column -->
+      <div class="split-chat" style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:16px;box-shadow:var(--shadow-card);overflow:hidden;">
+        <div class="chat-messages" style="flex:1;padding:20px;">
+          <div class="msg msg-ai">
+            <div class="msg-avatar msg-avatar-ai">AI</div>
+            <div class="msg-bubble">Hi John! Where would you like to fly? Tell me your destination and dates.</div>
+          </div>
+          <div class="msg msg-user">
+            <div class="msg-avatar msg-avatar-user">JD</div>
+            <div class="msg-bubble">New York to LA, July 15-22, 2 adults. Non-stop preferred.</div>
+          </div>
+          <div class="msg msg-ai">
+            <div class="msg-avatar msg-avatar-ai">AI</div>
+            <div>
+              <div class="msg-bubble">Found 5 strong matches. Here's the best one:</div>
+              <div class="chat-flight-card">
+                <div class="chat-flight-header">
+                  <div class="chat-flight-airline">
+                    <div class="chat-flight-logo" style="background:#003366;">AA</div>
+                    <div><div class="chat-flight-name">American Airlines</div><div class="chat-flight-num">AA 1042</div></div>
+                  </div>
+                  <div class="match-pill strong"><div class="match-pill-bar"><div class="match-pill-bar-fill" style="width:92%;background:var(--color-success);"></div></div>92</div>
+                </div>
+                <div class="chat-flight-route">
+                  <div class="chat-flight-time"><div class="chat-flight-time-val">08:30</div><div class="chat-flight-time-code">JFK</div></div>
+                  <div class="chat-flight-dur"><div class="chat-flight-dur-text">5h 30m · Non-stop</div><div class="chat-flight-dur-line"></div></div>
+                  <div class="chat-flight-time"><div class="chat-flight-time-val">11:00</div><div class="chat-flight-time-code">LAX</div></div>
+                </div>
+                <div class="chat-flight-footer">
+                  <div class="chat-flight-price">$342 <span>/person</span></div>
+                  <button class="chat-action primary" onclick="showBookingConfirm(this)">Book</button>
+                </div>
+              </div>
+              <div class="chat-actions">
+                <button class="chat-action">More flights</button>
+                <button class="chat-action">Sort by price</button>
+              </div>
+            </div>
+          </div>
+          <div class="msg msg-user">
+            <div class="msg-avatar msg-avatar-user">JD</div>
+            <div class="msg-bubble">Book it for 2 adults please.</div>
+          </div>
+          <div class="msg msg-ai">
+            <div class="msg-avatar msg-avatar-ai">AI</div>
+            <div>
+              <div class="msg-bubble">Done! Your booking is confirmed.</div>
+              <div class="booking-confirm">
+                <div class="booking-confirm-header">
+                  <div class="booking-confirm-check">&#10003;</div>
+                  <div class="booking-confirm-title">Confirmed — X7K9M2</div>
+                </div>
+                <div class="booking-confirm-row"><span class="booking-confirm-label">Flight</span><span class="booking-confirm-value">AA 1042</span></div>
+                <div class="booking-confirm-row"><span class="booking-confirm-label">Date</span><span class="booking-confirm-value">Jul 15, 2026</span></div>
+                <div class="booking-confirm-row"><span class="booking-confirm-label">Total</span><span class="booking-confirm-value" style="color:var(--color-success);">$684</span></div>
+              </div>
+              <div class="chat-actions">
+                <button class="chat-action primary">Pay Now</button>
+                <button class="chat-action">Add Hotel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chat-input-area" style="padding:12px 20px 20px;border-top:1px solid var(--color-border);">
+          <div class="quick-actions">
+            <button class="quick-action">My bookings</button>
+            <button class="quick-action">Find hotels</button>
+          </div>
+          <div class="chat-input-wrapper" style="margin-top:8px;">
+            <textarea class="chat-input" id="chat-input-b" placeholder="Ask about flights, hotels, bookings..." rows="1"></textarea>
+            <button class="chat-send" onclick="sendMessage('b')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="split-sidebar">
+        <div class="trip-summary">
+          <div class="trip-summary-title">&#9992; Trip to Los Angeles</div>
+          <div class="trip-step">
+            <div class="trip-step-icon" style="background:var(--color-success-bg);">&#9992;</div>
+            <div><div class="trip-step-text">JFK → LAX</div><div class="trip-step-sub">AA 1042 · Jul 15</div></div>
+            <div class="trip-step-status" style="color:var(--color-success);">Confirmed</div>
+          </div>
+          <div class="trip-step">
+            <div class="trip-step-icon" style="background:var(--color-bg);">&#127973;</div>
+            <div><div class="trip-step-text">Hotel</div><div class="trip-step-sub">Not booked yet</div></div>
+            <div class="trip-step-status" style="color:var(--color-text-muted);">Pending</div>
+          </div>
+          <div class="trip-step">
+            <div class="trip-step-icon" style="background:var(--color-bg);">&#127860;</div>
+            <div><div class="trip-step-text">Dining</div><div class="trip-step-sub">Not added</div></div>
+            <div class="trip-step-status" style="color:var(--color-text-muted);">Pending</div>
+          </div>
+        </div>
+
+        <div class="passenger-card">
+          <div class="passenger-card-title">Passengers</div>
+          <div class="passenger-row"><span class="passenger-label">Name</span><span>John Doe</span></div>
+          <div class="passenger-row"><span class="passenger-label">Seat</span><span>12A (Window)</span></div>
+          <div class="passenger-row" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--color-border);"><span class="passenger-label">Name</span><span>Jane Doe</span></div>
+          <div class="passenger-row"><span class="passenger-label">Seat</span><span>12B (Middle)</span></div>
+        </div>
+
+        <div class="passenger-card">
+          <div class="passenger-card-title">Payment</div>
+          <div class="passenger-row"><span class="passenger-label">Method</span><span>VISA •••• 4242</span></div>
+          <div class="passenger-row"><span class="passenger-label">Amount</span><span style="font-weight:600;">$684.00</span></div>
+          <div class="passenger-row"><span class="passenger-label">Status</span><span class="badge badge-warning">Awaiting Payment</span></div>
+        </div>
+
+        <button class="chat-action primary" style="width:100%;justify-content:center;">Pay Now — $684</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- VARIANT C: FLOATING WIDGET -->
+<!-- ════════════════════════════════════════════ -->
+<div id="variant-c" class="variant">
+  <div class="widget-view">
+    <div class="widget-container">
+      <!-- Background dashboard -->
+      <div class="widget-bg">
+        <h2>Welcome back, John</h2>
+        <p>Your travel dashboard at a glance</p>
+        <div class="widget-bg-stats">
+          <div class="widget-bg-stat">
+            <div class="widget-bg-stat-num">12</div>
+            <div class="widget-bg-stat-label">Flights Booked</div>
+          </div>
+          <div class="widget-bg-stat">
+            <div class="widget-bg-stat-num">3</div>
+            <div class="widget-bg-stat-label">Upcoming</div>
+          </div>
+          <div class="widget-bg-stat">
+            <div class="widget-bg-stat-num">82</div>
+            <div class="widget-bg-stat-label">Avg Score</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating chat widget -->
+      <div class="widget-chat">
+        <div class="widget-chat-header">
+          <div class="widget-chat-header-avatar">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          </div>
+          <div>
+            <div class="widget-chat-header-text">SkyBook Assistant</div>
+            <div class="widget-chat-header-sub">Online</div>
+          </div>
+        </div>
+        <div class="widget-chat-messages">
+          <div class="widget-msg widget-msg-ai">Hi John! Need help booking a flight? Just tell me where you want to go.</div>
+          <div class="widget-msg widget-msg-user">I need JFK to LAX, Jul 15-22, 2 adults</div>
+          <div class="widget-msg widget-msg-ai">
+            Found 5 strong matches! Here's the top pick:
+            <div class="widget-mini-card">
+              <div class="widget-mini-route">
+                <strong>08:30</strong> JFK
+                <span style="color:var(--color-text-muted);">→</span>
+                <strong>11:00</strong> LAX
+              </div>
+              <div style="color:var(--color-text-muted);font-size:11px;">AA 1042 · 5h 30m · Non-stop</div>
+              <div class="widget-mini-meta">
+                <div class="widget-mini-price">$342 <span style="font-weight:400;color:var(--color-text-muted);">/person</span></div>
+                <button class="widget-mini-btn">Book</button>
+              </div>
+            </div>
+          </div>
+          <div class="widget-msg widget-msg-user">Book it!</div>
+          <div class="widget-msg widget-msg-ai">
+            Confirmed! PNR: <strong>X7K9M2</strong> — Total: <strong>$684</strong>
+            <div style="margin-top:8px;">
+              <button class="widget-mini-btn" style="background:var(--color-success);">Pay Now</button>
+            </div>
+          </div>
+        </div>
+        <div class="widget-chat-input">
+          <input type="text" placeholder="Ask about flights...">
+          <button class="chat-send" style="width:36px;height:36px;border-radius:8px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Sketch Toolbar ── -->
+<div id="sketch-tools">
+  <span>Sketch 002</span>
+  <select onchange="document.querySelector('link[href*=themes]').href='../themes/'+this.value+'.css'">
+    <option value="default">Default Theme</option>
+  </select>
+</div>
+
+<script>
+function showVariant(id) {
+  document.querySelectorAll('.variant').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.variant-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('variant-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function setInput(text) {
+  const input = document.querySelector('.variant.active .chat-input');
+  if (input) { input.value = text; input.focus(); }
+}
+
+function sendMessage(variant) {
+  const input = document.getElementById('chat-input-' + variant);
+  if (!input || !input.value.trim()) return;
+  const msg = input.value.trim();
+  const container = input.closest('.chat-input-area').previousElementSibling;
+  const messagesDiv = container.querySelector('.chat-messages') || container;
+  const chatContainer = messagesDiv.querySelector('.chat-container') || messagesDiv;
+
+  const userMsg = document.createElement('div');
+  userMsg.className = 'msg msg-user';
+  userMsg.innerHTML = '<div class="msg-avatar msg-avatar-user">JD</div><div class="msg-bubble">' + msg + '</div>';
+  chatContainer.appendChild(userMsg);
+
+  input.value = '';
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function showBookingConfirm(btn) {
+  btn.textContent = 'Booked!';
+  btn.style.background = 'var(--color-success)';
+  btn.disabled = true;
+}
+</script>
+
+</body>
+</html>

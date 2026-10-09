@@ -1,9 +1,13 @@
 ---
-name: ci-feedback-loop
-description: Loop through CI pipeline status, diagnose failing GitHub Actions runs, and apply fixes until green. Use when PR checks fail, CI is red, monitoring remote runs, or iterating on CI failures.
+name: pr-feedback-loop
+description: Prepare or update PRs and converge CI feedback by diagnosing failing GitHub Actions runs and applying fixes until green. Use for PR preparation with verification, PR updates, or failing CI checks; use pr for body-only writing.
 ---
 
 **Poll** CI pipeline status, **harvest** failing GitHub Actions steps, **triage** errors against local gates, **remediate** locally, and commit/push until the remote pipeline **converges** to green.
+
+## PR preparation and updates
+
+When the task includes opening or updating a PR, read [the PR body skill](../pr/SKILL.md) before writing its body. Use that skill's format, the final diff, and verified evidence. Refresh the description after remediation when PR updates are authorized by the task. A CI-only task does not authorize opening or merging a PR.
 
 ## Steps
 
@@ -12,13 +16,13 @@ description: Loop through CI pipeline status, diagnose failing GitHub Actions ru
 Query the GitHub Actions workflow run for the current commit HEAD:
 
 ```bash
-node .agents/skills/ci-feedback-loop/scripts/inspect-ci.mjs
+node .agents/skills/pr-feedback-loop/scripts/inspect-ci.mjs
 ```
 
 To monitor an in-flight run until completion, append `--watch` (default 15s polling interval):
 
 ```bash
-node .agents/skills/ci-feedback-loop/scripts/inspect-ci.mjs --head --watch
+node .agents/skills/pr-feedback-loop/scripts/inspect-ci.mjs --head --watch
 ```
 
 If the helper script is unavailable, execute the direct Node one-liner fallback:
@@ -84,7 +88,7 @@ git push origin <branch>
 Poll the newly triggered workflow run for the pushed HEAD commit:
 
 ```bash
-node .agents/skills/ci-feedback-loop/scripts/inspect-ci.mjs --head --watch
+node .agents/skills/pr-feedback-loop/scripts/inspect-ci.mjs --head --watch
 ```
 
 This forms a **convergence loop** — repeat steps 1–5 if new or different steps fail.

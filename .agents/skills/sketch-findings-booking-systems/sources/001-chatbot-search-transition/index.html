@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sketch 001: Chatbot-Search Transition</title>
+  <link rel="stylesheet" href="../themes/default.css">
+  <style>
+    /* Fixed Tab Bar for Variant Selection */
+    #variant-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 9998;
+      background: var(--color-surface, #fff);
+      border-bottom: 1px solid var(--color-border, #e5e5e5);
+      padding: 10px 20px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      font-family: var(--font-sans);
+    }
+    .variant-tab {
+      background: #f1f2f6;
+      border: 1px solid #e2e8f0;
+      border-radius: var(--radius-sm, 6px);
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .variant-tab:hover {
+      background: #e2e8f0;
+      color: var(--color-text);
+    }
+    .variant-tab.active {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+    .variant-title {
+      font-weight: 700;
+      font-size: var(--text-base);
+      margin-right: auto;
+      color: var(--color-primary);
+    }
+
+    body {
+      padding-top: 60px;
+      height: calc(100vh - 60px);
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    /* Common Components & Animation Wrapper */
+    .viewport-container {
+      width: 100%;
+      height: 100%;
+      margin: 0 auto;
+      transition: max-width 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Navbar inside the sketch */
+    .sketch-header {
+      height: 56px;
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-card);
+    }
+    .brand-logo {
+      font-size: var(--text-lg);
+      font-weight: 700;
+      color: var(--color-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-logo span {
+      background: var(--color-primary-hover);
+      color: white;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      font-size: var(--text-xs);
+    }
+    .nav-links {
+      display: flex;
+      gap: 20px;
+    }
+    .nav-link {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      font-weight: 500;
+      cursor: not-allowed;
+    }
+    .nav-link.active {
+      color: var(--color-primary);
+    }
+
+    .main-workspace {
+      flex: 1;
+      display: flex;
+      padding: var(--space-4);
+      background-color: var(--color-bg);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Boxed chat card */
+    .chat-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      height: 100%;
+    }
+
+    /* Chat bubble styles */
+    .chat-messages {
+      flex: 1;
+      padding: var(--space-4);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .msg {
+      display: flex;
+      flex-direction: column;
+      max-width: 80%;
+    }
+    .msg.user {
+      align-self: flex-end;
+    }
+    .msg.user .bubble {
+      background: var(--color-primary);
+      color: white;
+      border-radius: 12px 12px 0 12px;
+    }
+    .msg.agent {
+      align-self: flex-start;
+    }
+    .msg.agent .bubble {
+      background: #F0EDFF;
+      color: var(--color-text);
+      border: 1px solid #D5CDFF;
+      border-radius: 12px 12px 12px 0;
+    }
+    .bubble {
+      padding: 12px 16px;
+      font-size: var(--text-sm);
+      line-height: 1.5;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .sender-name {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--color-text-label);
+      margin-bottom: 4px;
+      margin-left: 4px;
+    }
+    .msg.user .sender-name {
+      align-self: flex-end;
+      margin-right: 4px;
+    }
+
+    /* Chat Input */
+    .chat-input-area {
+      border-top: 1px solid var(--color-border);
+      padding: var(--space-3);
+      background: var(--color-surface);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .quick-action {
+      background: #f1f2f6;
+      border: 1px solid #e2e8f0;
+      border-radius: var(--radius-full);
+      padding: 6px 14px;
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .quick-action:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+      background: #F0EDFF;
+    }
+    .chat-input-wrapper {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .chat-input {
+      flex: 1;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      font-size: var(--text-sm);
+      resize: none;
+      height: 40px;
+      box-sizing: border-box;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .chat-input:focus {
+      border-color: var(--color-primary);
+    }
+    .chat-send {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      background: var(--color-primary);
+      color: white;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+    .chat-send:hover {
+      background: var(--color-primary-hover);
+    }
+
+    /* Results Area */
+    .results-area {
+      flex: 1;
+      height: 100%;
+      overflow-y: auto;
+      padding-left: var(--space-4);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-sizing: border-box;
+      opacity: 0;
+      transform: translateX(30px);
+      transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      display: none;
+    }
+    .results-area.active {
+      display: flex;
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--color-border);
+      padding-bottom: 12px;
+    }
+    .results-title {
+      font-size: var(--text-base);
+      font-weight: 700;
+      color: var(--color-text);
+      margin: 0;
+    }
+    .results-meta {
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+    }
+
+    /* Flight Card Styling */
+    .chat-flight-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .chat-flight-card:hover {
+      border-color: var(--color-primary);
+      box-shadow: 0 4px 12px rgba(124, 92, 252, 0.08);
+    }
+    .chat-flight-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chat-flight-airline {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: var(--text-sm);
+    }
+    .airline-logo-placeholder {
+      width: 24px;
+      height: 24px;
+      background: var(--color-primary);
+      border-radius: 50%;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+    }
+    .flight-num {
+      color: var(--color-text-muted);
+      font-size: var(--text-xs);
+      font-weight: normal;
+    }
+
+    /* Match Pill & Progress Bar */
+    .match-pill {
+      display: inline-flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: flex-end;
+    }
+    .match-pill-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .match-pill-badge.strong {
+      background: var(--color-success-bg);
+      color: var(--color-success);
+    }
+    .match-pill-badge.fair {
+      background: var(--color-info-bg);
+      color: var(--color-info);
+    }
+    .match-pill-badge.weak {
+      background: var(--color-warning-bg);
+      color: var(--color-warning);
+    }
+    .match-bar-bg {
+      width: 60px;
+      height: 4px;
+      background: #e2e8f0;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .match-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+    }
+    .match-bar-fill.strong { background: var(--color-match-strong); }
+    .match-bar-fill.fair { background: var(--color-match-fair); }
+    .match-bar-fill.weak { background: var(--color-match-weak); }
+
+    .chat-flight-route {
+      display: grid;
+      grid-template-columns: 80px 1fr 80px;
+      align-items: center;
+      text-align: center;
+      padding: 8px 0;
+    }
+    .route-node {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .route-time {
+      font-size: var(--text-lg);
+      font-weight: 700;
+      color: var(--color-text);
+    }
+    .route-airport {
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+      font-weight: 600;
+    }
+    .route-path {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .path-line {
+      width: 100%;
+      height: 2px;
+      background: var(--color-border);
+      position: relative;
+    }
+    .path-line::before, .path-line::after {
+      content: '';
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: var(--color-text-muted);
+      border-radius: 50%;
+      top: -2px;
+    }
+    .path-line::before { left: 0; }
+    .path-line::after { right: 0; }
+    .path-stops {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      background: var(--color-bg);
+      padding: 1px 6px;
+      border-radius: var(--radius-full);
+      position: relative;
+      top: -10px;
+    }
+    .path-duration {
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+    }
+
+    .chat-flight-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--color-border);
+      padding-top: 12px;
+    }
+    .price-block {
+      display: flex;
+      flex-direction: column;
+    }
+    .price-value {
+      font-size: var(--text-xl);
+      font-weight: 700;
+      color: var(--color-text);
+    }
+    .price-label {
+      font-size: 10px;
+      color: var(--color-text-muted);
+    }
+    .flight-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-action {
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--color-border);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-action.primary {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+    .btn-action.primary:hover {
+      background: var(--color-primary-hover);
+    }
+    .btn-action.secondary {
+      background: white;
+      color: var(--color-text-secondary);
+    }
+    .btn-action.secondary:hover {
+      background: var(--color-bg);
+    }
+
+    /* Simulation Control Box */
+    .simulation-control {
+      background: #F0EDFF;
+      border: 1px solid #D5CDFF;
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      margin-bottom: var(--space-4);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-sans);
+    }
+    .sim-btn {
+      background: var(--color-primary);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .sim-btn:hover {
+      background: var(--color-primary-hover);
+    }
+    .sim-label {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      font-weight: 500;
+    }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px var(--space-3);
+      background: #F0EDFF;
+      border: 1px solid #D5CDFF;
+      border-radius: 12px 12px 12px 0;
+      align-self: flex-start;
+      margin-top: 4px;
+    }
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--color-primary);
+      border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out both;
+    }
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1.0); }
+    }
+
+    /* VARIANT SPECIFIC STYLES */
+
+    /* VARIANT A: Split View Slide Layout */
+    #variant-a .main-workspace {
+      display: flex;
+    }
+    #variant-a .chat-card {
+      width: 100%;
+      max-width: 650px;
+      margin: 0 auto;
+    }
+    /* When split active in Variant A */
+    #variant-a.split-active .chat-card {
+      width: 35%;
+      margin: 0;
+      border-radius: var(--radius-lg);
+    }
+    #variant-a.split-active .results-area {
+      display: flex;
+    }
+
+    /* VARIANT B: Tabbed Switch Layout */
+    #variant-b .main-workspace {
+      display: flex;
+    }
+    #variant-b .chat-card {
+      width: 100%;
+      max-width: 650px;
+      margin: 0 auto;
+      z-index: 10;
+    }
+    /* When split active in Variant B */
+    #variant-b.split-active .chat-card {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      width: 320px;
+      height: 400px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+      border-color: var(--color-primary);
+      z-index: 100;
+    }
+    #variant-b.split-active .results-area {
+      display: flex;
+      padding-left: 0;
+    }
+    #variant-b.split-active .results-wrapper {
+      padding-left: 360px; /* Leave room for floating chat box */
+      width: 100%;
+      box-sizing: border-box;
+    }
+    #variant-b .results-wrapper {
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+    }
+    .chat-toggle-btn {
+      display: none;
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      background: var(--color-primary);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: var(--radius-full);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(124,92,252,0.3);
+      cursor: pointer;
+      z-index: 99;
+    }
+
+    /* ========================================== */
+    /* VARIANT C: REFINED MODERN SPLIT VIEW      */
+    /* ========================================== */
+    #variant-c .main-workspace {
+      display: flex;
+      perspective: 1000px; /* Enables 3D acceleration for super smooth transitions */
+    }
+
+    /* Extremely smooth layout transition container */
+    #variant-c .chat-card {
+      width: 100%;
+      max-width: 680px;
+      margin: 0 auto;
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 24px; /* Highly modern rounder corners */
+      box-shadow: 0 10px 40px -10px rgba(124, 92, 252, 0.08), 0 1px 3px rgba(0,0,0,0.02);
+      transition: all 0.75s cubic-bezier(0.19, 1, 0.22, 1); /* Springy ease-out cubic-bezier */
+      will-change: width, max-width, transform, border-radius;
+    }
+
+    /* Modern ChatGPT styling for Variant C chat bubbles */
+    #variant-c .chat-messages {
+      padding: 24px;
+      background: #fafafc;
+    }
+    #variant-c .msg.user .bubble {
+      background: linear-gradient(135deg, #7C5CFC, #633BF7);
+      color: white;
+      border-radius: 18px 18px 2px 18px; /* Sleeker bubbles */
+      border: none;
+      box-shadow: 0 4px 12px rgba(124, 92, 252, 0.15);
+    }
+    #variant-c .msg.agent .bubble {
+      background: white;
+      color: var(--color-text);
+      border-radius: 18px 18px 18px 2px;
+      border: 1px solid #ECEFF5;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+    #variant-c .sender-name {
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.8px;
+      font-weight: 700;
+      color: var(--color-text-muted);
+      margin-bottom: 6px;
+    }
+
+    /* Modernized chat input pill layout */
+    #variant-c .chat-input-area {
+      border-top: 1px solid #ECEFF5;
+      padding: 16px 24px;
+      background: white;
+    }
+    #variant-c .chat-input-wrapper {
+      border: 1px solid #DCE2EE;
+      border-radius: 9999px; /* Pill input container */
+      padding: 4px 6px 4px 18px;
+      background: #fafafc;
+      transition: all 0.2s;
+    }
+    #variant-c .chat-input-wrapper:focus-within {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(124, 92, 252, 0.15);
+      background: white;
+    }
+    #variant-c .chat-input {
+      border: none;
+      background: transparent;
+      padding: 8px 0;
+      height: 36px;
+      font-size: var(--text-sm);
+    }
+    #variant-c .chat-send {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%; /* Circle send button */
+      background: var(--color-primary);
+      box-shadow: 0 2px 8px rgba(124, 92, 252, 0.2);
+    }
+    #variant-c .chat-send:hover {
+      transform: scale(1.05);
+      background: var(--color-primary-hover);
+    }
+
+    #variant-c .quick-action {
+      background: white;
+      border: 1px solid #ECEFF5;
+      color: var(--color-text-secondary);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #variant-c .quick-action:hover {
+      transform: translateY(-1px) scale(1.03);
+      border-color: var(--color-primary);
+      box-shadow: 0 4px 10px rgba(124, 92, 252, 0.08);
+      background: white;
+    }
+
+    /* Transition layout changes in Variant C */
+    #variant-c.split-active .chat-card {
+      width: 38%;
+      max-width: 420px;
+      margin: 0;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    }
+
+    #variant-c .results-area {
+      display: flex;
+      visibility: hidden;
+      opacity: 0;
+      transform: translateX(40px) scale(0.98);
+      transition: all 0.85s cubic-bezier(0.19, 1, 0.22, 1);
+      width: 0%;
+      flex: 0 0 0%;
+      overflow: hidden;
+      padding-left: 0;
+    }
+    #variant-c.split-active .results-area {
+      visibility: visible;
+      opacity: 1;
+      transform: translateX(0) scale(1);
+      width: 62%;
+      flex: 1;
+      padding-left: var(--space-6);
+      overflow-y: auto; /* Enable vertical scroll when cards overflow */
+    }
+
+    /* Highly refined modern flight cards for Variant C */
+    #variant-c .chat-flight-card {
+      border: 1px solid #E7EBF4;
+      border-radius: 16px; /* Smooth rounded borders */
+      background: white;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.015);
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0; /* Prevent vertical squishing/clipping of pricing/buttons */
+    }
+
+    /* Layout override to align cities and duration horizontally in a straight line */
+    #variant-c .chat-flight-route {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px 0;
+    }
+    #variant-c .chat-flight-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: transparent;
+      transition: background-color 0.2s;
+    }
+    #variant-c .chat-flight-card:hover::before {
+      background: var(--color-primary);
+    }
+    #variant-c .chat-flight-card:hover {
+      border-color: #D3DBEB;
+      box-shadow: 0 8px 24px rgba(124, 92, 252, 0.05);
+    }
+    #variant-c .airline-logo-placeholder {
+      background: #7C5CFC;
+      border-radius: 8px; /* Rounded square instead of circle */
+      font-size: 11px;
+    }
+    #variant-c .match-pill-badge {
+      padding: 6px 12px;
+      font-size: 11px;
+      border-radius: 8px;
+    }
+    #variant-c .match-bar-bg {
+      width: 80px;
+      height: 5px;
+      border-radius: 10px;
+    }
+    #variant-c .path-line {
+      background: #D9E1F0;
+    }
+    #variant-c .path-stops {
+      background: #F1F4FA;
+      color: var(--color-text-secondary);
+      border: 1px solid #E2E8F0;
+    }
+    #variant-c .btn-action {
+      border-radius: 10px;
+      padding: 8px 18px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- FIXED VARIANT NAVIGATION -->
+  <div id="variant-nav">
+    <div class="variant-title">GSD Sketch 001: Chat-Search Transition</div>
+    <button class="variant-tab" onclick="switchVariant('a', this)">Variant A: Split View Slide</button>
+    <button class="variant-tab" onclick="switchVariant('b', this)">Variant B: Floating Tray Collapse</button>
+    <button class="variant-tab active" onclick="switchVariant('c', this)">Variant C: Modern Split Refined ★ Winner</button>
+  </div>
+
+  <!-- VARIANT A -->
+  <div id="variant-a" class="viewport-container" style="display:none">
+    <header class="sketch-header">
+      <div class="brand-logo">SkyBook AI <span>Agent</span></div>
+      <div class="nav-links">
+        <a href="#" class="nav-link active">Dashboard</a>
+        <a href="#" class="nav-link">Search Flights</a>
+        <a href="#" class="nav-link">My Bookings</a>
+        <a href="#" class="nav-link">Profile</a>
+      </div>
+    </header>
+    <div class="main-workspace">
+      <div class="chat-card" id="chat-card-a">
+        <div class="simulation-control">
+          <div class="sim-label">Demo: Click quick action below or click:</div>
+          <button class="sim-btn" onclick="triggerSearchSimulation('a')">Trigger Search Transition</button>
+        </div>
+        <div class="chat-messages" id="chat-messages-a">
+          <div class="msg agent">
+            <div class="sender-name">SkyBook AI</div>
+            <div class="bubble">Hello! I am your AI flight booking assistant. How can I help you today? You can search for flights, inspect your traveler preferences, or manage your bookings.</div>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <div class="quick-actions">
+            <div class="quick-action" onclick="triggerSearchSimulation('a', 'Search flights to Tokyo')">Find flights to Tokyo</div>
+            <div class="quick-action" onclick="triggerSearchSimulation('a', 'Show my bookings')">My bookings</div>
+            <div class="quick-action" onclick="triggerSearchSimulation('a', 'What are my preferences?')">Traveler preferences</div>
+          </div>
+          <div class="chat-input-wrapper">
+            <textarea class="chat-input" placeholder="Type a message..." id="chat-input-a"></textarea>
+            <button class="chat-send" onclick="triggerSearchSimulation('a', document.getElementById('chat-input-a').value)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="results-area" id="results-area-a">
+        <div class="results-header">
+          <h2 class="results-title">Flight Offers: San Francisco (SFO) &rarr; Tokyo (NRT)</h2>
+          <div class="results-meta">Found 3 options &bull; Sorted by Match Score</div>
+        </div>
+        <!-- Card 1 -->
+        <div class="chat-flight-card">
+          <div class="chat-flight-header">
+            <div class="chat-flight-airline"><div class="airline-logo-placeholder">JL</div>Japan Airlines <span class="flight-num">JL-001</span></div>
+            <div class="match-pill"><div class="match-pill-badge strong">95% Match</div><div class="match-bar-bg"><div class="match-bar-fill strong" style="width: 95%;"></div></div></div>
+          </div>
+          <div class="chat-flight-route">
+            <div class="route-node"><span class="route-time">12:45</span><span class="route-airport">SFO</span></div>
+            <div class="route-path"><span class="path-stops">Non-stop</span><span class="path-duration">11h 15m</span><div class="path-line"></div></div>
+            <div class="route-node"><span class="route-time">16:00</span><span class="route-airport">NRT</span></div>
+          </div>
+          <div class="chat-flight-footer">
+            <div class="price-block"><span class="price-value">$1,120</span><span class="price-label">per person / economy</span></div>
+            <div class="flight-actions"><button class="btn-action secondary">Details</button><button class="btn-action primary" onclick="alert('Booked!')">Book Flight</button></div>
+          </div>
+        </div>
+        <!-- Card 2 -->
+        <div class="chat-flight-card">
+          <div class="chat-flight-header">
+            <div class="chat-flight-airline"><div class="airline-logo-placeholder" style="background:#0057B8;">UA</div>United Airlines <span class="flight-num">UA-837</span></div>
+            <div class="match-pill"><div class="match-pill-badge fair">74% Match</div><div class="match-bar-bg"><div class="match-bar-fill fair" style="width: 74%;"></div></div></div>
+          </div>
+          <div class="chat-flight-route">
+            <div class="route-node"><span class="route-time">11:10</span><span class="route-airport">SFO</span></div>
+            <div class="route-path"><span class="path-stops">Non-stop</span><span class="path-duration">11h 35m</span><div class="path-line"></div></div>
+            <div class="route-node"><span class="route-time">14:45</span><span class="route-airport">NRT</span></div>
+          </div>
+          <div class="chat-flight-footer">
+            <div class="price-block"><span class="price-value">$950</span><span class="price-label">per person / economy</span></div>
+            <div class="flight-actions"><button class="btn-action secondary">Details</button><button class="btn-action primary" onclick="alert('Booked!')">Book Flight</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VARIANT B -->
+  <div id="variant-b" class="viewport-container" style="display:none">
+    <header class="sketch-header">
+      <div class="brand-logo">SkyBook AI <span>Agent</span></div>
+      <div class="nav-links">
+        <a href="#" class="nav-link active">Dashboard</a>
+        <a href="#" class="nav-link">Search Flights</a>
+        <a href="#" class="nav-link">My Bookings</a>
+        <a href="#" class="nav-link">Profile</a>
+      </div>
+    </header>
+    <div class="main-workspace">
+      <div class="chat-card" id="chat-card-b">
+        <div class="simulation-control">
+          <div class="sim-label">Demo: Click quick action below or click:</div>
+          <button class="sim-btn" onclick="triggerSearchSimulation('b')">Trigger Search Transition</button>
+        </div>
+        <div class="chat-messages" id="chat-messages-b">
+          <div class="msg agent">
+            <div class="sender-name">SkyBook AI</div>
+            <div class="bubble">Hello! I am your AI flight booking assistant. How can I help you today? You can search for flights, inspect your traveler preferences, or manage your bookings.</div>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <div class="quick-actions">
+            <div class="quick-action" onclick="triggerSearchSimulation('b', 'Search flights to Tokyo')">Find flights to Tokyo</div>
+            <div class="quick-action" onclick="triggerSearchSimulation('b', 'Show my bookings')">My bookings</div>
+            <div class="quick-action" onclick="triggerSearchSimulation('b', 'What are my preferences?')">Traveler preferences</div>
+          </div>
+          <div class="chat-input-wrapper">
+            <textarea class="chat-input" placeholder="Type a message..." id="chat-input-b"></textarea>
+            <button class="chat-send" onclick="triggerSearchSimulation('b', document.getElementById('chat-input-b').value)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></button>
+          </div>
+        </div>
+      </div>
+      <button class="chat-toggle-btn" id="chat-toggle-btn-b" onclick="toggleMinimizedChat()">💬 Open Chat Agent</button>
+      <div class="results-wrapper">
+        <div class="results-area" id="results-area-b">
+          <div class="results-header">
+            <h2 class="results-title">Flight Offers: San Francisco (SFO) &rarr; Tokyo (NRT)</h2>
+            <div class="results-meta">Found 3 options &bull; Sorted by Match Score</div>
+          </div>
+          <!-- Card 1 -->
+          <div class="chat-flight-card">
+            <div class="chat-flight-header">
+              <div class="chat-flight-airline"><div class="airline-logo-placeholder">JL</div>Japan Airlines <span class="flight-num">JL-001</span></div>
+              <div class="match-pill"><div class="match-pill-badge strong">95% Match</div><div class="match-bar-bg"><div class="match-bar-fill strong" style="width: 95%;"></div></div></div>
+            </div>
+            <div class="chat-flight-route">
+              <div class="route-node"><span class="route-time">12:45</span><span class="route-airport">SFO</span></div>
+              <div class="route-path"><span class="path-stops">Non-stop</span><span class="path-duration">11h 15m</span><div class="path-line"></div></div>
+              <div class="route-node"><span class="route-time">16:00</span><span class="route-airport">NRT</span></div>
+            </div>
+            <div class="chat-flight-footer">
+              <div class="price-block"><span class="price-value">$1,120</span><span class="price-label">per person / economy</span></div>
+              <div class="flight-actions"><button class="btn-action secondary">Details</button><button class="btn-action primary" onclick="alert('Booked!')">Book Flight</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VARIANT C: REFINED DYNAMIC SPLIT VIEW (Winner) -->
+  <div id="variant-c" class="viewport-container">
+    <header class="sketch-header">
+      <div class="brand-logo">SkyBook AI <span>Agent</span></div>
+      <div class="nav-links">
+        <a href="#" class="nav-link active">Dashboard</a>
+        <a href="#" class="nav-link">Search Flights</a>
+        <a href="#" class="nav-link">My Bookings</a>
+        <a href="#" class="nav-link">Profile</a>
+      </div>
+    </header>
+    <div class="main-workspace">
+      
+      <!-- Modern Styled Chat Box -->
+      <div class="chat-card" id="chat-card-c">
+        <div class="simulation-control">
+          <div class="sim-label">Demo: Click quick action below or click:</div>
+          <button class="sim-btn" onclick="triggerSearchSimulation('c')">Simulate Search Transition</button>
+        </div>
+        <div class="chat-messages" id="chat-messages-c">
+          <div class="msg agent">
+            <div class="sender-name">SkyBook AI</div>
+            <div class="bubble">Hello! I am your AI flight booking assistant. How can I help you today? You can search for flights, inspect your traveler preferences, or manage your bookings.</div>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <div class="quick-actions">
+            <div class="quick-action" onclick="triggerSearchSimulation('c', 'Find flights to Tokyo')">Find flights to Tokyo</div>
+            <div class="quick-action" onclick="triggerSearchSimulation('c', 'Show my bookings')">My bookings</div>
+            <div class="quick-action" onclick="triggerSearchSimulation('c', 'What are my preferences?')">Traveler preferences</div>
+          </div>
+          <div class="chat-input-wrapper">
+            <textarea class="chat-input" placeholder="Ask anything about flights or bookings..." id="chat-input-c"></textarea>
+            <button class="chat-send" onclick="triggerSearchSimulation('c', document.getElementById('chat-input-c').value)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modern Styled Results Area -->
+      <div class="results-area" id="results-area-c">
+        <div class="results-header">
+          <h2 class="results-title" style="font-size: 18px;">Flight Offers: San Francisco (SFO) &rarr; Tokyo (NRT)</h2>
+          <div class="results-meta">Found 3 options &bull; Sorted by Match Score</div>
+        </div>
+
+        <!-- Flight Card 1: Strong Match -->
+        <div class="chat-flight-card">
+          <div class="chat-flight-header">
+            <div class="chat-flight-airline">
+              <div class="airline-logo-placeholder">JL</div>
+              Japan Airlines <span class="flight-num">JL-001</span>
+            </div>
+            <div class="match-pill">
+              <div class="match-pill-badge strong">95% Match</div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                <div class="match-bar-bg"><div class="match-bar-fill strong" style="width: 95%;"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="chat-flight-route">
+            <div class="route-times-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+              <span class="route-time">12:45</span>
+              <div class="route-path-line" style="flex: 1; margin: 0 16px; position: relative; height: 2px; background: #D9E1F0;">
+                <span class="path-stops" style="position: absolute; top: -11px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: 600; background: #F1F4FA; border: 1px solid #E2E8F0; padding: 1px 8px; border-radius: var(--radius-full); line-height: 1.2;">Non-stop</span>
+              </div>
+              <span class="route-time">16:00</span>
+            </div>
+            <div class="route-details-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 4px; color: var(--color-text-secondary); font-size: var(--text-sm); font-weight: 600;">
+              <span class="route-airport">SFO</span>
+              <span class="path-duration" style="font-weight: 500; color: var(--color-text-muted);">11h 15m</span>
+              <span class="route-airport">NRT</span>
+            </div>
+          </div>
+          <div class="chat-flight-footer">
+            <div class="price-block">
+              <span class="price-value">$1,120</span>
+              <span class="price-label">per person / economy</span>
+            </div>
+            <div class="flight-actions">
+              <button class="btn-action secondary">Details</button>
+              <button class="btn-action primary" onclick="alert('Booking initiated (simulated)!')">Book Flight</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Flight Card 2: Fair Match -->
+        <div class="chat-flight-card">
+          <div class="chat-flight-header">
+            <div class="chat-flight-airline">
+              <div class="airline-logo-placeholder" style="background:#0057B8;">UA</div>
+              United Airlines <span class="flight-num">UA-837</span>
+            </div>
+            <div class="match-pill">
+              <div class="match-pill-badge fair">74% Match</div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                <div class="match-bar-bg"><div class="match-bar-fill fair" style="width: 74%;"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="chat-flight-route">
+            <div class="route-times-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+              <span class="route-time">11:10</span>
+              <div class="route-path-line" style="flex: 1; margin: 0 16px; position: relative; height: 2px; background: #D9E1F0;">
+                <span class="path-stops" style="position: absolute; top: -11px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: 600; background: #F1F4FA; border: 1px solid #E2E8F0; padding: 1px 8px; border-radius: var(--radius-full); line-height: 1.2;">Non-stop</span>
+              </div>
+              <span class="route-time">14:45</span>
+            </div>
+            <div class="route-details-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 4px; color: var(--color-text-secondary); font-size: var(--text-sm); font-weight: 600;">
+              <span class="route-airport">SFO</span>
+              <span class="path-duration" style="font-weight: 500; color: var(--color-text-muted);">11h 35m</span>
+              <span class="route-airport">NRT</span>
+            </div>
+          </div>
+          <div class="chat-flight-footer">
+            <div class="price-block">
+              <span class="price-value">$950</span>
+              <span class="price-label">per person / economy</span>
+            </div>
+            <div class="flight-actions">
+              <button class="btn-action secondary">Details</button>
+              <button class="btn-action primary" onclick="alert('Booking initiated (simulated)!')">Book Flight</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Flight Card 3: Weak Match -->
+        <div class="chat-flight-card">
+          <div class="chat-flight-header">
+            <div class="chat-flight-airline">
+              <div class="airline-logo-placeholder" style="background:#FF0000;">KE</div>
+              Korean Air <span class="flight-num">KE-024</span>
+            </div>
+            <div class="match-pill">
+              <div class="match-pill-badge weak">52% Match</div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                <div class="match-bar-bg"><div class="match-bar-fill weak" style="width: 52%;"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="chat-flight-route">
+            <div class="route-times-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+              <span class="route-time">13:40</span>
+              <div class="route-path-line" style="flex: 1; margin: 0 16px; position: relative; height: 2px; background: #D9E1F0;">
+                <span class="path-stops" style="position: absolute; top: -11px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: 600; background: #FFF7ED; border: 1px solid #FFEDD5; color: var(--color-text-match-weak); padding: 1px 8px; border-radius: var(--radius-full); line-height: 1.2;">1 Stop (ICN)</span>
+              </div>
+              <span class="route-time">21:00</span>
+            </div>
+            <div class="route-details-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 4px; color: var(--color-text-secondary); font-size: var(--text-sm); font-weight: 600;">
+              <span class="route-airport">SFO</span>
+              <span class="path-duration" style="font-weight: 500; color: var(--color-text-muted);">15h 20m</span>
+              <span class="route-airport">NRT</span>
+            </div>
+          </div>
+          <div class="chat-flight-footer">
+            <div class="price-block">
+              <span class="price-value">$870</span>
+              <span class="price-label">per person / economy</span>
+            </div>
+            <div class="flight-actions">
+              <button class="btn-action secondary">Details</button>
+              <button class="btn-action primary" onclick="alert('Booking initiated (simulated)!')">Book Flight</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- SKETCH TOOLBAR (unobtrusive floating toolbar) -->
+  <div id="sketch-tools" style="position:fixed;bottom:12px;right:12px;z-index:9999;font-family:system-ui;font-size:12px;background:rgba(0,0,0,0.8);color:white;padding:8px 12px;border-radius:8px;opacity:0.6;transition:opacity 0.2s;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.6'">
+    <div style="margin-bottom: 6px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 4px;">Sketch Tools</div>
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <div>
+        Theme: 
+        <select onchange="document.querySelector('link[href*=themes]').href='../themes/'+this.value+'.css'" style="background:#333; color:white; border:1px solid #555; border-radius:3px; font-size:11px;">
+          <option value="default">Default Theme</option>
+        </select>
+      </div>
+      <div style="display:flex; gap:4px; align-items:center;">
+        Viewport:
+        <button onclick="changeViewport(375)" style="background:#333; color:white; border:none; padding:2px 6px; font-size:10px; border-radius:3px; cursor:pointer;">Phone</button>
+        <button onclick="changeViewport(768)" style="background:#333; color:white; border:none; padding:2px 6px; font-size:10px; border-radius:3px; cursor:pointer;">Tablet</button>
+        <button onclick="changeViewport(1280)" style="background:#333; color:white; border:none; padding:2px 6px; font-size:10px; border-radius:3px; cursor:pointer;">Desktop</button>
+        <button onclick="changeViewport('100%')" style="background:#555; color:white; border:none; padding:2px 6px; font-size:10px; border-radius:3px; cursor:pointer;">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function switchVariant(id, tabBtn) {
+      document.querySelectorAll('.viewport-container').forEach(v => v.style.display = 'none');
+      document.getElementById('variant-' + id).style.display = 'flex';
+      
+      document.querySelectorAll('.variant-tab').forEach(t => t.classList.remove('active'));
+      tabBtn.classList.add('active');
+    }
+
+    function changeViewport(width) {
+      document.querySelectorAll('.viewport-container').forEach(container => {
+        if (width === '100%') {
+          container.style.maxWidth = '100%';
+        } else {
+          container.style.maxWidth = width + 'px';
+        }
+      });
+    }
+
+    // Toggle for Variant B minimized chat
+    function toggleMinimizedChat() {
+      const chatCard = document.getElementById('chat-card-b');
+      const toggleBtn = document.getElementById('chat-toggle-btn-b');
+      if (chatCard.style.display === 'none') {
+        chatCard.style.display = 'flex';
+        toggleBtn.style.display = 'none';
+      } else {
+        chatCard.style.display = 'none';
+        toggleBtn.style.display = 'block';
+      }
+    }
+
+    // Simulation Engine
+    function triggerSearchSimulation(variantId, customMessage) {
+      const chatMessages = document.getElementById('chat-messages-' + variantId);
+      const chatInput = document.getElementById('chat-input-' + variantId);
+      
+      let userQuery = customMessage || chatInput.value || "I need flights from San Francisco to Tokyo";
+      if (!userQuery.trim()) {
+        userQuery = "Find flights from SFO to NRT next week";
+      }
+
+      // Add user message
+      const userMsgDiv = document.createElement('div');
+      userMsgDiv.className = 'msg user';
+      userMsgDiv.innerHTML = `
+        <div class="sender-name">Traveler</div>
+        <div class="bubble">${userQuery}</div>
+      `;
+      chatMessages.appendChild(userMsgDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      chatInput.value = "";
+
+      // Add Typing Indicator
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'typing-indicator';
+      typingDiv.id = 'typing-' + variantId;
+      typingDiv.innerHTML = `
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      `;
+      chatMessages.appendChild(typingDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      // Simulate API latency & transition
+      setTimeout(() => {
+        // Remove typing indicator
+        const typingIndicator = document.getElementById('typing-' + variantId);
+        if (typingIndicator) {
+          typingIndicator.remove();
+        }
+
+        // Add agent response
+        const agentMsgDiv = document.createElement('div');
+        agentMsgDiv.className = 'msg agent';
+        agentMsgDiv.innerHTML = `
+          <div class="sender-name">SkyBook AI</div>
+          <div class="bubble">I found 3 flight offers from SFO to NRT. I have scored them against your traveler profile (non-stop preference, economy, window seat preferred). Please see the details in the search results panel.</div>
+        `;
+        chatMessages.appendChild(agentMsgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        // Perform Layout Transition!
+        const variantContainer = document.getElementById('variant-' + variantId);
+        variantContainer.classList.add('split-active');
+
+        // Show flight results
+        const resultsArea = document.getElementById('results-area-' + variantId);
+        resultsArea.classList.add('active');
+
+        if (variantId === 'b') {
+          // In Variant B, auto collapse chat to tray on search complete
+          setTimeout(() => {
+            const chatCard = document.getElementById('chat-card-b');
+            const toggleBtn = document.getElementById('chat-toggle-btn-b');
+            chatCard.style.display = 'none';
+            toggleBtn.style.display = 'block';
+            toggleBtn.innerText = "💬 Open Chat (3 Flights Found)";
+          }, 1500);
+        }
+
+      }, 1800);
+    }
+  </script>
+
+</body>
+</html>
