@@ -123,31 +123,31 @@ test('API and web gates check changed TypeScript after install against the PR ba
   );
 });
 
-test('detect-changes always runs the agent context CLI tests after Node setup', () => {
+test('detect-changes always runs the agent CLI tests after Node setup', () => {
   const detect = jobBlock(workflow(), 'detect-changes');
   const setupNode = stepBlock(detect, 'Set up Node 20');
   const contextTests = stepBlock(detect, 'Test agent context CLI');
+  const workTests = stepBlock(detect, 'Test agent work CLI');
   const workflowContracts = stepBlock(detect, 'Verify workflow contract');
 
   assert.match(contextTests, /node --test tests\/ci\/agent-context\.test\.mjs/);
+  assert.match(workTests, /node --test tests\/ci\/agent-work\.test\.mjs/);
   assert.ok(
     detect.indexOf(contextTests) > detect.indexOf(setupNode),
     'agent context tests must run after Node setup',
   );
   assert.ok(
-    detect.indexOf(contextTests) < detect.indexOf(workflowContracts),
-    'agent context tests must run before the workflow contract checks',
+    detect.indexOf(workTests) > detect.indexOf(contextTests),
+    'agent work tests must run after the agent context tests',
   );
-  assert.doesNotMatch(
-    contextTests,
-    /^\s+if:/m,
-    'agent context tests must run unconditionally',
+  assert.ok(
+    detect.indexOf(workTests) < detect.indexOf(workflowContracts),
+    'agent tests must run before the workflow contract checks',
   );
-  assert.doesNotMatch(
-    detect,
-    /^[\t\x20]{4}if:/m,
-    'detect-changes must remain unconditional',
-  );
+  for (const agentTest of [contextTests, workTests]) {
+    assert.doesNotMatch(agentTest, /^\s+if:/m, 'agent CLI tests must run unconditionally');
+  }
+  assert.doesNotMatch(detect, /^[\t\x20]{4}if:/m, 'detect-changes must remain unconditional');
   assert.doesNotMatch(
     detect,
     /pnpm install/,

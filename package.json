@@ -19,6 +19,7 @@
     "lint": "pnpm lint:types && eslint \"{apps,packages}/**/*.{ts,tsx}\" --max-warnings 0",
     "lint:types": "node scripts/ci/check-type-escapes.mjs",
     "agent:context": "node scripts/ci/agent-context.mjs",
+    "agent:work": "node scripts/ci/agent-work.mjs",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
     "test:smoke:units": "node --test tests/smoke/wait-for-ready.unit.test.mjs tests/smoke/mock-server.unit.test.mjs tests/smoke/test-utils.unit.test.mjs",

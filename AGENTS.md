@@ -27,7 +27,7 @@ Never read all context files at once. Selectively read only the document require
 | TDD development workflow & lifecycle phases | `context/workflow.md` |
 | Testing, E2E runners & pre-PR validation gates | `context/testing.md` |
 
-When dispatching, handing off, or reviewing agent work, follow **Agent coordination** in `context/workflow.md`; use `agent:context` for checkout-aware task, handoff, and source-snapshot commands.
+When dispatching, handing off, or reviewing agent work, follow **Agent coordination** in `context/workflow.md`; use `agent:context` for checkout-aware task, handoff, and source-snapshot commands. For coordinated working artifacts, follow [Session artifact dumps](context/workflow.md#session-artifact-dumps).
 
 ## Core Invariants
 

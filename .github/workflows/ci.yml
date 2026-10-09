@@ -38,6 +38,8 @@ jobs:
           node-version: 20
       - name: Test agent context CLI
         run: node --test tests/ci/agent-context.test.mjs
+      - name: Test agent work CLI
+        run: node --test tests/ci/agent-work.test.mjs
       - name: Verify workflow contract
         run: node --test tests/ci/ci-workflow.contract.test.mjs tests/ci/security-change-filter.test.mjs
       - name: Verify supplier identifier contracts

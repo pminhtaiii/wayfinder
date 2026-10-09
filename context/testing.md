@@ -2,6 +2,8 @@
 
 Comprehensive instructions for writing, running, and verifying tests across the Flight Booking System codebase, including E2E test suites, runner workflows, mocking strategies, Playwright guidelines, and the pre-PR local gate validation matrix.
 
+For coordinated runs, keep raw test logs and generated review output in the current session dump, then put concise results and evidence paths in the canonical verification record. See [Session artifact dumps](workflow.md#session-artifact-dumps).
+
 ---
 
 ## E2E Testing Instructions

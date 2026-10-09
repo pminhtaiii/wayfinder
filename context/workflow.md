@@ -105,6 +105,14 @@ The agent must:
 
 Keep `specs/<feature>/tasks.md` as the sole task-status ledger. Treat its first unchecked task as the resume candidate when the user's existing authorization covers that feature; the ledger does not grant new approval or bypass the design and workflow gates above. Keep evidence in its canonical verification record instead of copying task-status tables into handoff prose.
 
+### Session artifact dumps
+
+For coordinated work, the coordinator creates one managed session folder keyed by the current chat ID with `pnpm agent:work start --session <id> [--date YYYY-MM-DD] [--root <checkout>]`. The default date uses Asia/Saigon. Reuse the recorded active folder when work resumes on another day; record its path in the handoff and give the same path to workers, who keep their files in their own subfolders. Store working design and execution-plan drafts, TDD diaries, raw logs, review notes, screenshots, and review snapshots there. Keep approved specs, task ledgers, ADRs, and concise verification records at their canonical project paths. Promote decisions worth carrying forward before finishing the session. Leave existing older artifacts in place.
+
+The helper owns the `.agent-work/<date>/<id>/session.json` manifest and session lifecycle. `pnpm agent:work list [--root <checkout>]` shows known sessions; `pnpm agent:work finish --session <date>/<id> [--root <checkout>]` marks a session finished only after its work is complete, every worker has stopped writing, and the needed handoff is persisted. Keep the session active while its conversation is continuing or may resume. Do not infer completion from a process ending. Only a human may invoke `$agent-work-cleanup`; neither the agent nor another skill selects it. The CLI owns its runtime lock, and `.scratch/api-task.lock` is separate runtime coordination state; neither belongs in a session dump or cleanup target.
+
+Use the `agent:work` helper only from the Booking Systems checkout. If the checkout or helper is unavailable, stop and report that condition instead of choosing another root or placing session files elsewhere.
+
 ### Dispatch a task
 
 For feature work, give each implementer one or two original task IDs; for maintenance work, name the approved user goal instead of borrowing a feature ID. Link the plan and name its exact section when one exists; quote only the contract needed, not the full plan. Point to relevant exported interfaces, name owned source files and generated artifacts, identify prerequisite outputs for dependent work, and state observable behavior, focused commands, and acceptance criteria. Link the relevant `AGENTS.md` guardrail, `context/code-standards.md`, and `context/testing.md` sections instead of pasting their full rules. Preserve the approved design and TDD cycle; describe required behavior and contracts rather than prescribing production code before implementation.
@@ -141,11 +149,14 @@ Refresh worker observations before acting on them. Preserve prior handoffs below
 Declare the review's base and target revisions, or capture a file snapshot before review. Save the JSON emitted by `snapshot` and verify it against the same checkout before relying on findings:
 
 ```powershell
-node scripts/ci/agent-context.mjs snapshot --files <repo-relative-path>... [--root <checkout>] | Set-Content -Encoding utf8 .scratch\agent-context-snapshot.json
-node scripts/ci/agent-context.mjs verify --snapshot .scratch\agent-context-snapshot.json [--root <same-checkout>]
+$snapshotDir = Join-Path $sessionPath 'reviews'
+New-Item -ItemType Directory -Force $snapshotDir | Out-Null
+$snapshotPath = Join-Path $snapshotDir 'agent-context-snapshot.json'
+node scripts/ci/agent-context.mjs snapshot --files <repo-relative-path>... [--root <checkout>] | Set-Content -Encoding utf8 $snapshotPath
+node scripts/ci/agent-context.mjs verify --snapshot $snapshotPath [--root <same-checkout>]
 ```
 
-The snapshot records schema version, checkout root, branch, HEAD, and SHA-256 for each declared file. Verification checks checkout identity and file bytes; HEAD or branch drift is reported separately when declared files remain unchanged. If a declared file changes or disappears, refresh the snapshot and review the changed scope. Recheck each finding against current source before acting on it.
+Set `$sessionPath` to the absolute active session path recorded in the handoff. The snapshot records schema version, checkout root, branch, HEAD, and SHA-256 for each declared file. Verification checks checkout identity and file bytes; HEAD or branch drift is reported separately when declared files remain unchanged. If a declared file changes or disappears, refresh the snapshot and review the changed scope. Recheck each finding against current source before acting on it.
 
 Report the reviewed revision or source hashes, owned paths, focused commands with exit statuses, evidence paths, and remaining applicable gates with reasons. Keep worker reports compact; mention a commit only when one exists. Do not claim completion while an applicable gate remains unrun.
 

@@ -9,6 +9,10 @@ This file points to the current feature state and its evidence; it is not a task
 - Follow [Agent Coordination](workflow.md#agent-coordination-task-briefs-handoffs-and-reviews) for task briefs, live handoffs, review snapshots, and reports. The `agent:context handoff` command derives its candidate from the task ledger.
 - This retro documentation checkpoint does not activate Feature 030 implementation or change its status. When Feature 030 work is separately authorized, derive its first unchecked task from the ledger; existing workflow and design-approval gates still apply.
 
+## Coordinated work artifacts (2026-10-09)
+
+Working drafts, raw logs, reviews, screenshots, and handoff snapshots for coordinated work belong in its managed `.agent-work/<date>/<id>/` folder. Approved specs, task ledgers, ADRs, and concise verification records remain at their canonical project paths. Follow [Session artifact dumps](workflow.md#session-artifact-dumps); this note does not start, finish, or clean a session.
+
 ## Historical checkpoints
 
 ## Feature 030 Phase 2 checkpoint (2026-10-08)
@@ -51,6 +55,10 @@ Feature 030 status; its integration lane and passenger confirmation timeout diag
 ## Retro handoff tooling verification (2026-10-09)
 
 The helper returned the expected task contexts for T006, T017, and T030; combined helper and CI checks passed 35/35 (6 helper, 29 CI). A stale snapshot correctly rejected two changed files, and a fresh 8-file snapshot verified unchanged. This tooling result does not change Feature 030 task or rollout status.
+
+## Retro agent-work tooling verification (2026-10-09)
+
+Combined agent-work CLI and CI contracts passed 43 tests (0 failures, 1 Windows file-link creation skip). An independent synthetic cleanup run removed only finished sessions and retained active and unknown entries plus the API runtime-lock sentinel. The safety review passed after correcting failed-lock cleanup. See the [validation log](../.agent-work/2026-10-09/01a11c82-8650-7bb1-8d96-86f886e984e4/validation.log). This tooling result does not change Feature 030 status.
 
 ---
 
