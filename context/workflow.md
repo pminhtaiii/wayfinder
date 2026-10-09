@@ -1,109 +1,37 @@
-# Development Workflow
+# Implementation Workflow
 
-The mandatory workflow that all AI agents must follow when building features in this project. Every feature goes through this pipeline in order. No step may be skipped.
+This document governs implementation of a user-authorized local Spec Kit feature. The user prepares and approves the feature design artifacts independently; implementation starts from those artifacts.
 
 ---
+
+## Input Readiness
+
+Before entering the implementation pipeline, confirm that the selected local feature has `spec.md`, `plan.md`, and `tasks.md`, and that they are consistent enough to execute safely. If an artifact is missing or a concrete inconsistency blocks implementation, report that gap and ask a targeted clarification. Do not rerun the planning pipeline by default. The planning skills remain available when the user explicitly requests them or when a specific artifact gap requires targeted work.
 
 ## Workflow Pipeline
 
 ```
-speckit-plan → plan-review-convergence → speckit-tasks → brainstorming → writing-plans → speckit-implement (with TDD) → speckit-converge → code-review → ci-feedback-loop
+build-spec (task graph and TDD) → speckit-converge (internal gate) → code-review (internal gate) → pr-feedback-loop (separately authorized)
 ```
 
 ```mermaid
 flowchart LR
-    A["speckit-plan"] --> B["plan-review-convergence"]
-    B --> C["speckit-tasks"]
-    C --> D["brainstorming\n(Explore & Approve Design)"]
-    D --> E["writing-plans\n(Bite-Sized TDD Plans)"]
-    E --> F["speckit-implement\n(with TDD)"]
-    F --> G["speckit-converge"]
-    G --> H["code-review\n(Standards & Spec)"]
-    H --> I["ci-feedback-loop\n(PR / CI Verification)"]
+    A["build-spec\n(task graph + TDD)"] --> B["speckit-converge\n(internal gate)"]
+    B --> C["code-review\n(internal gate)"]
+    C --> D["pr-feedback-loop\n(separately authorized)"]
 ```
 
-> **Pipeline Stages**: Plan Quality Gate (`plan-review-convergence`) → Design Refinement & Task Planning (`brainstorming`, `writing-plans`) → TDD Implementation (`speckit-implement`) → Post-Implementation Convergence (`speckit-converge`) → Dual-Axis Quality Sign-Off (`code-review`) → PR / CI Convergence (`ci-feedback-loop`).
+> **Pipeline Stages**: Local implementation through the task graph and TDD (`build-spec`) → integrated convergence (`speckit-converge`) → dual-axis code review (`code-review`) → PR / CI convergence (`pr-feedback-loop`, separately authorized).
 
----
-
-## Step 1: Plan (`/speckit-plan`)
-
-**Purpose**: Create a detailed implementation plan — architecture, file structure, services, function signatures, data model changes.
-
-The agent must:
-
-1. Understand the feature requirements and architectural boundaries.
-2. Produce a `plan.md` with technical decisions, file-by-file breakdown, and implementation approach, ensuring alignment with project architecture and code standards.
-
-**Gate**: Plan produced, but not yet approved — it goes through convergence review first.
-
----
-
-## Step 2: Plan Review Convergence (`/plan-review-convergence`)
-
-**Purpose**: Cross-AI review of the plan to catch high-priority issues before any code is written.
-
-The agent must:
-
-1. Run the `plan-review-convergence` skill to review the plan with external AI reviewers.
-2. Identify and resolve all HIGH and CRITICAL issues found in the plan.
-3. Replan if necessary — the convergence loop continues until no unresolved HIGH issues remain.
-4. Produce a converged plan that has been stress-tested from multiple angles.
-
-**Gate**: Plan must converge (no unresolved HIGH/CRITICAL issues) before proceeding. User must approve the converged plan.
-
----
-
-## Step 3: Generate Tasks (`/speckit-tasks`)
-
-**Purpose**: Break the converged plan into an actionable, dependency-ordered task list.
-
-The agent must:
-
-1. Read the converged plan.
-2. Produce a `tasks.md` with phased tasks, dependencies, and file paths.
-3. Tasks must be granular enough for vertical-slice TDD — each task should map to a testable behavior.
-
-**Gate**: User may review tasks before implementation.
-
----
-
-## Step 4: Brainstorming (`/brainstorming`)
-
-**Purpose**: Turn slice or feature designs into structured, validated approaches before touching code.
-
-The agent must:
-
-1. **Classify the path**:
-   - **Spike**: Feasibility inquiry with throwaway experiments (2–3 sentence probe plan, user nod).
-   - **Bounded**: Scoped change to existing code/flow (ask clarifying questions, present short in-chat design, wait for approval).
-   - **Architectural**: New subsystems, features, or interface restructuring (full exploration, 2–3 approaches with trade-offs, sectioned design, user approval per section).
-2. **Explore Context & Intent**: Inspect files, docs, and recent commits. Ask focused clarifying questions one at a time.
-3. **Propose Approaches**: Provide 2–3 options with explicit trade-offs and a clear recommendation.
-4. **Hard Gate**: Do NOT invoke implementation skills or write code until the user gives explicit approval on the design.
-
----
-
-## Step 5: Writing Plans (`/writing-plans`)
-
-**Purpose**: Structure the approved design into a comprehensive, bite-sized, TDD-actionable implementation plan before writing any production code.
-
-The agent must:
-
-1. **Map File Structure & Boundaries**: Define exact file responsibilities, inputs, and outputs to maintain clean, deep module seams.
-2. **Structure Bite-Sized TDD Tasks**:
-   - Each step is a 2–5 minute focused action: Write failing test (RED) → Verify failure → Write minimal code (GREEN) → Verify pass → Commit.
-   - Define exact consumed and produced interfaces for each task.
-3. **Eliminate Placeholders**: Strictly no "TODO", "TBD", or vague instructions. State required behavior, explicit interfaces, test commands, and observable acceptance criteria; include code snippets only when the approved design requires an exact stable declaration.
-4. **Self-Review Checklist**: Skim against plan coverage, placeholder scan, and type consistency across tasks.
-
-**Gate**: Comprehensive plan produced and self-reviewed before task execution.
+For local Spec Kit features, `/build-spec` owns task execution and completes the convergence and review gates in Steps 2–3 against the integrated revision. After `/build-spec` reports success, do not repeat those gates on an unchanged revision. PR and CI work is Step 4 and requires separate authorization.
 
 ---
 
 ## Agent Coordination: Task Briefs, Handoffs, and Reviews
 
-Keep `specs/<feature>/tasks.md` as the sole task-status ledger. Treat its first unchecked task as the resume candidate when the user's existing authorization covers that feature; the ledger does not grant new approval or bypass the design and workflow gates above. Keep evidence in its canonical verification record instead of copying task-status tables into handoff prose.
+Keep `specs/<feature>/tasks.md` as the sole task-status ledger. Treat its first unchecked task as the resume candidate when the user's existing authorization covers that feature; the ledger tracks progress, does not expand authorized scope, and does not bypass the implementation gates in this document. Keep evidence in its canonical verification record instead of copying task-status tables into handoff prose.
+
+During `/build-spec`, implementers leave task checkboxes unchanged. The merger marks a task `[X]` only after its work is integrated into the feature branch and its applicable checks pass.
 
 ### Session artifact dumps
 
@@ -162,9 +90,11 @@ Report the reviewed revision or source hashes, owned paths, focused commands wit
 
 ---
 
-## Step 6: Implement with TDD (`/speckit-implement`)
+## Step 1: Implement with TDD (`/build-spec`)
 
-**Purpose**: Execute all tasks from `tasks.md` using test-driven development.
+**Purpose**: Implement the authorized local feature by executing `tasks.md` as a dependency graph with implementer workers and a serial merger.
+
+`/build-spec` reuses the authorized feature branch as its integration branch, dispatches disjoint ready tasks to isolated worktrees, and records task completion only after merge and checks. It owns the convergence and code-review gates in Steps 2–3 on the integrated revision. Those sections define the gates; they are not extra runs after a successful `/build-spec` completion.
 
 ### TDD Vertical-Slice Cycle
 
@@ -184,7 +114,7 @@ For each task:
 5. Repeat → Until all behaviors for this task are covered
 6. REFACTOR → Clean up the code while all tests remain green
            → Run all tests → confirm they still pass
-7. DONE   → Mark the task [X] in tasks.md → move to next task
+7. DONE   → Hand the task branch to the merger → after integration and applicable checks, the merger marks [X] in tasks.md → recompute the ready frontier
 ```
 
 ### Test Types Required
@@ -214,25 +144,31 @@ If any of these conditions are met, the agent MUST write E2E tests before markin
 
 ---
 
-## Step 7: Converge (`/speckit-converge`)
+## Step 2: Converge (`/speckit-converge`, owned by `/build-spec`)
 
 **Purpose**: Post-implementation gap analysis — verify the codebase satisfies the plan and tasks.
+
+For a local Spec Kit feature, `/build-spec` runs this gate after current tasks are integrated. Run `/speckit-converge` separately when implementation happened outside `/build-spec` or when the integrated source changed after the recorded convergence.
 
 The agent must:
 
 1. Run `speckit-converge` to assess the implemented code against the plan and tasks.
 2. If gaps are found: new tasks are appended to `tasks.md` under a Convergence phase.
-3. Run `/speckit-implement` again to complete the appended convergence tasks (still with TDD).
+3. Send appended tasks through `/build-spec`'s task graph and merger flow (still with TDD).
 4. Run `/speckit-converge` again to verify gaps are closed.
 5. Repeat until converged — no remaining actionable findings.
 
 **Gate**: Convergence must report "✅ Converged" before the feature is considered complete.
 
+After a clean convergence on the final integrated revision, do not repeat this gate unless that revision changes.
+
 ---
 
-## Step 8: Dual-Axis Code Review (`/code-review`)
+## Step 3: Dual-Axis Code Review (`/code-review`, owned by `/build-spec`)
 
 **Purpose**: Independent two-axis code review running parallel sub-agents to verify that the implementation adheres to repository standards and faithfully fulfills the originating spec and plan with zero unrequested scope creep.
+
+`/build-spec` runs this review once after convergence on a pinned integrated revision. Route blocking findings into the canonical task graph, merge and verify their fixes, then review the changed revision. Run `/code-review` separately when implementation happened outside `/build-spec`; do not repeat an unchanged review.
 
 The agent must:
 
@@ -248,15 +184,15 @@ The agent must:
 
 ---
 
-## Step 9: PR / CI Verification & Convergence (`/ci-feedback-loop`)
+## Step 4: PR / CI Verification & Convergence (`/pr-feedback-loop`)
 
 **Purpose**: Verify remote GitHub Actions CI pipeline passes clean on the opened PR, triaging failures and applying fixes until green.
 
 The agent must:
 
 1. **Verify Local Gates**: Ensure the pre-PR local gate validation matrix passes (`context/testing.md`).
-2. **Push & Inspect**: Open or update the PR branch and monitor CI execution using `node .agents/skills/ci-feedback-loop/scripts/inspect-ci.mjs --head --watch`.
-3. **Harvest & Converge**: If any CI job or step fails, activate the `ci-feedback-loop` skill ([`ci-feedback-loop`](../.agents/skills/ci-feedback-loop/SKILL.md)) to harvest errors, remediate locally, push fixes, and verify remote convergence.
+2. **Push & Inspect**: Open or update the PR branch and monitor CI execution using `node .agents/skills/pr-feedback-loop/scripts/inspect-ci.mjs --head --watch`.
+3. **Harvest & Converge**: If any CI job or step fails, activate the `pr-feedback-loop` skill ([`pr-feedback-loop`](../.agents/skills/pr-feedback-loop/SKILL.md)) to harvest errors, remediate locally, push fixes, and verify remote convergence.
 4. **Circuit Breaker**: Stop after 1 failed retry if the exact same issue persists, and ask the user for guidance.
 
 **Gate**: Remote GitHub Actions CI reaches `Verdict: CI PASSED ✔` (`ci-status` conclusion is `success`) before merge.
@@ -319,12 +255,7 @@ If any test fails, the task remains `[ ]` and the agent continues working on it.
 
 | Step                    | Gate                                | Who Approves                 |
 | ----------------------- | ----------------------------------- | ---------------------------- |
-| speckit-plan            | Plan produced (goes to convergence) | Automatic                    |
-| plan-review-convergence | No unresolved HIGH/CRITICAL issues  | User approves converged plan |
-| speckit-tasks           | Tasks generated                     | User may review              |
-| brainstorming           | Design & approach approved (hard)   | User                         |
-| writing-plans           | Bite-sized TDD plan produced        | User / Plan Review           |
-| speckit-implement (TDD) | All tests pass for every task       | Automatic (tests)            |
-| speckit-converge        | "✅ Converged" reported             | Automatic (convergence)      |
-| code-review             | Zero blocking findings (both axes)  | User / Dual-Axis Sub-agents  |
-| ci-feedback-loop        | Remote CI green (Verdict: CI PASSED)| Automatic (GitHub Actions)   |
+| 1. build-spec (TDD graph) | Every task integrated and checked    | Merger / task evidence          |
+| 2. speckit-converge       | "✅ Converged" on final revision     | Build-spec gate                 |
+| 3. code-review            | Zero blocking findings (both axes)   | Build-spec / Dual-Axis Sub-agents |
+| 4. pr-feedback-loop       | Remote CI green (Verdict: CI PASSED) | Separately authorized           |

@@ -172,6 +172,6 @@ For each check, report the actual command and final exit status, then mark it pa
 
 ## Remote CI Pipeline Triage & Convergence
 
-When opening or updating pull requests, monitor remote CI runs and iterate on failures using the `ci-feedback-loop` skill ([`ci-feedback-loop`](../.agents/skills/ci-feedback-loop/SKILL.md)):
-- **Inspect / Monitor CI**: Run `node .agents/skills/ci-feedback-loop/scripts/inspect-ci.mjs` (append `--watch` to poll in-progress runs until conclusion).
+When opening or updating pull requests, monitor remote CI runs and iterate on failures using the `pr-feedback-loop` skill ([`pr-feedback-loop`](../.agents/skills/pr-feedback-loop/SKILL.md)):
+- **Inspect / Monitor CI**: Run `node .agents/skills/pr-feedback-loop/scripts/inspect-ci.mjs` (append `--watch` to poll in-progress runs until conclusion).
 - **Triage & Convergence**: Map remote failing steps to local reproduction commands using the matrix above, remediate locally, push, and poll until remote conclusion is green.
