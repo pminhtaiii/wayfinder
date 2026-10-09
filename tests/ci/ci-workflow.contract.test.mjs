@@ -915,7 +915,7 @@ test('local dependency patch changes route through API, web, and security checks
 
   for (const service of ['api', 'web', 'security']) {
     assert.ok(
-      filterBlock(detect, service).includes('patches/**'),
+      filterBlock(detect, service).includes('scripts/patches/**'),
       `${service} filter must include local dependency patches`,
     );
   }

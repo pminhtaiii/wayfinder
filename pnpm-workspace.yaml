@@ -2,7 +2,7 @@ packages:
   - 'apps/*'
   - 'packages/*'
 patchedDependencies:
-  braces@3.0.3: patches/braces@3.0.3.patch
+  braces@3.0.3: scripts/patches/braces@3.0.3.patch
 overrides:
   fast-uri: ^3.1.8
   proxy-addr: ^2.0.8

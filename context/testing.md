@@ -18,6 +18,7 @@ When the task involves writing, running, or verifying E2E tests:
    - Backend E2E uses Jest, configured in `apps/api/test/jest-e2e.json`.
    - Frontend E2E uses Playwright, configured in `apps/web/tests/playwright.config.ts`.
    - Playwright run artifacts use per-config folders under `.agent-work/test_results/` (`default`, `ancillary`, `state`, and `fulfillment`) so concurrent suites do not clean one another's output.
+   - The default config's local HTML report goes to the ignored `.agent-work/test_results/html/` folder; CI keeps the line reporter.
 
 3. **Running E2E Tests**:
    - Backend API E2E tests: run `npm run test:e2e --workspace=apps/api`

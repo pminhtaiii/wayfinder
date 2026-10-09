@@ -46,7 +46,17 @@ export default defineConfig({
   expect: {
     timeout: 30000,
   },
-  reporter: process.env.CI ? 'line' : [['html', { open: 'never' }]],
+  reporter: process.env.CI
+    ? 'line'
+    : [
+        [
+          'html',
+          {
+            open: 'never',
+            outputFolder: path.resolve(__dirname, '../../../.agent-work/test_results/html'),
+          },
+        ],
+      ],
   use: {
     baseURL: 'http://127.0.0.1:3000',
     trace: 'on-first-retry',

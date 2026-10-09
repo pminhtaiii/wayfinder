@@ -69,7 +69,7 @@ jobs:
               - 'package.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
-              - 'patches/**'
+              - 'scripts/patches/**'
               - 'tsconfig.json'
               - '.eslintrc.json'
             web:
@@ -85,7 +85,7 @@ jobs:
               - 'package.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
-              - 'patches/**'
+              - 'scripts/patches/**'
               - 'tsconfig.json'
               - '.eslintrc.json'
             agent:
@@ -110,7 +110,7 @@ jobs:
               - 'tests/security/toolchain.json'
               - 'tests/security/exceptions.json'
               - 'docs/security/**'
-              - 'patches/**'
+              - 'scripts/patches/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'

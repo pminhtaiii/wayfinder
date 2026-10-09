@@ -25,7 +25,7 @@ const DEFAULT_OUTPUT = 'artifacts/security/supply-chain.json';
 const PIP_MAX_ADVISORY_AGE_HOURS = 24;
 const VERIFIED_BRACES_ADVISORY = 'GHSA-VFJ7-8CJW-P6XM';
 const VERIFIED_BRACES_PACKAGE = 'braces@3.0.3';
-const VERIFIED_BRACES_PATCH_PATH = 'patches/braces@3.0.3.patch';
+const VERIFIED_BRACES_PATCH_PATH = 'scripts/patches/braces@3.0.3.patch';
 const VERIFIED_BRACES_PATCH_SHA256 =
   '795ff4ec62054830af82791060bccad7e6b551a7399488cbbd5dcb6017931861';
 const VERIFIED_BRACES_PATCH_ERROR = `[Supply Chain Exception Error] ${VERIFIED_BRACES_ADVISORY} requires the registered, SHA-256-pinned reviewed braces patch`;
