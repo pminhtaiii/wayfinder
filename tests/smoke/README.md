@@ -102,7 +102,7 @@ node scripts/ci/run-smoke-sanity.mjs --mode=ci
    }
 
    $env:DATABASE_URL = 'postgresql://postgres:postgres@127.0.0.1:5432/smoke_test?schema=public'
-   pnpm --filter @api/backend exec prisma generate
+   pnpm --filter @api/backend prisma:generate
    pnpm --filter @api/backend exec prisma migrate deploy
    ```
 
@@ -409,7 +409,7 @@ GitHub Actions prints only service status and diagnostic file paths automaticall
    - _Fix_: Execute `pnpm build:shared`, `pnpm --filter @api/backend build`, and `pnpm --filter @web/frontend build`.
 3. **Database Unready / Migration Error**:
    - Prisma Client out of sync with migrations or database unreachable.
-   - _Fix_: Run `pnpm --filter @api/backend exec prisma generate` and `pnpm --filter @api/backend exec prisma migrate deploy`.
+   - _Fix_: Run `pnpm --filter @api/backend prisma:generate` and `pnpm --filter @api/backend exec prisma migrate deploy`.
 4. **Premature Child Process Termination**:
    - If any service process exits unexpectedly during readiness polling, the orchestrator immediately halts polling, logs the exit code and stderr tail, and exits with a non-zero status.
 

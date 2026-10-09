@@ -36,6 +36,8 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 20
+      - name: Test agent context CLI
+        run: node --test tests/ci/agent-context.test.mjs
       - name: Verify workflow contract
         run: node --test tests/ci/ci-workflow.contract.test.mjs tests/ci/security-change-filter.test.mjs
       - name: Verify supplier identifier contracts
@@ -133,6 +135,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 2
       - name: Set up pnpm 10.34.5
         uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
@@ -145,12 +148,16 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
       - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
+      - name: Check changed TypeScript escapes
+        run: node scripts/ci/check-type-escapes.mjs --base HEAD^1
+      - name: Test TypeScript escape guard
+        run: node --test tests/ci/check-type-escapes.test.mjs
       - name: Lint API and shared code
         run: pnpm exec eslint "apps/api/**/*.ts" "packages/shared/**/*.ts" --max-warnings 0
       - name: Build shared package
         run: pnpm build:shared
       - name: Generate Prisma Client
-        run: pnpm --filter @api/backend exec prisma generate
+        run: pnpm --filter @api/backend prisma:generate
       - name: Typecheck API
         run: pnpm --filter @api/backend exec tsc --noEmit
 
@@ -193,7 +200,7 @@ jobs:
       - name: Build shared package and generate Prisma Client
         run: |
           pnpm build:shared
-          pnpm --filter @api/backend exec prisma generate
+          pnpm --filter @api/backend prisma:generate
       - name: Run API unit tests with loopback-only network
         env:
           NODE_OPTIONS: --require=${{ github.workspace }}/tests/ci/node-network-guard.cjs
@@ -238,7 +245,7 @@ jobs:
       - name: Build shared package and generate Prisma Client
         run: |
           pnpm build:shared
-          pnpm --filter @api/backend exec prisma generate
+          pnpm --filter @api/backend prisma:generate
       - name: Verify API test partitions cover the previous suite
         run: pnpm --filter @api/backend exec node test/api-test-partition.contract.test.mjs
       - name: Run shared package contract tests
@@ -291,7 +298,7 @@ jobs:
       - name: Build shared package and generate Prisma Client
         run: |
           pnpm build:shared
-          pnpm --filter @api/backend exec prisma generate
+          pnpm --filter @api/backend prisma:generate
       - name: Run API performance checks with loopback-only network
         env:
           NODE_OPTIONS: --require=${{ github.workspace }}/tests/ci/node-network-guard.cjs
@@ -338,6 +345,7 @@ jobs:
       FEATURE_FLAG_CHAT_HANDOFF_ISSUE: 'true'
       FEATURE_FLAG_CHAT_HANDOFF_ACCEPT: 'true'
       TIKTOKEN_CACHE_DIR: ${{ github.workspace }}/.tiktoken_cache
+      FULFILLMENT_HARNESS_ADMIN_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fulfillment_recovery_test
     steps:
       - name: Use LF checkout behavior
         run: git config --global core.autocrlf input
@@ -373,7 +381,7 @@ jobs:
       - name: Prepare API E2E database
         run: |
           pnpm build:shared
-          pnpm --filter @api/backend exec prisma generate
+          pnpm --filter @api/backend prisma:generate
           pnpm --filter @api/backend exec prisma migrate deploy
       - name: Prove supplier identifier fresh and upgrade migrations
         env:
@@ -400,6 +408,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 2
       - name: Set up pnpm 10.34.5
         uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
@@ -412,6 +421,8 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
       - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
+      - name: Check changed TypeScript escapes
+        run: node scripts/ci/check-type-escapes.mjs --base HEAD^1
       - name: Lint web application
         run: pnpm --filter @web/frontend lint
       - name: Validate Next.js route files
@@ -877,7 +888,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/smoke_test?schema=public
         run: |
           pnpm build:shared
-          pnpm --filter @api/backend exec prisma generate
+          pnpm --filter @api/backend prisma:generate
           pnpm --filter @api/backend exec prisma migrate deploy
           pnpm --filter @api/backend exec prisma db seed
       - name: Build API and Web applications

@@ -24,8 +24,10 @@ When the task involves writing, running, or verifying E2E tests:
      ```powershell
      docker compose up -d
 
+     pnpm build:shared
+     pnpm --filter @api/backend prisma:generate
+
      Push-Location apps/api
-     & '.\node_modules\.bin\prisma.CMD' generate
      $env:DATABASE_URL = 'postgresql://postgres:postgres@127.0.0.1:5432/test_db'
      & '.\node_modules\.bin\prisma.CMD' migrate status
      Pop-Location
@@ -106,7 +108,32 @@ CI reports static validation separately from tests. The service suites are chang
 
 API interface contracts and component tests have separate CI steps in one interface job. Database-backed API HTTP tests belong to infrastructure integration even if their filenames retain `e2e-spec`. Existing API `test`, `test:ci`, and `test:e2e` aggregate commands remain available for compatibility.
 
-On a fresh checkout, build the shared package (`pnpm build:shared`) and generate the Prisma client (`pnpm --filter @api/backend exec prisma generate`) before API tests; generation itself does not require a running database. Each API CI job prepares its own generated files. `pnpm --filter @api/backend test:partition` uses Jest's actual selectors to prove the previous required suite appears exactly once in the new lanes and the optional performance aggregate retains both fast and database-backed benchmarks.
+On a fresh checkout, build the shared package (`pnpm build:shared`) and generate the Prisma client with
+`pnpm --filter @api/backend prisma:generate` before dispatching API test workers. Every CI API worker prepares its own
+generated files after dependency installation. The generation, API build, and Jest package commands run through
+`scripts/ci/run-api-task.mjs`, which holds `.scratch/api-task.lock` for the child process lifetime. This prevents Prisma
+generation, build, and tests from overlapping in one checkout. The runner rejects a busy checkout and leaves recovery to
+the caller: wait for the current task, or, after an unexpected exit, inspect the lock and verify that no API task is
+still running before removing a stale lock. It does not kill the lock owner or reclaim locks automatically.
+Direct Prisma generation, Nest build, and Jest invocations bypass this protection; use the API package scripts for those
+tasks. Isolated API test tasks also remove inherited `DUFFEL_MOCK` and `DUFFEL_API_URL`
+overrides from the child environment so component and unit results do not depend on an external supplier mock.
+`pnpm --filter @api/backend test:partition` uses Jest's actual selectors to prove the previous required suite appears
+exactly once in the new lanes and the optional performance aggregate retains both fast and database-backed benchmarks.
+
+### API task runner and integration storage
+
+The API integration runner does not start PostgreSQL or Redis, run migrations, or clean up shared services. Use
+disposable loopback services whose database and Redis index are reserved for tests. Set `DATABASE_URL` to the app
+database with its schema, `REDIS_URL` to an explicit disposable Redis index, and
+`FULFILLMENT_HARNESS_ADMIN_DATABASE_URL` to the same PostgreSQL database without a `schema` query parameter. For the CI
+integration service, these are
+`postgresql://postgres:postgres@127.0.0.1:5432/fulfillment_recovery_test?schema=public`,
+`redis://127.0.0.1:6379/0`, and
+`postgresql://postgres:postgres@127.0.0.1:5432/fulfillment_recovery_test`, respectively. The workflow provisions those
+disposable services and applies migrations before running integration tests; local callers must prepare their own.
+Integration fixtures may create or remove their run-owned schemas and clear the selected Redis database, so never point
+these URLs at shared or production storage.
 
 Web Node discovery separates tests under `app/` (route contracts) from isolated tests elsewhere. The previous compatibility command remains available. The pre-existing `app/api/booking-management/route-parity.spec.ts` mock-loading failure is recorded in the [suite-separation decision record](../docs/adr/research-ci-test-boundaries-grilling-session.md); it is exposed through the route-contract/all-Node commands and is not silently skipped or newly included in required PR CI.
 
@@ -114,12 +141,25 @@ Agent primary selectors are disjoint: Redis-backed performance tests run only in
 
 Apply the Node/Python network guards below to test commands. Use disposable storage: some Redis fixtures flush their selected Redis database. Smoke and critical business flows retain one shared stack startup and distinct suite results; existing external-vendor mocks and network restrictions remain active.
 
-Always verify the change-aware service chains locally before opening or updating PRs:
+Before opening or updating a PR, run the applicable change-aware gates from the matrix below. Preserve stricter task-specific exit gates already documented.
+
+For each check, report the actual command and final exit status, then mark it passed or failed. List applicable checks that were not run as unrun and give the reason. A focused pass establishes only the scope it exercised; it does not establish completion while other applicable gates remain.
 
 - **Static Contract**: `node --test tests/ci/ci-workflow.contract.test.mjs`
 - **API Gate**: Run `pnpm exec eslint "apps/api/**/*.ts" "packages/shared/**/*.ts" --max-warnings 0` and `pnpm --filter @api/backend exec tsc -p tsconfig.json --noEmit`. Shared contract tests run with the interface lane.
+- **TypeScript escape guard**: Run `pnpm lint:types` for staged, unstaged, and untracked changes against `HEAD`. For an explicit branch diff, run `pnpm lint:types --base <base-ref>` (for example, `origin/development` when available). CI runs `node scripts/ci/check-type-escapes.mjs --base HEAD^1` in the API and web gates. See [TypeScript enforcement scope](code-standards.md#typescript).
 - **API Tests**: `$env:NODE_OPTIONS = '--require="C:/Booking Systems/tests/ci/node-network-guard.cjs"'`; run `test:unit`, `test:contract`, `test:component`, and `test:performance:unit` from the table. Run `test:integration` against prepared disposable storage. Keep the inner quotes around paths containing spaces and use forward slashes inside Node's option string to avoid escape parsing.
-- **Web Gate & Build**: `pnpm --filter @web/frontend lint` && `pnpm --filter @web/frontend typecheck` && `pnpm --filter @web/frontend build`
+- **Web Gate & Build** (PowerShell): Run each command in order and stop on a nonzero exit code.
+    ```powershell
+    pnpm --filter @web/frontend lint
+    if ($LASTEXITCODE -ne 0) { throw "Web lint failed with exit code $LASTEXITCODE" }
+
+    pnpm --filter @web/frontend typecheck
+    if ($LASTEXITCODE -ne 0) { throw "Web typecheck failed with exit code $LASTEXITCODE" }
+
+    pnpm --filter @web/frontend build
+    if ($LASTEXITCODE -ne 0) { throw "Web build failed with exit code $LASTEXITCODE" }
+    ```
 - **Agent Gate & Tests**: `$env:UV_CACHE_DIR = "C:\Booking Systems\.uv-cache"`; run `uv run --package agent ruff check apps/agent` and `uv run --package agent ruff format --check apps/agent`. With `$env:PYTHONPATH = "$PWD/tests/ci/python;$PWD/apps/agent/src"`, run the three selectors in the table; required Redis/performance flags belong only to their respective lane.
 - **Windows agent timing gate**: If the guarded performance lane repeatedly fails only SC-004 wall-time measurements while its isolated benchmark passes, verify the Python network guard and run that lane once with `ABOVE_NORMAL_PRIORITY_CLASS` applied only to the Python process executing pytest; restore that process's previous class in `finally`. Keep the suite, sample counts, percentiles, and ceilings unchanged; do not use realtime or machine-wide priority changes. This is a host-specific measured timing mitigation, not a proven scanner regression. The [T066 verification plan](../docs/superpowers/plans/2026-10-04-feature-029-agent-performance-fix.md) records the original full-suite launcher and evidence before suite separation.
 - **Branch Protection Requirement**: Only require `ci-status` on branch protection rules for `development`.

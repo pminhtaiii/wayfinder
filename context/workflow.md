@@ -94,10 +94,60 @@ The agent must:
 2. **Structure Bite-Sized TDD Tasks**:
    - Each step is a 2–5 minute focused action: Write failing test (RED) → Verify failure → Write minimal code (GREEN) → Verify pass → Commit.
    - Define exact consumed and produced interfaces for each task.
-3. **Eliminate Placeholders**: Strictly no "TODO", "TBD", or vague instructions; provide exact code snippets, types, and commands.
+3. **Eliminate Placeholders**: Strictly no "TODO", "TBD", or vague instructions. State required behavior, explicit interfaces, test commands, and observable acceptance criteria; include code snippets only when the approved design requires an exact stable declaration.
 4. **Self-Review Checklist**: Skim against plan coverage, placeholder scan, and type consistency across tasks.
 
 **Gate**: Comprehensive plan produced and self-reviewed before task execution.
+
+---
+
+## Agent Coordination: Task Briefs, Handoffs, and Reviews
+
+Keep `specs/<feature>/tasks.md` as the sole task-status ledger. Treat its first unchecked task as the resume candidate when the user's existing authorization covers that feature; the ledger does not grant new approval or bypass the design and workflow gates above. Keep evidence in its canonical verification record instead of copying task-status tables into handoff prose.
+
+### Dispatch a task
+
+For feature work, give each implementer one or two original task IDs; for maintenance work, name the approved user goal instead of borrowing a feature ID. Link the plan and name its exact section when one exists; quote only the contract needed, not the full plan. Point to relevant exported interfaces, name owned source files and generated artifacts, identify prerequisite outputs for dependent work, and state observable behavior, focused commands, and acceptance criteria. Link the relevant `AGENTS.md` guardrail, `context/code-standards.md`, and `context/testing.md` sections instead of pasting their full rules. Preserve the approved design and TDD cycle; describe required behavior and contracts rather than prescribing production code before implementation.
+
+Use the repository task commands to derive a handoff from the canonical ledger and plan:
+
+```powershell
+pnpm agent:context handoff --tasks specs/<feature>/tasks.md [--root <checkout>]
+pnpm agent:context task --tasks specs/<feature>/tasks.md --task <task-id> [--plan specs/<feature>/plan.md] [--root <checkout>]
+```
+
+Replace `<task-id>` and the paths with the selected task and feature. The handoff command reports ledger counts and the first unchecked candidate; the task command supplies the selected task with plan context. Neither command changes task state.
+
+### Record a live handoff
+
+Use `collaboration.list_agents` for current worker IDs and states, and record when that observation was made. A `send_message` only notifies a worker; use `followup_task` to resume an idle or completed worker, then confirm its state. Do not report that a worker restarted based only on a sent message. Message a different user task only with explicit user authorization.
+
+Keep one concise handoff with these fields:
+
+```text
+Checkout: <absolute root> | branch <name> | revision <hash> | dirty scope <owned paths>
+Ledger: <canonical tasks.md> | next candidate <first unchecked ID>
+Goal / next authorized step: <one sentence>
+Blockers and gates: <passed command + exit status>; <failed>; <unrun + reason>
+Ownership: <source paths> -> <generated outputs>; <prerequisites for dependent work>
+Workers: <ID, observed state, observation time>
+Evidence: <verification record, test logs, or other paths>
+```
+
+Refresh worker observations before acting on them. Preserve prior handoffs below the current one or in an archive; do not overwrite history or create a second task-status ledger.
+
+### Pin and report a review
+
+Declare the review's base and target revisions, or capture a file snapshot before review. Save the JSON emitted by `snapshot` and verify it against the same checkout before relying on findings:
+
+```powershell
+node scripts/ci/agent-context.mjs snapshot --files <repo-relative-path>... [--root <checkout>] | Set-Content -Encoding utf8 .scratch\agent-context-snapshot.json
+node scripts/ci/agent-context.mjs verify --snapshot .scratch\agent-context-snapshot.json [--root <same-checkout>]
+```
+
+The snapshot records schema version, checkout root, branch, HEAD, and SHA-256 for each declared file. Verification checks checkout identity and file bytes; HEAD or branch drift is reported separately when declared files remain unchanged. If a declared file changes or disappears, refresh the snapshot and review the changed scope. Recheck each finding against current source before acting on it.
+
+Report the reviewed revision or source hashes, owned paths, focused commands with exit statuses, evidence paths, and remaining applicable gates with reasons. Keep worker reports compact; mention a commit only when one exists. Do not claim completion while an applicable gate remains unrun.
 
 ---
 
@@ -206,29 +256,23 @@ The agent must:
 
 These rules are **non-negotiable**. Any agent that violates them is producing invalid work.
 
-### Rule 1: Tests Are Immutable Once Written
+### Rule 1: Preserve Approved Behavioral Coverage
 
-> **Failing tests are the agent's problem, not the test's problem.**
+> Tests protect approved behavior and its unique coverage, not the literal contents of a test file.
 
-When a test fails during implementation, the agent MUST fix the implementation code — **never** the test. The agent is strictly forbidden from:
+When a test fails during implementation, first determine whether it reached the behavior under test. Agents must not make tests pass by:
 
-- ❌ Deleting a failing test.
-- ❌ Commenting out a failing test.
-- ❌ Weakening a test's assertions to make it pass (e.g., changing `toBe(5)` to `toBeDefined()`).
-- ❌ Skipping a test with `.skip` or `xit` or `xdescribe`.
-- ❌ Changing expected values to match incorrect implementation output.
-- ❌ Removing edge case coverage because the implementation doesn't handle it yet.
+- Removing or skipping unique behavioral coverage, including with `.skip`, `xit`, or `xdescribe`.
+- Weakening or removing unique assertions, changing an expected behavior, or relaxing a timeout or safety contract.
+- Changing expectations to match incorrect implementation output or dropping an edge case the implementation does not yet handle.
 
-### Rule 2: Test Modification Requires Human Approval
+These changes alter a protected behavioral contract and require explicit user approval before editing. A valid RED fails because intended behavior is missing or incorrect, or because an explicitly identified capability is missing; it may surface as a missing module or export when that absence is the behavior under test. Unrelated collection, environment, harness, configuration, or fixture errors do not establish a behavioral RED and must be resolved before claiming the RED step is complete.
 
-If the agent genuinely believes a test contains an error (wrong expected value, testing the wrong endpoint, spec changed after test was written), it MUST:
+### Rule 2: Classify Test Changes and Record Evidence
 
-1. **Stop implementation immediately.**
-2. **Explain the issue** — what the test expects, what the implementation does, and why the agent believes the test is wrong.
-3. **Wait for explicit user approval** before making any change to the test.
-4. **Document the change** — if approved, the agent must add a comment explaining why the test was modified and who approved it.
+Agents may maintain test fixtures and structure autonomously within the approved scope when approved behavior and unique coverage remain intact. This includes SQL seeding, import ordering, helper types, cleanup, removing exact redundant duplicates when the covered behavior remains represented, and strengthening assertions while retaining existing expectations.
 
-No test may be modified, deleted, or weakened without this process. Zero exceptions.
+For every test change, classify it as maintenance or a behavioral-contract change, record the reason, and provide focused regression evidence. Reviewers verify the classification, reason, and evidence. If the change would remove unique coverage, skip a test, change expected behavior, or relax a timeout or safety contract, stop and get explicit user approval before editing the test.
 
 ### Rule 3: Tests Describe Behavior, Not Implementation
 
@@ -237,7 +281,7 @@ Tests must verify behavior through public interfaces. A good test survives inter
 - Test what the system **does**, not how it does it.
 - Use public APIs and interfaces — never test private methods.
 - Mock only external boundaries (Amadeus API, Stripe, database) — never mock internal collaborators.
-- If a test breaks during refactoring but behavior hasn't changed, the test was wrong (follow Rule 2 to fix it with user approval).
+- If a test breaks during refactoring but behavior hasn't changed, classify and document any necessary test maintenance under Rule 2; seek approval only when the edit changes a protected behavioral contract under Rule 1.
 
 ### Rule 4: All Tests Must Pass Before Task Completion
 
@@ -248,6 +292,15 @@ The agent MUST NOT mark a task as `[X]` in `tasks.md` until:
 - The refactor step is complete.
 
 If any test fails, the task remains `[ ]` and the agent continues working on it.
+
+---
+
+## Windows Editing Policy
+
+- Use the first-party `apply_patch` tool for focused changes.
+- For necessary scripted PowerShell writes, use literal here-strings and avoid nested template interpolation.
+- Keep edits small, inspect each diff, and run syntax or focused checks immediately for code changes.
+- Use installed Prettier for whitespace and run the formatter before committing.
 
 ---
 
@@ -264,4 +317,3 @@ If any test fails, the task remains `[ ]` and the agent continues working on it.
 | speckit-converge        | "✅ Converged" reported             | Automatic (convergence)      |
 | code-review             | Zero blocking findings (both axes)  | User / Dual-Axis Sub-agents  |
 | ci-feedback-loop        | Remote CI green (Verdict: CI PASSED)| Automatic (GitHub Actions)   |
-

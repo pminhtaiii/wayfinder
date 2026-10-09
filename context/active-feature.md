@@ -1,6 +1,56 @@
 # Active Feature
 
-This file tracks the currently active in-flight feature, its checkpoints, and exit gates.
+This file points to the current feature state and its evidence; it is not a task-status ledger.
+
+## Current state and resume pointers (2026-10-09)
+
+- Read current task completion only from [the canonical Feature 030 task ledger](../specs/030-fulfillment-recovery-acceptance/tasks.md). Derive the first unchecked task when resuming; do not maintain another status list here.
+- Read recorded test evidence and remaining gate results from the [Phase 2 verification record](../specs/030-fulfillment-recovery-acceptance/verification-phase2.md).
+- Follow [Agent Coordination](workflow.md#agent-coordination-task-briefs-handoffs-and-reviews) for task briefs, live handoffs, review snapshots, and reports. The `agent:context handoff` command derives its candidate from the task ledger.
+- This retro documentation checkpoint does not activate Feature 030 implementation or change its status. When Feature 030 work is separately authorized, derive its first unchecked task from the ledger; existing workflow and design-approval gates still apply.
+
+## Historical checkpoints
+
+## Feature 030 Phase 2 checkpoint (2026-10-08)
+
+Phase 1 setup T001–T002 and original Phase 2 tasks T003–T016 are implemented and committed. The task ledger now marks T005 and T008 complete to match their reviewed implementation and test reports. This is a foundation and controlled-harness checkpoint, not full Feature 030 acceptance.
+
+The production recovery flag remains false. Durable journal services are wired but the production booking path is not yet routed through recovery operations; no live recovery, payment checkout, reconciliation, or operator flow is claimed. See the [Phase 2 verification record](../specs/030-fulfillment-recovery-acceptance/verification-phase2.md) for task evidence, local gates, and remaining limits.
+
+Verified task slices:
+- T003/T006: six migration and reservation-reader integration cases passed; Prisma validation/generation, API typecheck, and lint passed.
+- T004/T007: 20 real-PostgreSQL claim, renewal, takeover, fence, and callback-expiry rollback cases passed.
+- T005/T008: 35 provider-operation, workflow, and migration integration cases passed after the monotonic-outcome fix; the 119-suite / 2,173-test API unit run and API typecheck/lint passed.
+- T009: nullable-ID/RESERVED compatibility coverage passed 192 tests and real Nest module-composition coverage passed 3 tests; API typecheck, lint, build, and 212-entry partition checks passed.
+- T010/T011: guarded Stripe/supplier transport tests passed 49/49; API partition covered 216 suites exactly once.
+- T012/T013: guarded driver/bootstrap tests passed 12/12 with owned schema/Redis cleanup and zero reported leaks.
+- T014: isolated Stripe browser fixture passed 2/2; T015 virtual scheduler passed 8/8 and kept a real five-second DB lease unchanged during a 15-minute virtual advance.
+- T016: real Nest and Next startup/health/teardown smoke passed 17/17; API/web typechecks and lints, API build, and production-artifact exclusion checks passed.
+
+Current guarded local pre-PR gates passed: CI workflow contract 24/24; API unit 119 suites / 2,173 tests; API contract 2 suites / 8 tests; API component 22 suites / 276 tests after correcting the test environment; shared types 111 tests; API partition 216/216; and performance unit 1 suite / 3 tests. API and web production builds passed. These results do not turn the full API integration lane green.
+
+Integration remains unresolved. The earlier full run passed 69/72 suites and 687/701 tests; 11 T013 driver failures were caused by using the run-scoped application database URL where the driver requires its separate unscoped admin URL. T013 now uses that separate URL while retaining strict app URL validation, but the full lane has not been rerun. Focused diagnostics then found one Agent Gateway fixture returning FEATURE_DISABLED because its flag is set after AppModule loads, and two passenger confirmation cases returning PENDING at about 25 seconds, matching the existing 25-second safety timeout. The approved fixture startup-order correction is active; the internal wait behind the passenger timeout remains undiagnosed. Safety guards, timeout, and assertions remain intact.
+
+T017 and later user-story, rollout, convergence, and acceptance tasks remain open. T053/T054 and final convergence, dual-axis review, and PR CI have not run. Do not mark Feature 030 complete or enable recovery.
+
+## Retro documentation sync (2026-10-09)
+
+Updated the TypeScript guidance and its library-docs pointer, documented diff-aware enforcement, clarified verification reporting, corrected the PowerShell gate example, and moved the current Feature 030 checkpoint to the top.
+
+## Retro API checkout safety checkpoint (2026-10-09)
+
+Added the API task runner to serialize Prisma generation, builds, and Jest tasks within one checkout, reject concurrent
+ownership, and clear inherited Duffel override variables for isolated tests. CI routes Prisma generation through the
+package alias and supplies an explicit unscoped admin URL for the disposable integration database. The real component
+regression passed 32/32 with inherited Duffel mock overrides and the network guard enabled. Combined API runner and CI
+contracts passed 43 tests with one POSIX signal-forwarding case skipped on Windows; guarded API build and Prisma
+generation, lint, typecheck, and the exact 216-suite partition passed, and `.scratch/api-task.lock` was absent after the
+run. Full database integration and the full Docker image build were not run. This tooling checkpoint does not change
+Feature 030 status; its integration lane and passenger confirmation timeout diagnosis remain open.
+
+## Retro handoff tooling verification (2026-10-09)
+
+The helper returned the expected task contexts for T006, T017, and T030; combined helper and CI checks passed 35/35 (6 helper, 29 CI). A stale snapshot correctly rejected two changed files, and a fresh 8-file snapshot verified unchanged. This tooling result does not change Feature 030 task or rollout status.
 
 ---
 
@@ -165,25 +215,3 @@ Exit gate:
 ```text
 boundary census clean (0 unexplained leaks); domain orchestrators consume canonical offers; agent security performance gate green; dedicated test db isolation verified
 ```
-
-## Feature 030 Phase 2 checkpoint (2026-10-08)
-
-Phase 1 setup T001–T002 and original Phase 2 tasks T003–T016 are implemented and committed. The task ledger now marks T005 and T008 complete to match their reviewed implementation and test reports. This is a foundation and controlled-harness checkpoint, not full Feature 030 acceptance.
-
-The production recovery flag remains false. Durable journal services are wired but the production booking path is not yet routed through recovery operations; no live recovery, payment checkout, reconciliation, or operator flow is claimed. See the [Phase 2 verification record](../specs/030-fulfillment-recovery-acceptance/verification-phase2.md) for task evidence, local gates, and remaining limits.
-
-Verified task slices:
-- T003/T006: six migration and reservation-reader integration cases passed; Prisma validation/generation, API typecheck, and lint passed.
-- T004/T007: 20 real-PostgreSQL claim, renewal, takeover, fence, and callback-expiry rollback cases passed.
-- T005/T008: 35 provider-operation, workflow, and migration integration cases passed after the monotonic-outcome fix; the 119-suite / 2,173-test API unit run and API typecheck/lint passed.
-- T009: nullable-ID/RESERVED compatibility coverage passed 192 tests and real Nest module-composition coverage passed 3 tests; API typecheck, lint, build, and 212-entry partition checks passed.
-- T010/T011: guarded Stripe/supplier transport tests passed 49/49; API partition covered 216 suites exactly once.
-- T012/T013: guarded driver/bootstrap tests passed 12/12 with owned schema/Redis cleanup and zero reported leaks.
-- T014: isolated Stripe browser fixture passed 2/2; T015 virtual scheduler passed 8/8 and kept a real five-second DB lease unchanged during a 15-minute virtual advance.
-- T016: real Nest and Next startup/health/teardown smoke passed 17/17; API/web typechecks and lints, API build, and production-artifact exclusion checks passed.
-
-Current guarded local pre-PR gates passed: CI workflow contract 24/24; API unit 119 suites / 2,173 tests; API contract 2 suites / 8 tests; API component 22 suites / 276 tests after correcting the test environment; shared types 111 tests; API partition 216/216; and performance unit 1 suite / 3 tests. API and web production builds passed. These results do not turn the full API integration lane green.
-
-Integration remains unresolved. The earlier full run passed 69/72 suites and 687/701 tests; 11 T013 driver failures were caused by using the run-scoped application database URL where the driver requires its separate unscoped admin URL. T013 now uses that separate URL while retaining strict app URL validation, but the full lane has not been rerun. Focused diagnostics then found one Agent Gateway fixture returning FEATURE_DISABLED because its flag is set after AppModule loads, and two passenger confirmation cases returning PENDING at about 25 seconds, matching the existing 25-second safety timeout. The approved fixture startup-order correction is active; the internal wait behind the passenger timeout remains undiagnosed. Safety guards, timeout, and assertions remain intact.
-
-T017 and later user-story, rollout, convergence, and acceptance tasks remain open. T053/T054 and final convergence, dual-axis review, and PR CI have not run. Do not mark Feature 030 complete or enable recovery.

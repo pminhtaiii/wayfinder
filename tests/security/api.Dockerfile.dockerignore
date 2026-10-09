@@ -3,6 +3,9 @@
 !pnpm-lock.yaml
 !pnpm-workspace.yaml
 !tsconfig.json
+!scripts/
+!scripts/ci/
+!scripts/ci/run-api-task.mjs
 !apps/
 !apps/api/
 !apps/api/package.json

@@ -68,6 +68,9 @@ await this.prisma.$transaction([
 - Use `$transaction` for multi-table mutations (booking + payment + audit log)
 - Store raw Amadeus API responses in `jsonb` columns — never lose upstream data
 - Migration files are version-controlled and reviewed before merge
+- Use the checkout-safe Prisma generation and task sequencing procedure in
+  [API task runner and integration storage](testing.md#api-task-runner-and-integration-storage); its package command is
+  the supported path for generating the client.
 
 ---
 
@@ -171,7 +174,7 @@ async createOrder(flightOffer: FlightOffer, travelers: Traveler[]): Promise<Orde
 - `DuffelRateBudgetService` reserves every actual remote attempt against the atomic daily total; cache hits are free. Supplier adapters own admission and error mapping.
 - Domain consumers and orchestrators (`FlightSearchOrchestratorService`, `ChatHandoffService`, `BookingPassengerFinalValidatorService`, `BookingRecoveryService`) never receive or parse raw supplier shapes (`DuffelOffer`, raw order passenger shapes, etc.).
 - All expiry, freshness, travel-scope, and passenger-provenance facts are normalized into canonical port structures (`FlightOffer`, `FLIGHT_SEARCH_PORT`). Raw offer-to-booking snapshot conversion is owned strictly by the supplier search boundary.
-- Zero type assertions: Never use `as SomeType` or `as any`. Use type narrowing and runtime type guards across all supplier mappings and consumer boundaries.
+- TypeScript type-safety rules, including the `any` and type-cast restrictions and the allowed `as const` form, are defined in [Code Standards](code-standards.md#typescript).
 - Constructor injection: Inject all dependencies (adapters, ports, services) via NestJS constructor injection; never instantiate services with `new`.
 - Order capability services remain concrete: cancellation and recovery inject `DuffelOrderAdapter`; recovery also injects `OrderSnapshotNormalizer`. They neither expose SDK payload parsing to feature consumers nor introduce generic cancellation/recovery ports. `SupplierOrderModule` owns these services and `FULFILLMENT_GATEWAY_PORT`; cancellation, booking recovery, disruption sync, and payment fulfillment import its exports (T038–T039).
 - Cancellation replay succeeds only after explicit cancelled-order evidence. Unconfirmed or failed reconciliation retains failure; typed budget denial starts no reconciliation. Remote recovery preserves partial snapshot defaults and uses one complete-order retrieval before local normalization. `DuffelRecoveryService.mapOrderToSnapshots` reuses that normalizer for already-persisted order evidence without issuing another remote request.
