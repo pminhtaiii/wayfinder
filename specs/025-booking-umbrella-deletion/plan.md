@@ -2,7 +2,7 @@
 
 **Branch**: `codex/025-booking-umbrella-deletion` | **Date**: 2026-09-21 | **Spec**: [spec.md](spec.md)
 
-**Input**: Approved [grilling decisions](../../docs/adr/research-booking-umbrella-deletion-grilling-session.md) and feature specification.
+**Input**: Approved [grilling decisions](../../docs/adr/0009-booking-umbrella-deletion.md) and feature specification.
 
 ## Summary
 

@@ -146,7 +146,7 @@ Version ranges below cover the release lines represented in this workspace depen
 
 User-directed CI remediation on 2026-10-03 backports the source guards from [upstream PR #72](https://github.com/micromatch/braces/pull/72), commit `d0d575e`, into the pinned `braces@3.0.3` pnpm patch. Parser nesting and recursive compile/expand/stringify traversal are bounded at 100 levels, including caller-supplied ASTs. Deep input is rejected with a controlled syntax error; normal patterns retain their results.
 
-Reviewed patch SHA-256 and pnpm 10.34.5 lock patch hash: `795ff4ec62054830af82791060bccad7e6b551a7399488cbbd5dcb6017931861`. Patch path: `patches/braces@3.0.3.patch`. CI jobs use the same pnpm version so frozen installation and security scanning agree on the lock format.
+Reviewed patch SHA-256 and pnpm 10.34.5 lock patch hash: `795ff4ec62054830af82791060bccad7e6b551a7399488cbbd5dcb6017931861`. Patch path: `scripts/patches/braces@3.0.3.patch`. CI jobs use the same pnpm version so frozen installation and security scanning agree on the lock format.
 
 The audit registry still reports the published package version as affected. This single advisory is acknowledged through the existing exception mechanism only when the scanner verifies the reviewed patch digest and pnpm registration. Frozen installation and behavioral regressions run before the strict CI scan. Missing, altered, or unregistered patches fail closed; other findings retain their existing treatment. The exception expires with the current policy on **2026-10-12T00:00:00.000Z**. Replace the local patch with an upstream fixed release and remove this exception when one is published and compatibility checks pass.
 

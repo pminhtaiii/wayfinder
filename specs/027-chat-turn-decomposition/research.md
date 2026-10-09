@@ -1,6 +1,6 @@
 # Research: Chat Turn Decomposition
 
-**Source**: [Approved decision record](../../docs/adr/research-chatturnrunner-decomposition-grilling-session.md) and codebase census on 2026-09-25.
+**Source**: [Approved decision record](../../docs/adr/0016-chatturnrunner-decomposition.md) and codebase census on 2026-09-25.
 
 ## R1. Extraction direction
 

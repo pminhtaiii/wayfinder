@@ -1,6 +1,6 @@
 # Research: Flight Match Scoring
 
-This document resolves implementation details left open by `docs/adr/research-flight-match-scoring-decisions.md`. It does not reopen the ADR's approved product decisions.
+This document resolves implementation details left open by `docs/adr/0023-flight-match-scoring.md`. It does not reopen the ADR's approved product decisions.
 
 ## Decision 1: Keep scoring pure and supplier-independent
 

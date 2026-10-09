@@ -3,7 +3,7 @@
 **Feature Branch**: `codex/025-booking-umbrella-deletion`
 **Created**: 2026-09-21
 **Status**: Draft for implementation
-**Input**: [Booking umbrella deletion grilling decisions](../../docs/adr/research-booking-umbrella-deletion-grilling-session.md)
+**Input**: [Booking umbrella deletion grilling decisions](../../docs/adr/0009-booking-umbrella-deletion.md)
 
 ## User Scenarios & Testing
 

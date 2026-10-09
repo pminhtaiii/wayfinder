@@ -2,7 +2,7 @@
 
 **Branch**: `022-flight-match-scoring` | **Date**: 2026-08-30 | **Spec**: [spec.md](spec.md)
 
-**Input**: Feature specification from `/specs/022-flight-match-scoring/spec.md`, approved decisions from `docs/adr/research-flight-match-scoring-decisions.md`, and current architecture/profile/search/agent contracts.
+**Input**: Feature specification from `/specs/022-flight-match-scoring/spec.md`, approved decisions from `docs/adr/0023-flight-match-scoring.md`, and current architecture/profile/search/agent contracts.
 
 ## Summary
 

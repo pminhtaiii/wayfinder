@@ -3,7 +3,7 @@
 **Feature Branch**: `019-improve-architecture`
 **Created**: 2026-08-20
 **Status**: Approved input for planning
-**Input**: Owner-approved decisions in `docs/adr/research-architecture-review-deepening.md`, supplemented by `CONTEXT.md`.
+**Input**: Owner-approved decisions in `docs/adr/0004-architecture-review-deepening.md`, supplemented by `CONTEXT.md`.
 
 ## User Scenarios & Testing
 

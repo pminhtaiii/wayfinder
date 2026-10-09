@@ -13,7 +13,7 @@ Separate overly broad test buckets so each suite can be run independently and CI
 - Before this change, `.github/workflows/ci.yml` provisioned PostgreSQL and Redis and deployed migrations inside `api-unit-tests`, which ran the broad `test:ci` command.
 - The previous agent verification command selected `not redis_integration`. SC-004 wall-clock benchmarks were included in that correctness bucket.
 - `apps/api/package.json` already provides `test:e2e:performance`. `apps/api/test/jest-e2e.json` excludes performance-named files. Preserve and inspect this existing separation before adding another mechanism.
-- `docs/adr/research-cicd-smoke-sanity-decisions.md` deliberately keeps smoke and sanity in one job to reuse stack startup. Separate classification and reporting do not automatically require separate jobs.
+- `docs/adr/0018-cicd-smoke-sanity.md` deliberately keeps smoke and sanity in one job to reuse stack startup. Separate classification and reporting do not automatically require separate jobs.
 - The existing branch protection guidance requires only `ci-status`. Any split must preserve aggregation of required checks and correct handling of change-aware skips.
 
 ## Classification model

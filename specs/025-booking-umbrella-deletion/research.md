@@ -2,7 +2,7 @@
 
 ## Source and dependency check
 
-The [grilling record](../../docs/adr/research-booking-umbrella-deletion-grilling-session.md) is the decision source. The original `development` checkout had `BookingModule` forwarding five endpoints and `BookingManagementService` awaiting `BookingRecoveryService` in list/detail. Feature 024 merged into `origin/development` as PR #309 during planning. Its source provides `apps/api/src/booking-lifecycle/booking-state.module.ts`, root `EventEmitterModule.forRoot`, and `CacheService.acquireLock/releaseLock` implemented with `SET EX NX` and owner-token Lua release. Rebase this planning branch onto the refreshed base before publication.
+The [grilling record](../../docs/adr/0009-booking-umbrella-deletion.md) is the decision source. The original `development` checkout had `BookingModule` forwarding five endpoints and `BookingManagementService` awaiting `BookingRecoveryService` in list/detail. Feature 024 merged into `origin/development` as PR #309 during planning. Its source provides `apps/api/src/booking-lifecycle/booking-state.module.ts`, root `EventEmitterModule.forRoot`, and `CacheService.acquireLock/releaseLock` implemented with `SET EX NX` and owner-token Lua release. Rebase this planning branch onto the refreshed base before publication.
 
 ## Controller boundaries
 

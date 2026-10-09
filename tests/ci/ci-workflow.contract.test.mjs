@@ -101,6 +101,60 @@ function stepContaining(job, pattern, description) {
   return matches[0].block;
 }
 
+test('API and web gates check changed TypeScript after install against the PR base', () => {
+  const source = workflow();
+  for (const jobId of ['api-gate', 'web-gate']) {
+    const job = jobBlock(source, jobId);
+    assert.match(stepBlock(job, 'Checkout pull request'), /fetch-depth:\s+2/);
+    const install = stepBlock(job, 'Install Node dependencies');
+    const guard = stepBlock(job, 'Check changed TypeScript escapes');
+    assert.match(
+      guard,
+      /node scripts\/ci\/check-type-escapes\.mjs --base HEAD\^1/,
+    );
+    assert.ok(
+      job.indexOf(guard) > job.indexOf(install),
+      jobId + ' must run the guard after dependency installation',
+    );
+  }
+  assert.match(
+    stepBlock(jobBlock(source, 'api-gate'), 'Test TypeScript escape guard'),
+    /node --test tests\/ci\/check-type-escapes\.test\.mjs/,
+  );
+});
+
+test('detect-changes always runs the agent CLI tests after Node setup', () => {
+  const detect = jobBlock(workflow(), 'detect-changes');
+  const setupNode = stepBlock(detect, 'Set up Node 20');
+  const contextTests = stepBlock(detect, 'Test agent context CLI');
+  const workTests = stepBlock(detect, 'Test agent work CLI');
+  const workflowContracts = stepBlock(detect, 'Verify workflow contract');
+
+  assert.match(contextTests, /node --test tests\/ci\/agent-context\.test\.mjs/);
+  assert.match(workTests, /node --test tests\/ci\/agent-work\.test\.mjs/);
+  assert.ok(
+    detect.indexOf(contextTests) > detect.indexOf(setupNode),
+    'agent context tests must run after Node setup',
+  );
+  assert.ok(
+    detect.indexOf(workTests) > detect.indexOf(contextTests),
+    'agent work tests must run after the agent context tests',
+  );
+  assert.ok(
+    detect.indexOf(workTests) < detect.indexOf(workflowContracts),
+    'agent tests must run before the workflow contract checks',
+  );
+  for (const agentTest of [contextTests, workTests]) {
+    assert.doesNotMatch(agentTest, /^\s+if:/m, 'agent CLI tests must run unconditionally');
+  }
+  assert.doesNotMatch(detect, /^[\t\x20]{4}if:/m, 'detect-changes must remain unconditional');
+  assert.doesNotMatch(
+    detect,
+    /pnpm install/,
+    'the standalone CLI tests must not require dependency installation',
+  );
+});
+
 function jobIfExpression(job) {
   const match = job.match(/^    if:\s*(?:>-\s*\n)?\s*\$\{\{([\s\S]*?)\}\}\s*$/m);
   assert.ok(match, 'expected a GitHub Actions if expression');
@@ -368,7 +422,7 @@ test('workflow preserves service-specific validation and network boundaries', ()
   for (const requirement of [
     /eslint/,
     /pnpm build:shared/,
-    /prisma generate/,
+    /prisma:generate/,
     /tsc --noEmit/,
   ]) {
     assertContains(apiGate, requirement, `API gate must include ${requirement}`);
@@ -467,25 +521,28 @@ test('Agent unit, Redis, and performance selectors are independently required', 
   }
 });
 
-test('API unit and fast performance lanes use explicit Jest commands', () => {
+test('API unit and fast performance lanes use explicit locked task selectors', () => {
   const apiUnitTests = jobBlock(workflow(), 'api-unit-tests');
   const unitStep = stepBlock(apiUnitTests, 'Run API unit tests with loopback-only network');
   const apiPerformance = jobBlock(workflow(), 'api-performance-tests');
-  const performanceStep = stepBlock(apiPerformance, 'Run API performance checks with loopback-only network');
+  const performanceStep = stepBlock(
+    apiPerformance,
+    'Run API performance checks with loopback-only network',
+  );
   const apiPackage = JSON.parse(readFileSync(resolve(root, 'apps/api/package.json'), 'utf8'));
 
   assert.equal(
     apiPackage.scripts['test:unit'],
-    'jest --config ./jest-unit.json --runInBand',
-    'API package must expose an explicit deterministic CI unit command',
+    'node ../../scripts/ci/run-api-task.mjs test:unit',
+    'API unit command must run through the checkout task lock',
   );
   assert.match(unitStep, /pnpm --filter @api\/backend run test:unit/);
   assert.match(apiUnitTests, /pnpm build:shared/);
-  assert.match(apiUnitTests, /prisma generate/);
+  assert.match(apiUnitTests, /prisma:generate/);
   assert.equal(
     apiPackage.scripts['test:performance:unit'],
-    'jest --config ./jest-performance-unit.json --runInBand',
-    'API package must expose a fast in-process performance command',
+    'node ../../scripts/ci/run-api-task.mjs test:performance:unit',
+    'API performance command must run through the checkout task lock',
   );
   assert.match(performanceStep, /pnpm --filter @api\/backend run test:performance:unit/);
   assert.doesNotMatch(
@@ -505,8 +562,8 @@ test('default API E2E excludes runner-dependent performance benchmarks', () => {
   );
   assert.equal(
     apiPackage.scripts['test:e2e:performance'],
-    'jest --config ./test/jest-e2e-performance.json --runInBand',
-    'performance benchmarks must remain available through an explicit opt-in command',
+    'node ../../scripts/ci/run-api-task.mjs test:e2e:performance',
+    'performance benchmarks must remain available through the locked explicit opt-in command',
   );
   assert.doesNotMatch(
     workflow(),
@@ -695,7 +752,7 @@ test('smoke-and-sanity provisions the locked loopback stack and invokes only the
     /uv sync --locked --package agent/,
     /docker compose up -d/,
     /pnpm build:shared/,
-    /prisma generate/,
+    /prisma:generate/,
     /prisma migrate deploy/,
     /pnpm --filter @api\/backend build/,
     /pnpm --filter @web\/frontend build/,
@@ -858,7 +915,7 @@ test('local dependency patch changes route through API, web, and security checks
 
   for (const service of ['api', 'web', 'security']) {
     assert.ok(
-      filterBlock(detect, service).includes('patches/**'),
+      filterBlock(detect, service).includes('scripts/patches/**'),
       `${service} filter must include local dependency patches`,
     );
   }
@@ -882,15 +939,38 @@ test('API integration job provisions the database required by its recovery fixtu
   const apiIntegration = jobBlock(workflow(), 'api-integration-tests');
   const databaseName = 'fulfillment_recovery_test';
   const postgresDatabase = apiIntegration.match(/^\s+POSTGRES_DB:\s+([A-Za-z0-9_]+)$/m);
-  const postgresHealthDatabase = apiIntegration.match(/--health-cmd "pg_isready -U postgres -d ([A-Za-z0-9_]+)"/);
+  const postgresHealthDatabase = apiIntegration.match(
+    /--health-cmd "pg_isready -U postgres -d ([A-Za-z0-9_]+)"/,
+  );
   const databaseUrl = apiIntegration.match(/^\s+DATABASE_URL:\s+(\S+)$/m);
-  assert.equal(postgresDatabase?.[1], databaseName, 'PostgreSQL must create the recovery fixture database');
-  assert.equal(postgresHealthDatabase?.[1], databaseName, 'PostgreSQL health check must target the created database');
+  assert.equal(
+    postgresDatabase?.[1],
+    databaseName,
+    'PostgreSQL must create the recovery fixture database',
+  );
+  assert.equal(
+    postgresHealthDatabase?.[1],
+    databaseName,
+    'PostgreSQL health check must target the created database',
+  );
   assert.ok(databaseUrl, 'integration job must set DATABASE_URL');
   const parsedDatabaseUrl = new URL(databaseUrl[1]);
   assert.equal(parsedDatabaseUrl.pathname, '/' + databaseName);
   assert.equal(parsedDatabaseUrl.searchParams.get('schema'), 'public');
-  assert.match(apiIntegration, /image: redis:7-alpine/, 'integration job must provide its disposable Redis service');
+  const adminDatabaseUrl = apiIntegration.match(
+    /^\s+FULFILLMENT_HARNESS_ADMIN_DATABASE_URL:\s+(\S+)$/m,
+  );
+  assert.ok(adminDatabaseUrl, 'integration job must set the explicit harness admin database URL');
+  const parsedAdminDatabaseUrl = new URL(adminDatabaseUrl[1]);
+  assert.equal(parsedAdminDatabaseUrl.hostname, '127.0.0.1');
+  assert.equal(parsedAdminDatabaseUrl.pathname, '/' + databaseName);
+  assert.equal(parsedAdminDatabaseUrl.searchParams.has('schema'), false);
+  assert.equal(parsedAdminDatabaseUrl.protocol, parsedDatabaseUrl.protocol);
+  assert.match(
+    apiIntegration,
+    /image: redis:7-alpine/,
+    'integration job must provide its disposable Redis service',
+  );
   assert.match(apiIntegration, /REDIS_URL: redis:\/\/127\.0\.0\.1:6379\/0/);
 
   const integrationConfig = JSON.parse(
@@ -901,12 +981,81 @@ test('API integration job provisions the database required by its recovery fixtu
     '**/test/fulfillment-harness/scheduler.spec.ts',
     '**/test/fulfillment-harness/driver.spec.ts',
   ]) {
-    assert.ok(integrationConfig.testMatch.includes(selection), 'integration selector must include ' + selection);
+    assert.ok(
+      integrationConfig.testMatch.includes(selection),
+      'integration selector must include ' + selection,
+    );
   }
   const migrationPath = 'test/fulfillment-recovery-migration.e2e-spec.ts';
   assert.equal(
-    integrationConfig.testPathIgnorePatterns.some((pattern) => new RegExp(pattern).test(migrationPath)),
+    integrationConfig.testPathIgnorePatterns.some((pattern) =>
+      new RegExp(pattern).test(migrationPath),
+    ),
     false,
     'integration selector must not exclude the recovery migration fixture',
   );
+});
+
+test('API CI generates Prisma through the locked package task before workers start', () => {
+  const source = workflow();
+  const safeGenerateCommand = 'pnpm --filter @api/backend prisma:generate';
+  assert.equal(
+    source.split(safeGenerateCommand).length - 1,
+    6,
+    'each API CI workspace must generate Prisma through the task runner',
+  );
+  assert.doesNotMatch(
+    source,
+    /pnpm --filter @api\/backend exec prisma generate/,
+    'CI must not bypass the checkout task lock for Prisma generation',
+  );
+
+  const jobSteps = {
+    'api-gate': ['Typecheck API'],
+    'api-unit-tests': ['Run API unit tests with loopback-only network'],
+    'api-interface-tests': [
+      'Verify API test partitions cover the previous suite',
+      'Run shared package contract tests',
+      'Run API contract tests with loopback-only network',
+      'Run API component tests with loopback-only network',
+    ],
+    'api-performance-tests': ['Run API performance checks with loopback-only network'],
+    'api-integration-tests': ['Run API integration tests with loopback-only network'],
+    'smoke-and-sanity': ['Build API and Web applications'],
+  };
+  for (const [jobId, steps] of Object.entries(jobSteps)) {
+    const job = jobBlock(source, jobId);
+    assert.ok(
+      job.includes(safeGenerateCommand),
+      jobId + ' must generate Prisma through the task runner',
+    );
+    const install = stepBlock(job, 'Install Node dependencies');
+    assert.ok(
+      job.indexOf(safeGenerateCommand) > job.indexOf(install),
+      jobId + ' must generate after installing dependencies',
+    );
+    for (const stepName of steps) {
+      assert.ok(
+        job.indexOf(safeGenerateCommand) < job.indexOf(stepBlock(job, stepName)),
+        jobId + ' must generate Prisma before ' + stepName,
+      );
+    }
+  }
+});
+
+test('security API image includes the locked task runner in its Docker context', () => {
+  const dockerfile = readFileSync(resolve(root, 'tests/security/api.Dockerfile'), 'utf8');
+  const dockerignore = readFileSync(
+    resolve(root, 'tests/security/api.Dockerfile.dockerignore'),
+    'utf8',
+  );
+
+  assert.match(dockerfile, /^COPY scripts\/ci\/run-api-task\.mjs \.\/scripts\/ci\/$/m);
+  assert.match(dockerfile, /^RUN .*pnpm --filter @api\/backend build/m);
+  for (const allowedPath of ['!scripts/', '!scripts/ci/', '!scripts/ci/run-api-task.mjs']) {
+    assert.ok(
+      dockerignore.split(/\r?\n/).includes(allowedPath),
+      'API build context must include ' + allowedPath,
+    );
+  }
 });

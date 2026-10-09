@@ -16,7 +16,10 @@
     "build": "pnpm build:shared && pnpm --filter @api/backend build && pnpm --filter @web/frontend build",
     "dev": "pnpm --parallel dev",
     "test": "pnpm --recursive test",
-    "lint": "eslint \"{apps,packages}/**/*.{ts,tsx}\" --max-warnings 0",
+    "lint": "pnpm lint:types && eslint \"{apps,packages}/**/*.{ts,tsx}\" --max-warnings 0",
+    "lint:types": "node scripts/ci/check-type-escapes.mjs",
+    "agent:context": "node scripts/ci/agent-context.mjs",
+    "agent:work": "node scripts/ci/agent-work.mjs",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
     "test:smoke:units": "node --test tests/smoke/wait-for-ready.unit.test.mjs tests/smoke/mock-server.unit.test.mjs tests/smoke/test-utils.unit.test.mjs",
@@ -40,7 +43,7 @@
   },
   "pnpm": {
     "patchedDependencies": {
-      "braces@3.0.3": "patches/braces@3.0.3.patch"
+      "braces@3.0.3": "scripts/patches/braces@3.0.3.patch"
     },
     "overrides": {
       "fast-uri": "^3.1.8",

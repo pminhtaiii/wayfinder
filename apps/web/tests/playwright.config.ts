@@ -38,6 +38,7 @@ const frontendEnv = {
 
 export default defineConfig({
   testDir: './',
+  outputDir: path.resolve(__dirname, '../../../.agent-work/test_results/default'),
   testIgnore: t093RealFlow ? [] : '**/chat-t093-real-flow.spec.ts',
   fullyParallel: false,
   workers: 1,
@@ -45,7 +46,17 @@ export default defineConfig({
   expect: {
     timeout: 30000,
   },
-  reporter: process.env.CI ? 'line' : [['html', { open: 'never' }]],
+  reporter: process.env.CI
+    ? 'line'
+    : [
+        [
+          'html',
+          {
+            open: 'never',
+            outputFolder: path.resolve(__dirname, '../../../.agent-work/test_results/html'),
+          },
+        ],
+      ],
   use: {
     baseURL: 'http://127.0.0.1:3000',
     trace: 'on-first-retry',

@@ -776,7 +776,7 @@ test('an uncataloged GHSA in options.ignoreGhas / package.json fails closed if n
   }
 });
 
-const bracesPatchRelativePath = 'patches/braces@3.0.3.patch';
+const bracesPatchRelativePath = 'scripts/patches/braces@3.0.3.patch';
 const bracesPatchAdvisory = 'GHSA-VFJ7-8CJW-P6XM';
 
 function copyBracesScannerFixture(rootDir) {
@@ -873,7 +873,7 @@ test('ignores the braces advisory only when its reviewed patch and registrations
       (rootDir) => {
         const manifestPath = join(rootDir, 'package.json');
         const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-        manifest.pnpm.patchedDependencies['braces@3.0.3'] = 'patches/unregistered.patch';
+        manifest.pnpm.patchedDependencies['braces@3.0.3'] = 'scripts/patches/unregistered.patch';
         writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
       },
     ],
@@ -882,7 +882,7 @@ test('ignores the braces advisory only when its reviewed patch and registrations
       (rootDir) => {
         const workspacePath = join(rootDir, 'pnpm-workspace.yaml');
         const workspace = readFileSync(workspacePath, 'utf8');
-        const changed = replaceWorkspacePatchPath(workspace, 'patches/unregistered.patch');
+        const changed = replaceWorkspacePatchPath(workspace, 'scripts/patches/unregistered.patch');
         assert.notEqual(changed, workspace, 'workspace patch entry must exist in fixture');
         writeFileSync(workspacePath, changed, 'utf8');
       },
@@ -912,7 +912,7 @@ test('ignores the braces advisory only when its reviewed patch and registrations
       (rootDir) => {
         const lockPath = join(rootDir, 'pnpm-lock.yaml');
         const lock = readFileSync(lockPath, 'utf8');
-        const changed = replaceLockPatchPath(lock, 'patches/unregistered.patch');
+        const changed = replaceLockPatchPath(lock, 'scripts/patches/unregistered.patch');
         assert.notEqual(changed, lock, 'lock patch path must exist in fixture');
         writeFileSync(lockPath, changed, 'utf8');
       },

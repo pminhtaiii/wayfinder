@@ -107,7 +107,7 @@ Phases 3 and 5 may run in parallel after Phase 2/Phase 1 respectively. Phase 4 m
 ### Documentation (this feature)
 
 ```text
-specs/016a-traveler-profile-booking-readiness/
+specs/016-traveler-profile-booking-readiness/
 ├── spec.md
 ├── plan.md
 ├── research.md
@@ -173,7 +173,7 @@ docs/runbooks/
 3. Deploy dual-read/dual-write profile code. Backfill shadow-null rows with checkpoints, optimistic predicates, key-versioned envelopes, per-row decrypt/compare verification, quarantine, and abort if any mismatch exceeds the runbook threshold. Retain legacy values for rollback.
 4. Introduce plural routes. Route matrix: plural readiness/create/get are canonical; singular create/get/prefill remain aliases; ancillary/payment routes retain their current paths. Before hardening GET, deploy web code that consumes the new masked summary. Then make both GET aliases return identical safe shapes; legacy passport keys may remain `null` for shape compatibility.
 5. Enable API readiness for internal/test traffic, then secure web profile/readiness UI, then agent handoff. Disabling either flag hides new entry points and returns `404 FEATURE_DISABLED` from new-only endpoints while legacy checkout continues.
-6. Keep aliases and legacy expiry values through the observation window. Their removal is a separately reviewed cleanup feature driven by zero-use telemetry and verified backfill, not part of 016a.
+6. Keep aliases and legacy expiry values through the observation window. Their removal is a separately reviewed cleanup feature driven by zero-use telemetry and verified backfill, not part of 016.
 
 ## Observability Deliverables
 

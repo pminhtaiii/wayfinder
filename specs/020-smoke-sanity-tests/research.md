@@ -2,7 +2,7 @@
 
 ## Decision 1: Preserve the ADR's outcome, reconcile its assumed wire shapes
 
-**Decision**: Treat `docs/adr/research-cicd-smoke-sanity-decisions.md` as the scope authority, but bind the implementation to verified current public contracts. The plan records every mismatch rather than creating assertions for interfaces that do not exist.
+**Decision**: Treat `docs/adr/0018-cicd-smoke-sanity.md` as the scope authority, but bind the implementation to verified current public contracts. The plan records every mismatch rather than creating assertions for interfaces that do not exist.
 
 **Rationale**: The ADR correctly defines the desired guarantees, ordering, timing, isolation, and no-real-provider constraints. Repository inspection found several assumed field names, directions, and status codes that differ from the running architecture.
 

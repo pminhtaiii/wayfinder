@@ -208,7 +208,7 @@ As an operator, I can enable the new router, projections, direct stream, and han
 - The current service API key plus short-lived claim-token protocol supersedes the original ADR's raw JWT forwarding for agent-to-NestJS calls.
 - Redis stores only counters, locks, and the PII-free Trusted Search Snapshot; durable conversation content remains in PostgreSQL through NestJS.
 - The graph no longer requires human-interrupt checkpointing after the obsolete confirmation node is removed; durable chat history is reconstructed from NestJS and current trusted search state is restored from its bounded snapshot repository at turn start.
-- Existing readiness and canonical plural intent contracts from Feature 016a are dependencies; unfinished final-order work does not block server-side handoff token acceptance, but handoff issuance remains separately flaggable until canonical checkout consumption is ready.
+- Existing readiness and canonical plural intent contracts from Feature 016 are dependencies; unfinished final-order work does not block server-side handoff token acceptance, but handoff issuance remains separately flaggable until canonical checkout consumption is ready.
 - Offer freshness uses existing locally stored FlightOffer data and configured age limits during handoff creation/resolution; the existing deterministic checkout pipeline performs authoritative repricing at its normal commitment point.
 - Price-paid disclosure remains out of scope because the accepted tool inventory provides no protected financial capability.
 - Replacing the current custom guardrail engine with another third-party guardrail framework is out of scope; this feature preserves and re-verifies the existing fail-closed input/output boundary.

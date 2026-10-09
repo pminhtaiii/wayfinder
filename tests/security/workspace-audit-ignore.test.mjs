@@ -15,7 +15,7 @@ const fixtureFiles = [
   'pnpm-workspace.yaml',
   'pnpm-lock.yaml',
   'docs/security/dependency-advisories.md',
-  'patches/braces@3.0.3.patch',
+  'scripts/patches/braces@3.0.3.patch',
 ];
 
 let fixtureRoot;

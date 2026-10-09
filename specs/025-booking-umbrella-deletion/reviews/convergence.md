@@ -1,7 +1,7 @@
 # Plan Review Convergence
 
 **Date**: 2026-09-21
-**Scope**: [spec.md](../spec.md), [plan.md](../plan.md), [tasks.md](../tasks.md), design contracts, and [grilling decisions](../../../docs/adr/research-booking-umbrella-deletion-grilling-session.md).
+**Scope**: [spec.md](../spec.md), [plan.md](../plan.md), [tasks.md](../tasks.md), design contracts, and [grilling decisions](../../../docs/adr/0009-booking-umbrella-deletion.md).
 **Method**: Two independent subagent reviews of architecture and verification against the refreshed `origin/development` source, followed by root-agent decisions and a second pass. The named GSD convergence skill's referenced workflow files and `.planning` configuration are absent here, so its review–revise–review gate was applied to the repository's Spec Kit artifacts.
 
 ## Round 1 findings and decisions

@@ -6,7 +6,7 @@
 
 **Status**: Draft for review
 
-**Input**: Accepted traveler-profile and booking-readiness decisions in `docs/adr/research-traveler-profile-booking-readiness.md` and canonical vocabulary in `CONTEXT.md`.
+**Input**: Accepted traveler-profile and booking-readiness decisions in `docs/adr/0035-traveler-profile-booking-readiness.md` and canonical vocabulary in `CONTEXT.md`.
 
 ## User Scenarios & Testing _(mandatory)_
 

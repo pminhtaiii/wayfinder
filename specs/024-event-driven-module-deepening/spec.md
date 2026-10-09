@@ -6,7 +6,7 @@
 
 ## Input and scope
 
-Implement the recorded [payment decisions](../../docs/adr/research-payment-module-deepening-grilling-session.md) and [projection decisions](../../docs/adr/research-booking-projection-event-driven-grilling-session.md). One coordinated backend feature: extract payment orchestration, then cut over derived booking projections. Public booking/payment/agent contracts remain compatible. The user authorized spec, plan, tasks and iterative subagent reviews; this does not start implementation.
+Implement the recorded [payment decisions](../../docs/adr/0031-payment-module-deepening.md) and [projection decisions](../../docs/adr/0008-booking-projection-event-driven.md). One coordinated backend feature: extract payment orchestration, then cut over derived booking projections. Public booking/payment/agent contracts remain compatible. The user authorized spec, plan, tasks and iterative subagent reviews; this does not start implementation.
 
 ## User Scenarios & Testing
 

@@ -347,12 +347,12 @@ flowchart LR
 
 ## Constraints That Must Not Be Re-Litigated
 
-- **Stripe Auth → Duffel Order → Stripe Capture** ordering is fixed (ADR: research-payment-system-decisions.md)
-- **One-way dependency**: Saga → BookingLifecycle, never reverse (ADR: research-architecture-review-deepening.md)
-- **Provider-blind contracts**: BookingLifecycle and RefundSettlement consume normalized outcomes (ADR: research-architecture-review-deepening.md)
-- **FAILED is terminal**: No in-place retry, new Payment record required (ADR: research-payment-system-decisions.md)
-- **Max 2 payment attempts** per BookingIntent (ADR: research-payment-system-decisions.md)
-- **PostgreSQL two-phase locking only**: No Redis distributed locks for payment concurrency (ADR: research-payment-system-decisions.md)
-- **Consistency over availability (CP)**: No eventual consistency in payment mutations (ADR: research-payment-system-decisions.md)
+- **Stripe Auth → Duffel Order → Stripe Capture** ordering is fixed (ADR: 0032-payment-system.md)
+- **One-way dependency**: Saga → BookingLifecycle, never reverse (ADR: 0004-architecture-review-deepening.md)
+- **Provider-blind contracts**: BookingLifecycle and RefundSettlement consume normalized outcomes (ADR: 0004-architecture-review-deepening.md)
+- **FAILED is terminal**: No in-place retry, new Payment record required (ADR: 0032-payment-system.md)
+- **Max 2 payment attempts** per BookingIntent (ADR: 0032-payment-system.md)
+- **PostgreSQL two-phase locking only**: No Redis distributed locks for payment concurrency (ADR: 0032-payment-system.md)
+- **Consistency over availability (CP)**: No eventual consistency in payment mutations (ADR: 0032-payment-system.md)
 - **No generic saga framework** until a second saga-like workflow emerges
 - **No message queue** for user-facing synchronous payment transactions

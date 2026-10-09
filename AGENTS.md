@@ -27,6 +27,8 @@ Never read all context files at once. Selectively read only the document require
 | TDD development workflow & lifecycle phases | `context/workflow.md` |
 | Testing, E2E runners & pre-PR validation gates | `context/testing.md` |
 
+When dispatching, handing off, or reviewing agent work, follow **Agent coordination** in `context/workflow.md`; use `agent:context` for checkout-aware task, handoff, and source-snapshot commands. For coordinated working artifacts, follow [Session artifact dumps](context/workflow.md#session-artifact-dumps).
+
 ## Core Invariants
 
 - **Sub-Agent Delegation**: Always use subagents for code implementation and code reviews to avoid context rot.
@@ -34,21 +36,23 @@ Never read all context files at once. Selectively read only the document require
 - **Third-Party Libraries**: Load the library's installed skill first, then consult `context/library-docs.md` for repo-specific rules.
 - **Documentation Sync**: Update all relevant files in `context/` (e.g. `context/active-feature.md`, `context/architecture.md`) after completing any feature or slice.
 - **Fail-Fast on Repeated Failure**: If the same problem persists after one corrective prompt, stop immediately, explain the blockage, and ask the user for guidance.
+- **Parallel Work Ownership**: When coordinating parallel work, track generated artifacts alongside source files and generate or build prerequisites before dependent test workers start.
 
 ## Subagent Implementer Guardrails
 
 When dispatching an implementer subagent, enforce these standards in the task prompt:
-1. **Zero Type Assertions**: Never use `as SomeType` or `as any`. Use type narrowing and runtime type guards.
-2. **Clean Lint**: No unused imports or variables. Must pass package ESLint / Ruff checks.
+1. **No `any` or Type Casts**: Use `unknown` and narrow values with runtime guards. Never use `any` or cast values with `as SomeType`, `<SomeType>value`, or double assertions. `as const` may preserve literal inference without bypassing type checks.
+2. **Clean Lint**: No unused imports or variables. Run the applicable package lint from `context/testing.md`.
 3. **Ports & Adapters**: Depend only on exported port interfaces (e.g. `FLIGHT_SEARCH_PORT`), never internal vendor SDKs or implementations directly.
 4. **Constructor Injection**: Inject dependencies via NestJS constructor injection; never instantiate services with `new`.
-5. **Verify Before Returning**: Execute focused tests, typecheck, and package lint locally before marking tasks complete.
+5. **Verify Before Returning**: Use the applicable checks in `context/testing.md`. Report each check with its actual command and exit status, mark it passed or failed, and list applicable unrun checks with the reason. A focused pass does not complete the task while applicable gates remain.
 
 ## Windows & Environment Rules
 
 - **PowerShell Syntax**: The shell is Windows PowerShell. Use `;` or separate command calls, never bash `&&` chains.
 - **Path Formatting**: Always use native Windows backslashes or valid absolute paths (`C:\Booking Systems\...`) when calling file tools.
 - **Background Tasks**: Never poll `manage_task status` in a loop; wait for the system's reactive background task notification.
+- **Windows Editing**: Follow the [Windows Editing Policy](context/workflow.md#windows-editing-policy).
 
 ## Local Development Startup
 

@@ -1,6 +1,6 @@
 # Traveler Profile & Booking Readiness Operations Runbook
 
-Feature 16 operations and site reliability engineering runbook. Establishes the operational contract, observability baselines, incident playbooks, cryptographic invariants, backfill governance, and emergency procedures for Traveler Profile and Booking Readiness. See the [plan](../../specs/016a-traveler-profile-booking-readiness/plan.md), [spec](../../specs/016a-traveler-profile-booking-readiness/spec.md), [contracts](../../specs/016a-traveler-profile-booking-readiness/contracts/api.md), and [architecture](../../context/architecture.md).
+Feature 16 operations and site reliability engineering runbook. Establishes the operational contract, observability baselines, incident playbooks, cryptographic invariants, backfill governance, and emergency procedures for Traveler Profile and Booking Readiness. See the [plan](../../specs/016-traveler-profile-booking-readiness/plan.md), [spec](../../specs/016-traveler-profile-booking-readiness/spec.md), [contracts](../../specs/016-traveler-profile-booking-readiness/contracts/api.md), and [architecture](../../context/architecture.md).
 
 ---
 

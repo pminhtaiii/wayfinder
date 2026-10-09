@@ -1,6 +1,6 @@
 # Product Requirements Document: Ancillary Seat and Baggage Checkout
 
-**Feature**: 015a — Ancillary Seat and Baggage Checkout
+**Feature**: 015 — Ancillary Seat and Baggage Checkout
 
 **Status**: Ready for agent
 

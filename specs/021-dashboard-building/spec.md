@@ -6,7 +6,7 @@
 
 **Status**: Approved for planning
 
-**Input**: Build the production dashboard from the approved Wayfinder prototype and the decisions in `docs/adr/research-dashboard-decisions.md`.
+**Input**: Build the production dashboard from the approved Wayfinder prototype and the decisions in `docs/adr/0019-dashboard.md`.
 
 ## User Scenarios & Testing
 

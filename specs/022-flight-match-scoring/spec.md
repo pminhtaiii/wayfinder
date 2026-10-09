@@ -6,7 +6,7 @@
 
 **Status**: Draft derived from the approved flight-match scoring ADR
 
-**Input**: Create a deterministic flight match scoring module and the implementation plan and tasks required to deliver it, based on `docs/adr/research-flight-match-scoring-decisions.md` and prior project decisions.
+**Input**: Create a deterministic flight match scoring module and the implementation plan and tasks required to deliver it, based on `docs/adr/0023-flight-match-scoring.md` and prior project decisions.
 
 ## User Scenarios & Testing
 

@@ -68,6 +68,9 @@ await this.prisma.$transaction([
 - Use `$transaction` for multi-table mutations (booking + payment + audit log)
 - Store raw Amadeus API responses in `jsonb` columns — never lose upstream data
 - Migration files are version-controlled and reviewed before merge
+- Use the checkout-safe Prisma generation and task sequencing procedure in
+  [API task runner and integration storage](testing.md#api-task-runner-and-integration-storage); its package command is
+  the supported path for generating the client.
 
 ---
 
@@ -171,7 +174,7 @@ async createOrder(flightOffer: FlightOffer, travelers: Traveler[]): Promise<Orde
 - `DuffelRateBudgetService` reserves every actual remote attempt against the atomic daily total; cache hits are free. Supplier adapters own admission and error mapping.
 - Domain consumers and orchestrators (`FlightSearchOrchestratorService`, `ChatHandoffService`, `BookingPassengerFinalValidatorService`, `BookingRecoveryService`) never receive or parse raw supplier shapes (`DuffelOffer`, raw order passenger shapes, etc.).
 - All expiry, freshness, travel-scope, and passenger-provenance facts are normalized into canonical port structures (`FlightOffer`, `FLIGHT_SEARCH_PORT`). Raw offer-to-booking snapshot conversion is owned strictly by the supplier search boundary.
-- Zero type assertions: Never use `as SomeType` or `as any`. Use type narrowing and runtime type guards across all supplier mappings and consumer boundaries.
+- TypeScript type-safety rules, including the `any` and type-cast restrictions and the allowed `as const` form, are defined in [Code Standards](code-standards.md#typescript).
 - Constructor injection: Inject all dependencies (adapters, ports, services) via NestJS constructor injection; never instantiate services with `new`.
 - Order capability services remain concrete: cancellation and recovery inject `DuffelOrderAdapter`; recovery also injects `OrderSnapshotNormalizer`. They neither expose SDK payload parsing to feature consumers nor introduce generic cancellation/recovery ports. `SupplierOrderModule` owns these services and `FULFILLMENT_GATEWAY_PORT`; cancellation, booking recovery, disruption sync, and payment fulfillment import its exports (T038–T039).
 - Cancellation replay succeeds only after explicit cancelled-order evidence. Unconfirmed or failed reconciliation retains failure; typed budget denial starts no reconciliation. Remote recovery preserves partial snapshot defaults and uses one complete-order retrieval before local normalization. `DuffelRecoveryService.mapOrderToSnapshots` reuses that normalizer for already-persisted order evidence without issuing another remote request.
@@ -1039,8 +1042,9 @@ All security scanners, linters, container images, and audit drivers are pinned i
 ### 4. pip-audit & pnpm audit (Supply Chain / SCA)
 - **pip-audit**: CLI `2.7.3`, PyPI advisory service, maximum advisory age 24 hours. Scans frozen locked requirements exported from `apps/agent/uv.lock` via `uv export --package agent --locked --no-dev`.
 - **pnpm audit**: CI CLI `10.34.5`, aligned across Node validation and security jobs; live npm registry query, audit level `moderate`.
+- **Handlebars security update (2026-10-09)**: The lockfile resolves `handlebars@4.7.10` through the existing LangChain and ts-jest dependency ranges, fixing GHSA-8r5x-fm3f-whwj, GHSA-p8wg-vrv2-v86f, and GHSA-xw65-4hp5-5hc7. No advisory ignore or override was added.
 - **Advisory Deferral Policy**: Stored in `docs/security/dependency-advisories.md` with strict expiry (`Policy-Expires-At <= 30 days`), required owner, rationale, and CVE tracking.
-- **Locally patched braces 3.0.3**: `patches/braces@3.0.3.patch` backports upstream PR #72 nesting guards while no fixed release is available. Keep the package/workspace registrations, pnpm 10 lock metadata, and scanner's pinned SHA-256 synchronized. The GHSA-vfj7-8cjw-p6xm exception fails closed without verified patch evidence and expires on 2026-10-12; frozen CI installation and `tests/security/braces-patch.test.mjs` verify the applied behavior before auditing. Replace this local patch and remove the exception when an upstream fixed release passes compatibility checks.
+- **Locally patched braces 3.0.3**: `scripts/patches/braces@3.0.3.patch` backports upstream PR #72 nesting guards while no fixed release is available. Keep the package/workspace registrations, pnpm 10 lock metadata, and scanner's pinned SHA-256 synchronized. The GHSA-vfj7-8cjw-p6xm exception fails closed without verified patch evidence and expires on 2026-10-12; frozen CI installation and `tests/security/braces-patch.test.mjs` verify the applied behavior before auditing. Replace this local patch and remove the exception when an upstream fixed release passes compatibility checks.
 
 - **Patch review follow-up (2026-10-03)**: Workspace patch registration changes must route through the CI security filter. Workspace advisory verification searches only auditConfig.ignoreGhas, stopping at the next nonblank sibling or parent line (indentation two spaces or less), so later auditConfig lists cannot authorize a patch exception.
 

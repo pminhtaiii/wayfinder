@@ -6,8 +6,8 @@
 
 ## Repository Baseline
 
-- The standalone `apps/agent` FastAPI service, direct-to-agent target topology, JWT ingress, NestJS-owned chat persistence, manual sliding window/summary strategy, and read-only default tools originate in `docs/adr/research-chatbot-backend-architecture.md`.
-- The accepted orchestration decisions in `CONTEXT.md` and `docs/adr/research-chatbot-booking-orchestration-grilling-session.md` supersede the old open topology questions: four agent roles plus a deterministic handoff pipeline, six fixed read-only tools, asymmetric checkout gate, Trusted Search Snapshot, two-tier booking projection, and `ACTION_HANDOFF`.
+- The standalone `apps/agent` FastAPI service, direct-to-agent target topology, JWT ingress, NestJS-owned chat persistence, manual sliding window/summary strategy, and read-only default tools originate in `docs/adr/0014-chatbot-backend-architecture.md`.
+- The accepted orchestration decisions in `CONTEXT.md` and `docs/adr/0015-chatbot-booking-orchestration.md` supersede the old open topology questions: four agent roles plus a deterministic handoff pipeline, six fixed read-only tools, asymmetric checkout gate, Trusted Search Snapshot, two-tier booking projection, and `ACTION_HANDOFF`.
 - Current working code already supplies authenticated SSE, persistence, guardrails, API-key plus user-claim gateway auth, search/preferences/bookings/readiness tools, and tests. It does not supply the accepted router, tool tiers, trusted snapshot, token lifecycle, or action event.
 - Current contradictions to migrate: a Next.js stream proxy, monolithic graph, process-local `MemorySaver`/limits/queues, popped `FLIGHTS_CACHE`, broad booking DTO, fake `book_flight`, confirmation interrupt, unversioned action event, and no cross-language shared SSE contract.
 

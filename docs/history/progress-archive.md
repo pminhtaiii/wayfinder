@@ -3327,7 +3327,7 @@ the current status.
 ### [x] Feature: Traveler Profile & Booking Readiness (Feature 16)
 
 - [x] Phase 12 / Quickstart Validation Sequence, Observability & Performance Release Gates (Tasks T073–T077) (2026-08-19):
-  - **Complete Validation & Signed-Off Status (`specs/016a-traveler-profile-booking-readiness/quickstart.md`)**:
+  - **Complete Validation & Signed-Off Status (`specs/016-traveler-profile-booking-readiness/quickstart.md`)**:
     - Ran all quickstart validation commands with 100% green passing results across backend unit/integration tests, E2E observability, performance benchmarks, final validation E2E, booking intent E2E, Next.js web build, and Python agent test suites.
     - Verified performance p95 baselines: Profile Read p95 = 20.39 ms (< 50 ms target), Advisory Readiness p95 = 35.72 ms (< 100 ms target), Sequential Intent Creation p95 = 108.25 ms (< 200 ms target), 100-way concurrent intent creation handled gracefully.
     - Verified complete Negative PII Corpus Audit across logs, health snapshots (`/health/booking-readiness`), traces, audit logs, SSE streams, agent tool allowlists, and database models.

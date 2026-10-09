@@ -21,13 +21,17 @@ The AI agent on this project operates as a senior engineer. This means:
 ## TypeScript
 
 - Strict mode enabled in tsconfig.json — no exceptions
-- Never use `any` — use `unknown` and narrow the type
-- Never use type assertions (`as SomeType`) unless absolutely necessary and commented why
+- Never use `any` — use `unknown` and narrow values with runtime guards
+- Never cast a value with `as SomeType`, `<SomeType>value`, or double assertions. `as const` may preserve literal inference without bypassing type checks.
 - All function parameters and return types must be explicitly typed
 - Use `type` for object shapes and unions — use `interface` only for extendable component props
 - All async functions must have proper error handling — never let promises float unhandled
 - Use `const` by default — only use `let` when reassignment is necessary
 - Shared types between frontend and backend live in a `shared/types/` package — never redefine locally
+
+### Diff-aware enforcement
+
+The diff-aware guard checks added or modified code spans in `.ts`, `.tsx`, `.mts`, and `.cts` files across source and tests. It allows the stated `as const` form, skips untracked files ignored by Git and common build output directories, and still checks tracked TypeScript files under other Gitignored paths. Unchanged legacy violations remain outside its scope, so a pass does not certify them.
 
 ---
 

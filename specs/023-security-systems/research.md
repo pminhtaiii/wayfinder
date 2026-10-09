@@ -1,6 +1,6 @@
 # Research and Planning Decisions
 
-**Date**: 2026-09-04. Primary input: `docs/adr/research-llm-guardrail-architecture-decisions.md`. Supporting ADRs: `research-output-guardrails-architecture.md`, `research-agent-tool-calling-architecture.md`, `research-chatbot-backend-architecture.md`, all under `docs/adr/`. The primary guardrail ADR was amended after PR review on 2026-09-04 to align Decisions 2/7/10 with the refined resource and privacy contracts; supporting ADRs remain unchanged.
+**Date**: 2026-09-04. Primary input: `docs/adr/0028-llm-guardrail-architecture.md`. Supporting ADRs: `0030-output-guardrails-architecture.md`, `0002-agent-tool-calling-architecture.md`, `0014-chatbot-backend-architecture.md`, all under `docs/adr/`. The primary guardrail ADR was amended after PR review on 2026-09-04 to align Decisions 2/7/10 with the refined resource and privacy contracts; supporting ADRs remain unchanged.
 
 ## Code Evidence
 

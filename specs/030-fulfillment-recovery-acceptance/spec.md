@@ -3,7 +3,7 @@
 **Feature Branch**: codex/030-fulfillment-recovery-acceptance
 **Created**: 2026-10-07
 **Status**: Draft
-**Input**: Accepted booking fulfillment and payment verification decisions in docs/adr/research-booking-fulfillment-reconciliation-decisions.md and docs/adr/research-payment-verification-architecture-decisions.md.
+**Input**: Accepted booking fulfillment and payment verification decisions in docs/adr/0006-booking-fulfillment-reconciliation.md and docs/adr/0033-payment-verification-architecture.md.
 
 ## User Scenarios & Testing
 

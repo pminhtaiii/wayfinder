@@ -3,7 +3,7 @@
 **Feature:** 014 — Disruption & Flight-Change Management
 **Status:** Planned
 **Related plan:** [plan.md](./plan.md)
-**Decision record:** [Feature 14 grilling session](../../docs/adr/research-disruption-flight-change-grilling-session.md)
+**Decision record:** [Feature 14 grilling session](../../docs/adr/0021-disruption-flight-change.md)
 
 ## Problem Statement
 

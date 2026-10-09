@@ -9,6 +9,7 @@ COPY apps/api/src/ ./apps/api/src/
 COPY apps/api/prisma/ ./apps/api/prisma/
 COPY packages/shared/package.json packages/shared/tsconfig.json ./packages/shared/
 COPY packages/shared/src/ ./packages/shared/src/
+COPY scripts/ci/run-api-task.mjs ./scripts/ci/
 RUN pnpm install --frozen-lockfile --filter @api/backend... && pnpm --filter @api/backend build
 RUN chown -R security-api:security-api /app
 WORKDIR /app/apps/api

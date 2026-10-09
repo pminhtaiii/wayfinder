@@ -2,7 +2,7 @@
 
 **Branch**: `020-smoke-sanity-tests` | **Date**: 2026-08-26 | **Spec**: [spec.md](spec.md)
 
-**Input**: Owner-approved CI decisions in `docs/adr/research-cicd-smoke-sanity-decisions.md`, reconciled with verified repository contracts in [research.md](research.md).
+**Input**: Owner-approved CI decisions in `docs/adr/0018-cicd-smoke-sanity.md`, reconciled with verified repository contracts in [research.md](research.md).
 
 ## Summary
 

@@ -3,7 +3,7 @@
 **Feature Branch**: `codex/027-028-specs-review`
 **Created**: 2026-09-25
 **Status**: Draft for review
-**Input**: [Backend client decision record](../../docs/adr/research-backend-client-unification-grilling-session.md)
+**Input**: [Backend client decision record](../../docs/adr/0005-backend-client-unification.md)
 
 ## User Scenarios & Testing
 

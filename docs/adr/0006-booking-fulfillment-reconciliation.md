@@ -1,6 +1,6 @@
 # Booking Payment and Fulfillment Reconciliation Decisions
 
-> Status: Accepted target architecture. This refines the authorize-then-capture flow in [research-payment-system-decisions.md](./research-payment-system-decisions.md). Numerical timeout tiers in the earlier discussion are not accepted policy.
+> Status: Accepted target architecture. This refines the authorize-then-capture flow in [0032-payment-system.md](./0032-payment-system.md). Numerical timeout tiers in the earlier discussion are not accepted policy.
 >
 > Grilling checkpoint: Complete. The accepted behavior is ready for implementation planning; open technical details below do not reopen these decisions.
 

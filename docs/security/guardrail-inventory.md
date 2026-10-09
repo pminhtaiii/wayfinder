@@ -4,7 +4,7 @@
 **Task**: T001  
 **Status**: Completed Inventory & Baseline  
 **Date**: 2026-09-04  
-**Authority**: `AGENTS.md`, `context/architecture.md`, `specs/023-security-systems/contracts/guardrail-boundaries.md`, `docs/adr/research-llm-guardrail-architecture-decisions.md`
+**Authority**: `AGENTS.md`, `context/architecture.md`, `specs/023-security-systems/contracts/guardrail-boundaries.md`, `docs/adr/0028-llm-guardrail-architecture.md`
 
 ---
 
