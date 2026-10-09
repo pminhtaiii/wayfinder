@@ -134,4 +134,4 @@ CONFIRMED
 ## Next Steps
 
 - Execute the implementation plan with the refined architecture
-- Suggested skills: `/speckit-implement` or `/tdd`
+- Suggested skills: `/build-spec` or `/tdd`

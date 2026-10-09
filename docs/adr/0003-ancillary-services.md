@@ -256,4 +256,4 @@ Search → Flight selection → Passenger details → Ancillaries → Review →
 ## Next Steps
 
 - Write the feature spec using `/speckit-specify`
-- Execute the implementation plan with `/speckit-implement` or `/tdd`
+- Execute the implementation plan with `/build-spec` or `/tdd`
