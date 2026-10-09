@@ -95,9 +95,9 @@ This unrelated database note should not be copied into task context.
     join(root, 'context', 'workflow.md'),
     [
       '# Workflow',
-      '## Step 7: Converge',
-      '## Step 8: Dual-Axis Code Review',
-      '## Step 9: PR / CI Verification & Convergence',
+      '## Step 2: Converge',
+      '## Step 3: Dual-Axis Code Review',
+      '## Step 4: PR / CI Verification & Convergence',
     ].join('\n'),
     'utf8',
   );
@@ -137,7 +137,7 @@ test('handoff derives canonical counts and workflow pointers from source docs', 
   assert.match(result.stdout, /Canonical tasks: 1 checked; 6 open; 7 total/);
   assert.match(result.stdout, /First unchecked candidate \(not authorization\): - \[ \] T002/);
   assert.match(result.stdout, /specs\/feature\/verification\.md/);
-  assert.match(result.stdout, /Step 7: Converge -> Step 8: Dual-Axis Code Review -> Step 9:/);
+  assert.match(result.stdout, /Step 2: Converge -> Step 3: Dual-Axis Code Review -> Step 4:/);
   assert.doesNotMatch(result.stdout, /T099/);
   assert.doesNotMatch(result.stdout, /Stale summary says/);
 });

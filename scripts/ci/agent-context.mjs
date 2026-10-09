@@ -270,7 +270,7 @@ async function handoff(root, tasksInput) {
   const workflowSource = workflowText ? markdownLines(workflowText) : null;
   const gates = workflowSource
     ? headings(workflowSource.lines, workflowSource.visible).filter((heading) =>
-        /^Step [789]:/.test(heading.title),
+        /^Step [234]:/.test(heading.title),
       )
     : [];
   const evidence = workflowEvidencePointers(root, activeText);

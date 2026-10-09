@@ -10,7 +10,7 @@ Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 
 Both axes run as **parallel sub-agents** so they don't pollute each other's context, then this skill aggregates their findings.
 
-The issue tracker should have been provided to you — run `/setup-matt-pocock-skills` if `docs/agents/issue-tracker.md` is missing.
+For issue-backed reviews without explicit local spec and plan paths, the issue tracker should have been provided to you; run `/setup-matt-pocock-skills` if `docs/agents/issue-tracker.md` is missing. Reviews with explicit local spec and plan paths skip tracker setup and lookup.
 
 ## Process
 
@@ -24,6 +24,7 @@ Before going further, confirm the fixed point resolves (`git rev-parse <fixed-po
 
 ### 2. Identify the spec source
 
+When the caller supplies explicit local spec and plan paths (including `/build-spec` with `FEATURE_DIR/spec.md` and `FEATURE_DIR/plan.md`), those provided artifacts are authoritative. Do not search commit messages for issue references, fetch tracker tickets, or consult `docs/agents/issue-tracker.md` for that invocation. The standards axis still uses the repository's documented coding standards. For other invocations, use the source order below.
 Look for the originating spec, in this order:
 
 1. Issue references in the commit messages (`#123`, `Closes #45`, GitLab `!67`, etc.) — fetch via the workflow in `docs/agents/issue-tracker.md`.
