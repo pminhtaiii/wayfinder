@@ -3,7 +3,7 @@
 > **Date**: 2026-09-04
 > **Status**: Accepted (resource and telemetry contracts amended 2026-09-04)
 > **Scope**: Deterministic LLM Guardrail System — Unified gateway, layer composition, enforcement points, and threat mitigation.
-> **Builds on**: [research-output-guardrails-architecture.md](./research-output-guardrails-architecture.md), [research-agent-tool-calling-architecture.md](./research-agent-tool-calling-architecture.md), [research-chatbot-backend-architecture.md](./research-chatbot-backend-architecture.md)
+> **Builds on**: [0030-output-guardrails-architecture.md](./0030-output-guardrails-architecture.md), [0002-agent-tool-calling-architecture.md](./0002-agent-tool-calling-architecture.md), [0014-chatbot-backend-architecture.md](./0014-chatbot-backend-architecture.md)
 
 ---
 

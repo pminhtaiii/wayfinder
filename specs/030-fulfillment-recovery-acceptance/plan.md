@@ -2,7 +2,7 @@
 
 **Branch**: codex/030-fulfillment-recovery-acceptance | **Date**: 2026-10-07 | **Spec**: spec.md
 
-**Input**: Accepted decisions in docs/adr/research-booking-fulfillment-reconciliation-decisions.md and docs/adr/research-payment-verification-architecture-decisions.md.
+**Input**: Accepted decisions in docs/adr/0006-booking-fulfillment-reconciliation.md and docs/adr/0033-payment-verification-architecture.md.
 
 ## Summary
 

@@ -1,6 +1,6 @@
 # Phase 0 Research: Ancillary Seat and Baggage Checkout
 
-All technical unknowns are resolved for planning. The approved product decisions come from `docs/adr/research-ancillary-services-grilling-session.md`; repository evidence comes from the current Feature 9-14 implementation.
+All technical unknowns are resolved for planning. The approved product decisions come from `docs/adr/0003-ancillary-services.md`; repository evidence comes from the current Feature 9-14 implementation.
 
 ## 1. Feature boundary and flow placement
 

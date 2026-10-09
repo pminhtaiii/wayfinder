@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: Approved decisions in `docs/adr/research-ancillary-services-grilling-session.md` for Feature 15 ancillary services.
+**Input**: Approved decisions in `docs/adr/0003-ancillary-services.md` for Feature 15 ancillary services.
 
 ## User Scenarios & Testing
 

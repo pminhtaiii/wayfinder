@@ -2,7 +2,7 @@
 
 **Branch**: `codex/029-duffel-provider-narrowing` | **Date**: 2026-09-29 | **Spec**: [spec.md](./spec.md)
 
-**Input**: [Approved decisions](../../docs/adr/research-duffel-provider-narrowing-grilling-session.md), [specification](./spec.md), and [code reconciliation](./research.md).
+**Input**: [Approved decisions](../../docs/adr/0022-duffel-provider-narrowing.md), [specification](./spec.md), and [code reconciliation](./research.md).
 
 ## Summary
 

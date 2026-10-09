@@ -6,7 +6,7 @@
 
 **Status**: Approved input for planning
 
-**Input**: Owner-approved decisions in `docs/adr/research-cicd-smoke-sanity-decisions.md`.
+**Input**: Owner-approved decisions in `docs/adr/0018-cicd-smoke-sanity.md`.
 
 ## User Scenarios & Testing
 

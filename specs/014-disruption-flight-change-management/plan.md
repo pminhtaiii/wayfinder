@@ -2,7 +2,7 @@
 
 **Branch**: `014a-disruption-grilling-decisions` | **Date**: 2026-07-24 | **Spec**: [spec.md](./spec.md)
 
-**Input**: [PRD](./PRD.md), [feature specification](./spec.md), [domain glossary](../../CONTEXT.md), and [Feature 14 grilling ADR](../../docs/adr/research-disruption-flight-change-grilling-session.md)
+**Input**: [PRD](./PRD.md), [feature specification](./spec.md), [domain glossary](../../CONTEXT.md), and [Feature 14 grilling ADR](../../docs/adr/0021-disruption-flight-change.md)
 
 ## Summary
 

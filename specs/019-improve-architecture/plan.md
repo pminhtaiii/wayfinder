@@ -2,7 +2,7 @@
 
 **Branch**: `019-improve-architecture` | **Date**: 2026-08-20 | **Spec**: [spec.md](spec.md)
 
-**Input**: Owner-approved architecture decisions from `docs/adr/research-architecture-review-deepening.md`, formalized in `specs/019-improve-architecture/spec.md` and using the domain language in `CONTEXT.md`.
+**Input**: Owner-approved architecture decisions from `docs/adr/0004-architecture-review-deepening.md`, formalized in `specs/019-improve-architecture/spec.md` and using the domain language in `CONTEXT.md`.
 
 ## Summary
 

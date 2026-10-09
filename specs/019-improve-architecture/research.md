@@ -1,6 +1,6 @@
 # Phase 0 Research: Deepen Codebase Architecture
 
-This research resolves all technical choices needed to implement the approved decisions in `docs/adr/research-architecture-review-deepening.md`.
+This research resolves all technical choices needed to implement the approved decisions in `docs/adr/0004-architecture-review-deepening.md`.
 
 ## R1. Scope and delivery model
 

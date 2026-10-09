@@ -3,6 +3,7 @@ import path from 'path';
 
 export default defineConfig({
   testDir: './',
+  outputDir: path.resolve(__dirname, '../../../.agent-work/test_results/ancillary'),
   fullyParallel: false,
   workers: 1,
   reporter: 'line',

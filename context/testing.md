@@ -17,6 +17,7 @@ When the task involves writing, running, or verifying E2E tests:
 2. **Configuration**:
    - Backend E2E uses Jest, configured in `apps/api/test/jest-e2e.json`.
    - Frontend E2E uses Playwright, configured in `apps/web/tests/playwright.config.ts`.
+   - Playwright run artifacts use per-config folders under `.agent-work/test_results/` (`default`, `ancillary`, `state`, and `fulfillment`) so concurrent suites do not clean one another's output.
 
 3. **Running E2E Tests**:
    - Backend API E2E tests: run `npm run test:e2e --workspace=apps/api`
@@ -137,7 +138,7 @@ disposable services and applies migrations before running integration tests; loc
 Integration fixtures may create or remove their run-owned schemas and clear the selected Redis database, so never point
 these URLs at shared or production storage.
 
-Web Node discovery separates tests under `app/` (route contracts) from isolated tests elsewhere. The previous compatibility command remains available. The pre-existing `app/api/booking-management/route-parity.spec.ts` mock-loading failure is recorded in the [suite-separation decision record](../docs/adr/research-ci-test-boundaries-grilling-session.md); it is exposed through the route-contract/all-Node commands and is not silently skipped or newly included in required PR CI.
+Web Node discovery separates tests under `app/` (route contracts) from isolated tests elsewhere. The previous compatibility command remains available. The pre-existing `app/api/booking-management/route-parity.spec.ts` mock-loading failure is recorded in the [suite-separation decision record](../docs/adr/0017-ci-test-boundaries.md); it is exposed through the route-contract/all-Node commands and is not silently skipped or newly included in required PR CI.
 
 Agent primary selectors are disjoint: Redis-backed performance tests run only in the performance lane. Existing `redis_integration` and `performance` markers describe dependencies/purpose; collection assigns one primary lane to each test. Set `CI_REQUIRE_REDIS_TESTS=1` for Redis correctness and `CI_REQUIRE_PERFORMANCE_TESTS=1` for performance to reject empty required selections and fail required Redis-backed skips. To validate classification without touching Redis, set `CI_VALIDATE_TEST_PARTITIONS=1` and run `uv run --package agent pytest apps/agent/tests --collect-only -q --strict-markers`; clear that flag before normal runs. Lock TTL/refresh and ReDoS termination assertions remain correctness checks; a clock assertion alone does not make a benchmark.
 

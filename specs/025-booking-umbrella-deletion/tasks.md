@@ -13,7 +13,7 @@
 **Purpose**: Confirm the prerequisite design artifacts and the existing seams that the implementation will change.
 
 - [X] T001 [P] Verify Feature 024's `BookingStateModule`, global `EventEmitterModule.forRoot`, and owner-token cache locks in `apps/api/src/booking-lifecycle/booking-state.module.ts`, `apps/api/src/app.module.ts`, and `apps/api/src/cache/cache.service.ts`
-- [X] T002 [P] Reconcile `docs/adr/research-booking-umbrella-deletion-grilling-session.md`, `specs/025-booking-umbrella-deletion/contracts/booking-http.md`, and `specs/025-booking-umbrella-deletion/contracts/reconciliation-event.md` against the implementation plan before editing source
+- [X] T002 [P] Reconcile `docs/adr/0009-booking-umbrella-deletion.md`, `specs/025-booking-umbrella-deletion/contracts/booking-http.md`, and `specs/025-booking-umbrella-deletion/contracts/reconciliation-event.md` against the implementation plan before editing source
 
 ---
 

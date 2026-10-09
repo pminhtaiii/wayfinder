@@ -3,7 +3,7 @@
 **Feature:** 012 — Cancellation & Refund Recovery  
 **Status:** Planned  
 **Related plan:** [plan.md](./plan.md)  
-**Decision record:** [Cancellation and Refund Failure Handling](../../docs/adr/research-cancellation-and-refund-failure-handling.md)
+**Decision record:** [Cancellation and Refund Failure Handling](../../docs/adr/0012-cancellation-and-refund-failure-handling.md)
 
 ## Problem Statement
 

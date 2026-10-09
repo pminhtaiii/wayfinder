@@ -53,7 +53,7 @@ The system has zero event infrastructure — no `@nestjs/event-emitter`, no `Eve
 
 **Decision**: Emit events after the transaction commits. Projections are eventually consistent. The `BookingAgentProjection` is a derived read model, not a source of truth. A stale projection during a crash window is acceptable — the reconciliation cron repairs it.
 
-**ADR alignment**: The "no eventual consistency in payment mutations" constraint (from `research-payment-system-decisions.md`) applies to payment state (Stripe intents, captures, booking status transitions), not to derived read models. Payment mutations remain strictly CP. Projections are eventually consistent.
+**ADR alignment**: The "no eventual consistency in payment mutations" constraint (from `0032-payment-system.md`) applies to payment state (Stripe intents, captures, booking status transitions), not to derived read models. Payment mutations remain strictly CP. Projections are eventually consistent.
 
 **Pattern**: Collect events during the transaction, flush them to `EventEmitter2` after commit succeeds.
 
@@ -188,12 +188,12 @@ interface ProjectionReconciliationSource {
 
 ## Constraints That Must Not Be Re-Litigated
 
-- **Payment mutations remain CP** — no eventual consistency in payment state transitions (ADR: research-payment-system-decisions.md)
+- **Payment mutations remain CP** — no eventual consistency in payment state transitions (ADR: 0032-payment-system.md)
 - **Projections are eventually consistent** — derived read models, not sources of truth
 - **In-process EventEmitter2 only** — no message queue for a monolith (this session)
-- **No generic saga framework** until a second saga-like workflow emerges (ADR: research-payment-module-deepening-grilling-session.md)
+- **No generic saga framework** until a second saga-like workflow emerges (ADR: 0031-payment-module-deepening.md)
 - **Saga → BookingLifecycleService → events** — the saga never emits events directly; lifecycle service is the single emitter for booking state transitions
-- **BookingRecoveryService keeps direct Stripe + Duffel access** — reconciles crashed sagas, not routed through saga ports (ADR: research-payment-module-deepening-grilling-session.md)
+- **BookingRecoveryService keeps direct Stripe + Duffel access** — reconciles crashed sagas, not routed through saga ports (ADR: 0031-payment-module-deepening.md)
 - **Remaining 2 forwardRef cycles are separate work** — query coupling, not side-effect coupling
 
 ---

@@ -1,6 +1,6 @@
 # Tasks: Traveler Profile & Booking Readiness
 
-**Input**: Design documents from `specs/016a-traveler-profile-booking-readiness/`
+**Input**: Design documents from `specs/016-traveler-profile-booking-readiness/`
 
 **Prerequisites**: `plan.md`, `spec.md`, `research.md`, `data-model.md`, `contracts/api.md`, `observability.md`, `quickstart.md`
 
@@ -252,9 +252,9 @@
 - [x] T074 Implement shared feature counters/latency histograms and health snapshot exposure in `apps/api/src/common/observability/booking-readiness.metrics.ts` and `apps/api/src/health/health.controller.ts` until T073 passes with the operation call sites from T012, T018, T038, T049, T059, and T072
 - [x] T075 [P] Add the 100-warmed-request p95 gates with supplier calls disabled in `apps/api/test/booking-readiness.performance.e2e-spec.ts`
 - [x] T076 [P] Create dashboard panels, alert thresholds, backfill abort/quarantine, feature rollout/rollback, and incident steps in `docs/runbooks/booking-readiness.md`
-- [x] T077 Run the full validation sequence in `specs/016a-traveler-profile-booking-readiness/quickstart.md` and record only failures/remediation notes in that file
+- [x] T077 Run the full validation sequence in `specs/016-traveler-profile-booking-readiness/quickstart.md` and record only failures/remediation notes in that file
 - [x] T078 Update implemented data flow/module/route details in `context/architecture.md`, implementation status in `context/progress-checker.md`, and any changed commands in `context/workflow.md`
-- [x] T079 Verify every FR/SC row in `specs/016a-traveler-profile-booking-readiness/plan.md` has passing test evidence and run `git diff --check`
+- [x] T079 Verify every FR/SC row in `specs/016-traveler-profile-booking-readiness/plan.md` has passing test evidence and run `git diff --check`
 
 **Checkpoint**: All release gates pass; feature remains disabled by default until the documented rollout begins.
 

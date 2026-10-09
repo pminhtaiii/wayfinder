@@ -2,7 +2,7 @@
 
 **Branch**: `021-dashboard-building` | **Date**: 2026-08-28 | **Spec**: [spec.md](spec.md)
 
-**Input**: Approved decisions in `docs/adr/research-dashboard-decisions.md`, the Wayfinder prototype in `apps/web/app/prototype/dashboard/`, and the feature specification in `specs/021-dashboard-building/spec.md`.
+**Input**: Approved decisions in `docs/adr/0019-dashboard.md`, the Wayfinder prototype in `apps/web/app/prototype/dashboard/`, and the feature specification in `specs/021-dashboard-building/spec.md`.
 
 ## Summary
 

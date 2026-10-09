@@ -1,6 +1,6 @@
 # Tasks: Restoring the Checkout Foundation (Phase 0 / PR 1)
 
-**Input**: Design documents from `specs/015a-ancillary-seat-baggage-checkout/`
+**Input**: Design documents from `specs/015-ancillary-seat-baggage-checkout/`
 
 **Prerequisites**: plan.md, spec.md, contracts/api.md
 

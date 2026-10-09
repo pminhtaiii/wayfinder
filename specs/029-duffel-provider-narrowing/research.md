@@ -1,6 +1,6 @@
 # Research and code reconciliation
 
-Source of decisions: [Duffel provider narrowing grilling session](../../docs/adr/research-duffel-provider-narrowing-grilling-session.md). The supplied external file and repository ADR have identical SHA-256 content. Current code was inspected on `codex/029-duffel-provider-narrowing` before planning.
+Source of decisions: [Duffel provider narrowing grilling session](../../docs/adr/0022-duffel-provider-narrowing.md). The supplied external file and repository ADR have identical SHA-256 content. Current code was inspected on `codex/029-duffel-provider-narrowing` before planning.
 
 ## 1. Extraction boundary and order
 

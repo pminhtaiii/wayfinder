@@ -1,7 +1,7 @@
 # Visual Translation Guardrail Checklist
 
 **Feature Branch**: `021-dashboard-building`  
-**Related Spec**: [spec.md](../spec.md) | **Plan**: [plan.md](../plan.md) | **ADR Reference**: [docs/adr/research-dashboard-decisions.md](../../../docs/adr/research-dashboard-decisions.md)  
+**Related Spec**: [spec.md](../spec.md) | **Plan**: [plan.md](../plan.md) | **ADR Reference**: [docs/adr/0019-dashboard.md](../../../docs/adr/0019-dashboard.md)  
 **Target File**: `specs/021-dashboard-building/checklists/visual.md`
 
 ---

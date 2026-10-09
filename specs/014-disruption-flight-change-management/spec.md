@@ -6,7 +6,7 @@
 
 **Status**: Planned
 
-**Input**: Prior session context in `CONTEXT.md` and `docs/adr/research-disruption-flight-change-grilling-session.md`, expanded into an implementation-ready PRD.
+**Input**: Prior session context in `CONTEXT.md` and `docs/adr/0021-disruption-flight-change.md`, expanded into an implementation-ready PRD.
 
 ## User Scenarios & Testing _(mandatory)_
 

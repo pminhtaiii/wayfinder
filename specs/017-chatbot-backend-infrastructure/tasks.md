@@ -218,7 +218,7 @@
 - [x] T067 [P] [US4] Write failing service-auth, signed ordered-offer binding, owner/internal-session, stale-offer/attestation, cross-user, and exact-response E2E tests in `apps/api/test/chat-handoff.e2e-spec.ts`
 - [x] T068 [P] [US4] Write failing deterministic validate/create-node and no-LLM-client exposure tests in `apps/agent/tests/test_handoff_nodes.py`
 - [x] T069 [P] [US4] Write failing `ACTION_HANDOFF` ordering, strict schema, disconnect/retry, and privacy tests in `apps/agent/tests/test_sse_integration.py`
-- [x] T070 [US4] Run the Feature 016a checkout-readiness preflight from `specs/016a-traveler-profile-booking-readiness/plan.md`, record evidence in `specs/017-chatbot-backend-infrastructure/quickstart.md`, and stop with handoff issuance off if canonical readiness/intent prerequisites are not green
+- [x] T070 [US4] Run the Feature 016 checkout-readiness preflight from `specs/016-traveler-profile-booking-readiness/plan.md`, record evidence in `specs/017-chatbot-backend-infrastructure/quickstart.md`, and stop with handoff issuance off if canonical readiness/intent prerequisites are not green
 - [x] T071 [P] [US4] Write failing token-only readiness, claim acquire/owned-refresh/loss/cancel/expiry/recovery, supplier-hard-timeout-below-lease, final active-session/unexpired-claim consume, and 100-request single-winner tests proving every loser makes zero Duffel/payment calls in `apps/api/test/booking-readiness.e2e-spec.ts`, `apps/api/test/booking-intent.e2e-spec.ts`, and `apps/api/test/chat-handoff-concurrency.e2e-spec.ts`
 - [x] T072 [P] [US4] Write failing strict card, Origin/CSRF bootstrap POST, HttpOnly/Secure/SameSite cookie, clean redirect/URL, access-log redaction, and browser-storage privacy tests in `apps/web/tests/chat-checkout-handoff.spec.ts`
 
@@ -246,7 +246,7 @@
 5. **6E — Deterministic client/node (3 tasks)**: T068, T078, and T079. Stop after no-LLM-client and node validation pass.
 6. **6F — SSE action contract (2 tasks)**: T069 and T080. Stop after ordering/privacy/retry tests; public issuance remains off.
 7. **6G — Clean web bootstrap/resolve (3 tasks)**: T072 and T081–T082. Stop after cookie, clean-URL, owner-only resolution, and recovery states pass.
-8. **6H — Feature 016a gate (1 task)**: T070. Do not start claim/consume implementation unless the recorded preflight is green.
+8. **6H — Feature 016 gate (1 task)**: T070. Do not start claim/consume implementation unless the recorded preflight is green.
 9. **6I — Canonical claim/consume (3 tasks)**: T071, T083, and T084. End only when claim recovery and 100-way zero-supplier-loser tests are green.
 
 **Checkpoint**: US4 completes the end-to-end handoff. The LLM has no token endpoint/tool, resolve is refresh-safe, and one token creates at most one intent under concurrency.
@@ -432,7 +432,7 @@ Task T087: direct browser tests
 2. **US2**: Replace monolith/fake booking with specialist routing and safe disambiguation; issuance stays off.
 3. **US3**: Narrow booking data exposure and enable explicit detail.
 4. **US4A–D**: Deploy signal-only behavior, dark token acceptance, deterministic action support, and strict web resolution while issuance remains off.
-5. **US4E**: Pass the Feature 016a preflight, then enable issuance and atomic checkout consumption.
+5. **US4E**: Pass the Feature 016 preflight, then enable issuance and atomic checkout consumption.
 6. **US5**: Cut browser streaming directly to FastAPI, retain the proxy throughout observation, and complete operations/rollback evidence.
 7. **Polish**: Run full privacy/performance/regression gates and synchronize documentation while both rollback representations remain.
 8. **Transport cleanup**: Remove the proxy only after explicit transport observation approval and switch tests to direct-only configuration.

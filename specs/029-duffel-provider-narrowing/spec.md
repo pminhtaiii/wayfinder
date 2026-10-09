@@ -3,7 +3,7 @@
 **Feature Branch**: `codex/029-duffel-provider-narrowing`
 **Created**: 2026-09-29
 **Status**: Draft for implementation
-**Input**: [Approved grilling decisions](../../docs/adr/research-duffel-provider-narrowing-grilling-session.md)
+**Input**: [Approved grilling decisions](../../docs/adr/0022-duffel-provider-narrowing.md)
 
 ## Goal and scope
 

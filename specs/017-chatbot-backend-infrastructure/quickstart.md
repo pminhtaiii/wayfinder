@@ -10,7 +10,7 @@ This guide proves the feature through public boundaries. It does not replace the
 - Matching secrets in `apps/api/.env` and `apps/agent/.env`: `JWT_SECRET`, canonical JWT issuer/audience, `AGENT_SERVICE_API_KEY`, and `CLAIM_TOKEN_SECRET`.
 - External versioned key rings configured for ChatMessage AES-GCM, search attestation, and handoff token derivation; never place real values in source, PostgreSQL, backups, or test output.
 - Web public agent URL and agent CORS allowlist point to the actual development origins.
-- Feature 016a canonical plural readiness/intent contracts available for Phase 14 tests.
+- Feature 016 canonical plural readiness/intent contracts available for Phase 14 tests.
 
 ## Configuration Under Test
 
@@ -151,7 +151,7 @@ Required scenarios:
 
 ## Phase 14: Checkout Resolve, Claim, and Atomic Consume
 
-### Blocking Feature 016a preflight
+### Blocking Feature 016 preflight
 
 Before writing or enabling consumption, run the existing canonical plural readiness/intent contract tests and verify `POST /api/bookings/intents/readiness`, `POST /api/bookings/intents`, the shared evaluator, source resolution, and singular compatibility aliases are present. If this preflight fails, stop with dark create/resolve acceptance enabled and `FEATURE_FLAG_CHAT_HANDOFF_ISSUE=false`; do not improvise a second intent pipeline.
 
@@ -353,7 +353,7 @@ Record in `docs/runbooks/chatbot-handoff.md` and `context/progress-checker.md` o
 
 ### Phase 6: Work Package 6H Preflight Checkpoint (2026-08-07)
 
-- Run the Feature 016a checkout-readiness preflight tests in `apps/api` using `pnpm --filter @api/backend test`.
+- Run the Feature 016 checkout-readiness preflight tests in `apps/api` using `pnpm --filter @api/backend test`.
 - PASSED: 532/532 tests passed. Preflight is GREEN. (Initial blocking gaps resolved via subagent).
 - Canonical readiness/intent prerequisites are met. Proceeding to WP 6I.
 

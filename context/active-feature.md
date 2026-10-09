@@ -12,6 +12,7 @@ This file points to the current feature state and its evidence; it is not a task
 ## Coordinated work artifacts (2026-10-09)
 
 Working drafts, raw logs, reviews, screenshots, and handoff snapshots for coordinated work belong in its managed `.agent-work/<date>/<id>/` folder. Approved specs, task ledgers, ADRs, and concise verification records remain at their canonical project paths. Follow [Session artifact dumps](workflow.md#session-artifact-dumps); this note does not start, finish, or clean a session.
+Playwright run artifacts use ignored per-config folders under `.agent-work/test_results/` to keep runner output out of the workspace root.
 
 ## Historical checkpoints
 
@@ -64,7 +65,7 @@ Combined agent-work CLI and CI contracts passed 43 tests (0 failures, 1 Windows 
 
 ## Handoff Origin Policy (Design Accepted; Implementation Pending)
 
-- **Decision record**: [Handoff origin policy grilling session](../docs/adr/research-handoff-origin-policy-grilling-session.md).
+- **Decision record**: [Handoff origin policy grilling session](../docs/adr/0027-handoff-origin-policy.md).
 - **Direction**: One shared policy for entry and checkout proxy; malformed explicit configuration rejects everywhere, missing configuration falls back only in local development, request evidence is validated strictly, and redirects use the resolved trusted origin.
 - **Failure semantics**: Configuration failures return non-cacheable 503 responses; rejected evidence returns non-cacheable 403 responses, both before authentication or backend calls.
 - **Status**: Interview decisions accepted on 2026-10-06. Application implementation and verification remain pending.
@@ -72,7 +73,7 @@ Combined agent-work CLI and CI contracts passed 43 tests (0 failures, 1 Windows 
 
 - **Goal**: Separate unit, interface/component, infrastructure integration/migration, and performance results while preserving existing required coverage.
 - **Direction**: Independent suite commands and named change-aware CI jobs, a shared smoke/critical-flow startup, and one required `ci-status` aggregate.
-- **Decision record**: [CI test boundaries](../docs/adr/research-ci-test-boundaries-grilling-session.md).
+- **Decision record**: [CI test boundaries](../docs/adr/0017-ci-test-boundaries.md).
 - **Exit gates**: Exhaustive suite partition checks, focused runner checks, workflow/status contract tests, package lint/typechecks, and independent review. Infrastructure-backed checks require available disposable services; record any unexecuted checks explicitly.
 - **Delivered**: Four API test lanes, web unit/browser-interface lanes, three agent lanes, independent local commands, and fail-closed `ci-status` aggregation. Shared smoke/critical-flow startup is retained.
 - **Verified**: All 206 existing required API suites classified exactly once; web isolated Node tests 420/420; agent isolated tests 1,290 passed/4 skipped before additional guard regressions; CI contracts 40/40; network/smoke-runner checks 25/25; focused disposable-database API tests 18/18; package lint/typechecks and independent reviews passed.

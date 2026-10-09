@@ -1,6 +1,6 @@
 # Research: Backend Client Unification
 
-**Source**: [Approved decision record](../../docs/adr/research-backend-client-unification-grilling-session.md) and codebase census on 2026-09-25.
+**Source**: [Approved decision record](../../docs/adr/0005-backend-client-unification.md) and codebase census on 2026-09-25.
 
 ## R1. Scope and sequencing
 

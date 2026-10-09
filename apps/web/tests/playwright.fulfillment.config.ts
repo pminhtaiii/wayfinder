@@ -1,7 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
+import path from 'path';
 
 export default defineConfig({
   testDir: __dirname,
+  outputDir: path.resolve(__dirname, '../../../.agent-work/test_results/fulfillment'),
   testMatch: 'fulfillment-startup.spec.ts',
   fullyParallel: false,
   workers: 1,

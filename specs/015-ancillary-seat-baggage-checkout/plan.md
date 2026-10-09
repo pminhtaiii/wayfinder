@@ -2,7 +2,7 @@
 
 **Branch**: `015a-ancillary-seat-baggage-checkout` | **Date**: 2026-07-26 | **Spec**: [spec.md](./spec.md) | **PRD**: [prd.md](./prd.md)
 
-**Input**: Approved Feature 15 decisions in `docs/adr/research-ancillary-services-grilling-session.md` and the feature specification in `spec.md`.
+**Input**: Approved Feature 15 decisions in `docs/adr/0003-ancillary-services.md` and the feature specification in `spec.md`.
 
 ## Summary
 
@@ -61,7 +61,7 @@ Pre-design gate result: **PASS**. No unresolved clarifications remain.
 ### Feature documentation
 
 ```text
-specs/015a-ancillary-seat-baggage-checkout/
+specs/015-ancillary-seat-baggage-checkout/
 ├── prd.md
 ├── spec.md
 ├── plan.md

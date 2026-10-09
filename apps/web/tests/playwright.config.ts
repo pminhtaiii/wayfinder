@@ -38,6 +38,7 @@ const frontendEnv = {
 
 export default defineConfig({
   testDir: './',
+  outputDir: path.resolve(__dirname, '../../../.agent-work/test_results/default'),
   testIgnore: t093RealFlow ? [] : '**/chat-t093-real-flow.spec.ts',
   fullyParallel: false,
   workers: 1,

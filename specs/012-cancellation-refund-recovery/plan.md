@@ -1,7 +1,7 @@
 # Implementation Plan: Cancellation & Refund Recovery
 
 **Feature Branch**: `012-cancellation-refund-recovery`  
-**Input**: [CONTEXT.md](../../CONTEXT.md) and [cancellation/refund ADR](../../docs/adr/research-cancellation-and-refund-failure-handling.md)  
+**Input**: [CONTEXT.md](../../CONTEXT.md) and [cancellation/refund ADR](../../docs/adr/0012-cancellation-and-refund-failure-handling.md)  
 **Status**: Completed
 
 ## Summary

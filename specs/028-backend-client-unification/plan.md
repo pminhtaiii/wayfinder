@@ -2,7 +2,7 @@
 
 **Branch**: `codex/027-028-specs-review` | **Date**: 2026-09-25 | **Spec**: [spec.md](./spec.md)
 
-**Input**: [Feature specification](./spec.md), [decision record](../../docs/adr/research-backend-client-unification-grilling-session.md), and [research reconciliation](./research.md).
+**Input**: [Feature specification](./spec.md), [decision record](../../docs/adr/0005-backend-client-unification.md), and [research reconciliation](./research.md).
 
 ## Summary
 
