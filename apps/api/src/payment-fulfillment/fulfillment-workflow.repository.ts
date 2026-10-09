@@ -132,16 +132,16 @@ export class FulfillmentWorkflowRepository {
       SET
         "ownerToken" = ${randomUUID()},
         fence = fence + 1,
-        "leaseExpiresAt" = clock_timestamp() + (${duration}::double precision * INTERVAL '1 millisecond'),
-        "renewedAt" = clock_timestamp(),
+        "leaseExpiresAt" = (clock_timestamp() AT TIME ZONE 'UTC') + (${duration}::double precision * INTERVAL '1 millisecond'),
+        "renewedAt" = (clock_timestamp() AT TIME ZONE 'UTC'),
         "actorType" = ${actor.kind}::"WorkflowActorType",
         "actorId" = ${actor.actorId},
-        "updatedAt" = clock_timestamp()
+        "updatedAt" = (clock_timestamp() AT TIME ZONE 'UTC')
       WHERE "bookingIntentId" = ${bookingIntentId}
         AND (
           "ownerToken" IS NULL
           OR "ownerToken" = ''
-          OR "leaseExpiresAt" <= clock_timestamp()
+          OR "leaseExpiresAt" <= (clock_timestamp() AT TIME ZONE 'UTC')
         )
       RETURNING
         "id" AS "workflowId",
@@ -166,7 +166,7 @@ export class FulfillmentWorkflowRepository {
             AND "bookingIntentId" = ${claim.bookingIntentId}
             AND "ownerToken" = ${claim.ownerToken}
             AND fence = ${claim.fence}
-            AND "leaseExpiresAt" > clock_timestamp()
+            AND "leaseExpiresAt" > (clock_timestamp() AT TIME ZONE 'UTC')
           FOR UPDATE
         `);
         if (!hasLockedWorkflow(lockedRows, claim.workflowId)) {
@@ -181,7 +181,7 @@ export class FulfillmentWorkflowRepository {
             AND "bookingIntentId" = ${claim.bookingIntentId}
             AND "ownerToken" = ${claim.ownerToken}
             AND fence = ${claim.fence}
-            AND "leaseExpiresAt" > clock_timestamp()
+            AND "leaseExpiresAt" > (clock_timestamp() AT TIME ZONE 'UTC')
         `);
         if (!hasLockedWorkflow(currentRows, claim.workflowId)) {
           throw new ClaimExpiredDuringWriteError();
@@ -201,14 +201,14 @@ export class FulfillmentWorkflowRepository {
     const rows: unknown = await this.prisma.$queryRaw<unknown>(Prisma.sql`
       UPDATE "fulfillment_workflows"
       SET
-        "leaseExpiresAt" = clock_timestamp() + (${duration}::double precision * INTERVAL '1 millisecond'),
-        "renewedAt" = clock_timestamp(),
-        "updatedAt" = clock_timestamp()
+        "leaseExpiresAt" = (clock_timestamp() AT TIME ZONE 'UTC') + (${duration}::double precision * INTERVAL '1 millisecond'),
+        "renewedAt" = (clock_timestamp() AT TIME ZONE 'UTC'),
+        "updatedAt" = (clock_timestamp() AT TIME ZONE 'UTC')
       WHERE "id" = ${claim.workflowId}
         AND "bookingIntentId" = ${claim.bookingIntentId}
         AND "ownerToken" = ${claim.ownerToken}
         AND fence = ${claim.fence}
-        AND "leaseExpiresAt" > clock_timestamp()
+        AND "leaseExpiresAt" > (clock_timestamp() AT TIME ZONE 'UTC')
       RETURNING
         "id" AS "workflowId",
         "bookingIntentId",

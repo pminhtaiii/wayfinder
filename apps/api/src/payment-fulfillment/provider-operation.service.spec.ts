@@ -672,6 +672,16 @@ describe('ProviderOperationService database journal', () => {
       safeEvidence: null,
     });
 
+    await expect(
+      fixture.serviceA.reservePaymentAndIntentCreate(claim, {
+        idempotencyKeyId: booking.idempotencyKeyId,
+        attemptNumber: 2,
+        amount: 42_000,
+        currency: 'usd',
+        stripeCustomerId: null,
+      }),
+    ).rejects.toThrow('Payment idempotency key is already bound to another reservation');
+
     const nextIdempotencyKeyId = await createIdempotencyKey(fixture.prismaA, booking.userId);
     const secondReservation = await fixture.serviceA.reservePaymentAndIntentCreate(claim, {
       idempotencyKeyId: nextIdempotencyKeyId,

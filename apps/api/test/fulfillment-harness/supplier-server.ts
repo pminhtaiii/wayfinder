@@ -162,8 +162,12 @@ export async function startSupplierServer(
   }
 
   function consumeListFault(candidates: SupplierOrder[]): SimulatorFaultSelection | undefined {
+    const outcomes: readonly SimulatorFaultSelection['outcome'][] = [
+      'UNAVAILABLE', 'RATE_LIMITED', 'ZERO_CANDIDATES', 'MULTIPLE_CANDIDATES', 'UNLINKED_CANDIDATE',
+    ];
     const index = faults.findIndex(
       (fault) => fault.purpose === 'RECONCILE' &&
+        outcomes.includes(fault.outcome) &&
         candidates.some((order) => order.bookingIntentId === fault.bookingIntentId),
     );
     if (index < 0) return undefined;
@@ -460,7 +464,7 @@ export async function startSupplierServer(
       if (fault?.outcome === 'ZERO_CANDIDATES') {
         candidateData = [];
       } else if (fault?.outcome === 'MULTIPLE_CANDIDATES') {
-        const first = matchingOrders[0];
+        const first = matchingOrders.find((order) => order.bookingIntentId === fault.bookingIntentId);
         if (first) {
           const metadata = requireRecord(first.data.metadata) ?? {};
           candidateData = [
@@ -474,7 +478,7 @@ export async function startSupplierServer(
           ];
         }
       } else if (fault?.outcome === 'UNLINKED_CANDIDATE') {
-        const first = matchingOrders[0];
+        const first = matchingOrders.find((order) => order.bookingIntentId === fault.bookingIntentId);
         if (first) {
           const metadata = requireRecord(first.data.metadata) ?? {};
           candidateData = [{

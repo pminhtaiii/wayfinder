@@ -152,12 +152,13 @@ export class ProviderOperationService {
 
       const priorPaymentForKey = await tx.payment.findFirst({
         where: { idempotencyKeyId: input.idempotencyKeyId },
-        select: { id: true, bookingIntentId: true, fulfillmentWorkflowId: true },
+        select: { id: true, bookingIntentId: true, fulfillmentWorkflowId: true, attemptNumber: true },
       });
       if (
         priorPaymentForKey &&
         (priorPaymentForKey.bookingIntentId !== claim.bookingIntentId ||
           priorPaymentForKey.fulfillmentWorkflowId !== claim.workflowId ||
+          priorPaymentForKey.attemptNumber !== input.attemptNumber ||
           priorPaymentForKey.id !== workflow.currentPaymentId)
       ) {
         throw new ConflictException('Payment idempotency key is already bound to another reservation');
